@@ -2,6 +2,8 @@
 
 /*
 	point your tehybug to this file
+	
+	create a data folder in the same path as this script and make it writable, chmod 0777
 */
 echo 'OK';
 if(!empty($_REQUEST['sensor']))

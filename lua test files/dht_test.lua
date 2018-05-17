@@ -28,5 +28,5 @@ dew_imp = string.format("%.2f", dew_imp)
 print(status, temp, humi, temp_dec, humi_dec)
 
 gpio.mode(3, gpio.INPUT)
-generate_sensor_data_page()
 gpio.trig(3,"down", debounce(onChange))
+generate_sensor_data_page()

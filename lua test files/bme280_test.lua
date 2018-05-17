@@ -31,7 +31,7 @@ if T ~= nil then
 	temp_imp = string.format("%.2f", temp_imp)
 	qfe = string.format("%d.%02d", P/1000, P%1000)
 	qfe_imp = 0.02952998751 * qfe
-	qfe_imp = string.format("%.2f", qfe_imp)
+	qfe_imp = string.format("%.3f", qfe_imp)
 end
 if H ~= nil then
 	humi = string.format("%d.%02d", H/1000, H%1000)
@@ -45,5 +45,5 @@ if H ~= nil then
 end
 
 i2c.stop(0)
-generate_sensor_data_page()
 gpio.trig(3,"down", debounce(onChange))
+generate_sensor_data_page()

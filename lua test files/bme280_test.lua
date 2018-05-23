@@ -45,5 +45,3 @@ if H ~= nil then
 end
 
 i2c.stop(0)
-gpio.trig(3,"down", debounce(onChange))
-generate_sensor_data_page()

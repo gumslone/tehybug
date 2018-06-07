@@ -25,9 +25,3 @@ dew = string.format("%.2f", dew)
 dew_imp = (dew*1.8)+32
 dew_imp = string.format("%.2f", dew_imp)
 print(status, temp, humi, dew)
-<<<<<<< HEAD
-
-gpio.mode(3, gpio.INPUT)
-gpio.trig(3,"down", debounce(onChange))
-=======
->>>>>>> origin/master

@@ -76,13 +76,7 @@ local timeout=0
 if(system_status.system_status==0) then
 	print("Enter configuration mode")
 	dofile("config.lua")
-	dofile("setup.lc")
-elseif(system_status.system_status==-1) then
-	print("Enter software update mode")
-	if file.exists("firmware_update.lua") then
-		node.compile("firmware_update.lua")
-	end
-	dofile("firmware_update.lc")
+	dofile("setup.lua")
 elseif pcall(function () 
 	dofile("config.lua")
 end) then

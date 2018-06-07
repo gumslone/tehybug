@@ -21,6 +21,10 @@ tmr.alarm(5, 10000, 1, function()
 				temp_imp = (temp*1.8)+32
 				temp_imp = string.format("%.2f", temp_imp)
 				http_sent = 1
+<<<<<<< HEAD
+=======
+				
+>>>>>>> origin/master
 				
 			end
 		end,{});

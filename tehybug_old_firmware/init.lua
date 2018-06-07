@@ -104,7 +104,7 @@ end) then
 					tmr.stop(1)
 					print("Station: wrong password") 
 					print("Enter configuration mode")
-					dofile("setup.lc")
+					dofile("setup.lua")
 				elseif wifi.sta.status() == STAMODE.STATION_NO_AP_FOUND then
 					print("Station: AP not found")
 					node.dsleep(10*60*1000000)
@@ -135,5 +135,5 @@ end) then
 	end)
 else
 	print("Enter configuration mode")
-	dofile("setup.lc")
+	dofile("setup.lua")
 end

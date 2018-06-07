@@ -1,3 +1,4 @@
+	m = mqtt.Client(node.chipid(), 120)
 	-- for TLS: m:connect("192.168.11.118", secure-port, 1)
 	m:connect("192.168.0.25", "1883", 0, function(client)
 		-- publish a message with data = hello, QoS = 0, retain = 0

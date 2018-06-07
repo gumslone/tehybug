@@ -28,4 +28,3 @@ print(status, temp, humi, dew)
 
 gpio.mode(3, gpio.INPUT)
 gpio.trig(3,"down", debounce(onChange))
-generate_sensor_data_page()

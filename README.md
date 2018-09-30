@@ -1,8 +1,6 @@
-# tehybug
+# TeHyBug
 WIFI environmental data trackers
 
-this repository contains code examples and code updates for tehybugs which you can order from
-https://www.tindie.com/stores/gumslone/
+This repository contains code examples and code updates for TeHyBugs which you can order from [Tindie](https://www.tindie.com/stores/gumslone/)
 
-GumCP a Raspberry Pi Web Control Panel contains now a TeHyBug data logging module, go to the link below for the install instructions:
-https://github.com/gumslone/GumCP
+You may have a look at [GumCP](https://github.com/gumslone/GumCP), a Raspberry Pi Web Control Panel, which now contains a TeHyBug data logging module

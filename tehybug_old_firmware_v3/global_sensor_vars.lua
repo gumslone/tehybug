@@ -1,0 +1,13 @@
+oled_data = ''
+temp = ''
+temp_imp = ''
+humi = ''
+qfe = ''
+qfe_imp = ''
+dew = ''
+dew_imp = ''
+uv = ''
+lux = ''
+air = ''
+soil = ''
+vdd = adc.readvdd33(0)

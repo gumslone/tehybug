@@ -1,0 +1,14 @@
+<html>
+	<head>
+		<meta http-equiv="refresh" content="10">
+		<title>Sensor data</title>
+	</head>
+	<body>
+		<h3>Sensor data</h3>
+		<div><progress value="0" max="10" id="progressBar"></progress></div>
+	
+		<div style="margin-top: 15px;"><a href="/">&lt; Main Menu</a></div>
+		<script>var timeleft = 10;var downloadTimer = setInterval(function(){document.getElementById("progressBar").value = 10 - --timeleft;;if(timeleft <= 0){clearInterval(downloadTimer);}},1000);</script>
+		<link rel="stylesheet" href="/style.css.gz">
+	</body>
+</html>

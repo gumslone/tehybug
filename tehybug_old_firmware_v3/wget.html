@@ -1,0 +1,45 @@
+<html>
+<head>
+	<title>WGET TeHyBug_system_config.chip_id</title>
+</head>
+<body>
+	<h3>WGET</h3>
+	<div class="message warn">This feature will work only with previously configured WIFI credentials.<br/>After submitting wget file <a href="/configuration_sys_status.html">change the system status</a> to wget and restart the TeHyBug, it will restart and try to fetch the remote file. After a successful restart and wget you should be able to see your file in the <a href="/file_list.html">File List</a></div>
+	<!--message-->
+	<div>
+		<form method="get">
+		<input type="hidden" name="configuration_file" value="wget_config.lua">
+			<input type="hidden" name="configuration_name" value="wget">
+			<input type="hidden" name="action" value="save_configuration">
+			<div style="margin-top: 15px;">
+				<span>File url:</span><br/>
+				<input type="text" name="file_url" value="http://">
+			</div>
+			<div style="margin-top: 15px;">
+				<span>File name:</span><br/>
+				<input type="text" name="file_name" value="file_name.lua">
+			</div>
+			<div style="margin-top: 15px;">
+				<input type="checkbox" id="compile" name="compile" value="1">
+				<label for="compile">Compile file?</label>
+			</div>
+			<div style="margin-top: 15px;">
+				<input type="checkbox" id="do_file" name="do_file" value="1">
+				<label for="do_file">Dofile?</label>
+			</div>
+			<div style="margin-top: 15px;">
+				<input type="submit" value="WGET File">
+			</div>
+		</form>
+	</div>
+	
+	<div style="margin-top: 15px;">
+		<a href="/admin.html">&lt; Admin Menu</a>
+	</div>
+
+	<div style="margin-top: 15px;">
+		<a href="/">&lt; Main Menu</a>
+	</div>
+	<link rel="stylesheet" href="/style.css.gz">
+</body>
+</html>

@@ -1,0 +1,33 @@
+<html>
+<head>
+	<title>Display ONLY activation TeHyBug_system_config.chip_id</title>
+</head>
+<body>
+	<h3>Display ONLY activation</h3>
+	<div>TeHyBug key: system_config.bug_key</div>
+	<div class="message error">This configuration disables your MQTT or HTTP configuration and enables a display ONLY mode, so the sensor data won't be sent anywhere and will be shown only on the display.<br/>Make sure that you have created a <a href="/configuration_display.html">Display configuration</a> before activating the display ONLY mode.</div>
+	<!--message-->
+	<div>
+		<form method="get">
+			<input type="hidden" name="configuration_file" value="config.lua">
+			<input type="hidden" name="configuration_name" value="config">
+			<input type="hidden" name="request_type" value="display">
+			<input type="hidden" name="action" value="save_configuration">
+			<div style="margin-top: 15px;">
+				<span>Data Frequency (in minutes):</span><br/>
+				<input type="text" name="data_frequency" config.data_frequency pattern="[0-9]{1,2}">
+			</div>
+			<div style="margin-top: 15px;">
+				<input type="submit" value="Activate display ONLY">
+			</div>
+		</form>
+	</div>
+
+	<div style="margin-top: 15px;">
+		<a href="/">&lt; Main Menu</a>
+	</div>
+	
+	<link rel="stylesheet" href="/style.css.gz">
+
+</body>
+</html>

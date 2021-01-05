@@ -1,0 +1,48 @@
+<html>
+<head>
+	<title>Web Server Configuration TeHyBug_system_config.chip_id</title>
+</head>
+<body>
+	<h3>Web Server Configuration</h3>
+	<div>TeHyBug key: system_config.bug_key</div>
+	<div class="message warn">This configuration enabled web server on your TeHyBug.<br/>You will be able to access web page on your TeHyBug to view the recent sensor data.<br/>Please define a static ip address for this TeHyBug in your router settings.<br/>With a webserver a battery powered "power saving mode" will not work anymore, you should use a different power source, i.e. usb power supply. The data will appear at <b>http://tehybugsystem_config.chip_id.local/</b><!--abscdefg-->
+</div>
+	<!--message-->
+	<div>
+		<form method="get">
+			<input type="hidden" name="configuration_file" value="config.lua">
+			<input type="hidden" name="configuration_name" value="config">
+			<input type="hidden" name="action" value="save_configuration">
+			<div style="margin-top: 15px;">
+				<span>WiFi SSID:</span><br/>
+				<input type="text" name="wifi_router_ssid" config.wifi_router_ssid>
+			</div>
+			<div style="margin-top: 15px;">
+				<span>WiFi Password:</span><br/>
+				<input type="text" name="wifi_router_password" config.wifi_router_password><br/>
+			<div style="margin-top: 15px;">
+				<span>Data Frequency (in minutes):</span><br/>
+				<input type="text" name="data_frequency" config.data_frequency pattern="[0-9]{1,2}">
+			</div>
+			<div style="margin-top: 15px;">
+				<a href="/placeholders.html" target="_blank">Placeholders</a>
+			</div>
+			<div style="margin-top: 15px;">
+				<span>Web output:</span><br/>
+				<input type="text" name="web_output" config.web_output>
+			</div>
+			<div style="margin-top: 15px;">
+				<input type="hidden" name="request_type" value="web">
+				<input type="submit" value="Save configuration">
+			</div>
+
+		</form>
+	</div>
+	
+	<div style="margin-top: 15px;">
+		<a href="/">&lt; Main Menu</a>
+	</div>
+	<link rel="stylesheet" href="/style.css.gz">
+
+</body>
+</html>

@@ -1,0 +1,5 @@
+    Order id: "123"
+    Default data server url: "http://tehybug.com/track/?t=%temp%&h=%humi%&p=%qfe%&chipid=%chipid%&bug_key=%key%"
+    Connect to Wifi Network "TeHyBug_10780119"
+    Unique TeHyBug key: "d371a204-7126-49da-9445-bbe506ac94d2"
+    Sensor Type: "bme280"

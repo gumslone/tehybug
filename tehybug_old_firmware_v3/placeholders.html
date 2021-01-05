@@ -1,0 +1,189 @@
+<html>
+<head>
+	<title>Placeholders TeHyBug_system_config.chip_id</title>
+</head>
+<body>
+	<h3>Placeholders</h3>
+	<!--message-->
+	<div>
+			<div style="margin-top: 15px;">
+				<b>TeHyBug Key</b><br/>
+				<code>%key%</code>
+				Unique identifier for your TeHyBug.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>Temperature</b><br/>
+				<code>%temp%</code>
+				For temperature in &deg;Celsius.<br/>
+				<code>%temp_imp%</code>
+				For temperature in &deg;Fahrenheit.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>Humidity</b><br/>
+				<code>%humi%</code>
+				For humidity in %.<br/>
+				Depends on sensor type in your TeHyBug.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>Dew point</b><br/>
+				<code>%dew%</code>
+				For dew point in &deg;Celsius.<br/>
+				<code>%dew_imp%</code>
+				For dew point in &deg;Fahrenheit.<br/>
+				Works only with temperature and humidity TeHyBugs.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>Barometric air pressure</b><br/>
+				<code>%qfe%</code>
+				For air pressure in hPa.<br/>
+				<code>%qfe_imp%</code>
+				For air pressure in inHg.<br/>
+				Depends on sensor type in your TeHyBug.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>Air quality</b><br/>
+				<code>%air%</code>
+				For air pressure in kOhms.<br/>
+				Depends on sensor type in your TeHyBug.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>UV Light</b><br/>
+				<code>%uv%</code>
+				For UV light.<br/>
+				Depends on sensor type in your TeHyBug.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>Ambient Light luminance</b><br/>
+				<code>%lux%</code>
+				For Ambient Light light.<br/>
+				Depends on sensor type in your TeHyBug.
+			</div>
+			
+			<div style="margin-top: 15px;">
+				<b>Chip id</b><br/>
+				<code>%chipid%</code>
+				esp8266 chip id.
+			</div>
+			
+			<div style="margin-top: 15px;">
+				<b>System voltage</b><br/>
+				<code>%vdd%</code>
+				system voltage in mV.
+			</div>
+			
+			
+			
+			<div style="margin-top: 15px;">
+				<b>HTTP url Examples:</b><br/>
+				<code>http://tehybug.com/track/?t=%temp%&h=%humi%&p=%qfe%&a=%air%&u=%uv%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a BME680 and VEML6070 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&h=%humi%&p=%qfe%&u=%uv%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a BME280 and VEML6070 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&h=%humi%&p=%qfe%&a=%air%&l=%lux%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a BME680 and MAX44009 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&h=%humi%&p=%qfe%&l=%lux%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a BME280 and MAX44009 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&h=%humi%&p=%qfe%&a=%air%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a BME680 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&h=%humi%&p=%qfe%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a BME280 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&p=%qfe%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a BMP280 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&h=%humi%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a DHT22 sensor.<br/><br/>
+				<code>http://tehybug.com/track/?t=%temp%&chipid=%chipid%&bug_key=%key%</code>
+				For TeHyBug with a DS18B20 sensor.
+			</div>
+			<div style="margin-top: 15px;">
+				<b>MQTT message or HTTP POST content json Examples:</b><br/>
+				<code>{"t":"%temp%","h":"%humi%","p":"%qfe%","a":"%air%","u":"%uv%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a BME680 and VEML6070 sensor.<br/><br/>
+				<code>{"t":"%temp%","h":"%humi%","p":"%qfe%","u":"%uv%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a BME280 and VEML6070 sensor.<br/><br/>
+				<code>{"t":"%temp%","h":"%humi%","p":"%qfe%","a":"%air%","l":"%lux%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a BME680 and MAX44009 sensor.<br/><br/>
+				<code>{"t":"%temp%","h":"%humi%","p":"%qfe%","l":"%lux%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a BME280 and MAX44009 sensor.<br/><br/>
+				<code>{"t":"%temp%","h":"%humi%","p":"%qfe%","a":"%air%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a BME680 sensor.<br/><br/>
+				<code>{"t":"%temp%","h":"%humi%","p":"%qfe%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a BME280 sensor.<br/><br/>
+				<code>{"t":"%temp%","p":"%qfe%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a BMP280 sensor.<br/><br/>
+				<code>{"t":"%temp%","h":"%humi%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a DHT22 sensor.<br/><br/>
+				<code>{"t":"%temp%","chip_id":"%chipid%","bug_key":"%key%"}</code>
+				For TeHyBug with a DS18B20 sensor.
+			</div>
+			
+			<div style="margin-top: 15px;">
+				<b>WEB output Examples:</b><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Humidity:&lt;/b&gt; %humi% %&lt;br&gt;&lt;b&gt;Barometric air pressure:&lt;/b&gt; %qfe% hPa&lt;br&gt;&lt;b&gt;Air quality:&lt;/b&gt; %air% kOhms&lt;br&gt;&lt;b&gt;UV Light:&lt;/b&gt; %uv%</code>
+				For TeHyBug with a BME680 and VEML6070 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Humidity:&lt;/b&gt; %humi% %&lt;br&gt;&lt;b&gt;Barometric air pressure:&lt;/b&gt; %qfe% hPa&lt;br&gt;&lt;b&gt;UV Light:&lt;/b&gt; %uv%</code>
+				For TeHyBug with a BME280 and VEML6070 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Humidity:&lt;/b&gt; %humi% %&lt;br&gt;&lt;b&gt;Barometric air pressure:&lt;/b&gt; %qfe% hPa&lt;br&gt;&lt;b&gt;Air quality:&lt;/b&gt; %air% kOhms&lt;br&gt;&lt;b&gt;Ambient Light:&lt;/b&gt; %lux% Lux</code>
+				For TeHyBug with a BME680 and MAX44009 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Humidity:&lt;/b&gt; %humi% %&lt;br&gt;&lt;b&gt;Barometric air pressure:&lt;/b&gt; %qfe% hPa&lt;br&gt;&lt;b&gt;Ambient Light:&lt;/b&gt; %lux% Lux</code>
+				For TeHyBug with a BME280 and MAX44009 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Humidity:&lt;/b&gt; %humi% %&lt;br&gt;&lt;b&gt;Barometric air pressure:&lt;/b&gt; %qfe% hPa&lt;br&gt;&lt;b&gt;Air quality:&lt;/b&gt; %air% kOhms</code>
+				For TeHyBug with a BME680 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Humidity:&lt;/b&gt; %humi% %&lt;br&gt;&lt;b&gt;Barometric air pressure:&lt;/b&gt; %qfe% hPa</code>
+				For TeHyBug with a BME280 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Barometric air pressure:&lt;/b&gt; %qfe% hPa</code>
+				For TeHyBug with a BMP280 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C&lt;br&gt;&lt;b&gt;Humidity:&lt;/b&gt; %humi% %</code>
+				For TeHyBug with a DHT22 sensor.<br/><br/>
+				<code>&lt;b&gt;Temperature:&lt;/b&gt; %temp% &deg;C</code>
+				For TeHyBug with a DS18B20 sensor.
+				
+				<br/><br/><b>More placeholders for web output:</b><br/>
+				<code>%temp_values%</code>
+				For several measured temperature values in &deg;Celsius. (newest value first).<br/><br/>
+				
+				<code>%temp_imp_values%</code>
+				For several measured temperature values in &deg;Fahrenheit. (newest value first).<br/><br/>
+				<code>%humi_values%</code>
+				For several measured humidity values in %. (newest value first).<br/><br/>
+				
+				<code>%dew_values%</code>
+				For several measured dew point values in &deg;Celsius. (newest value first).<br/><br/>
+				
+				<code>%dew_imp_values%</code>
+				For several measured dew point values in &deg;Fahrenheit. (newest value first).<br/><br/>
+				
+				<code>%qfe_values%</code>
+				For several measured barometric air pressure values in hPa. (newest value first).<br/><br/>
+				
+				<code>%qfe_imp_values%</code>
+				For several measured barometric air pressure values in inHg. (newest value first).<br/><br/>
+				
+				<code>%air_values%</code>
+				For several measured air quality values. (newest value first).<br/><br/>
+				
+				<code>%uv_values%</code>
+				For several measured UV Light values. (newest value first).<br/><br/>
+				
+				<code>%lux_values%</code>
+				For several measured Ambient Light values. (newest value first).<br/><br/>
+				
+				
+				
+				<br/>
+				i.e. you can embed it in iframe.<br/>
+				You can also use the MQTT message examples for a json output format.
+			</div>
+
+			<div style="margin-top: 15px;">
+				More infos about TeHyBug can be found at tehybug.com or at the tindie store: https://www.tindie.com/stores/gumslone/
+			</div>
+			
+
+	</div>
+	
+	<div style="margin-top: 15px;">
+		<a href="/">&lt; Main Menu</a>
+	</div>
+	<link rel="stylesheet" href="/style.css.gz">
+</body>
+</html>

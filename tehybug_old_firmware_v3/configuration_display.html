@@ -1,0 +1,94 @@
+<html>
+<head>
+	<title>Display Configuration TeHyBug_system_config.chip_id</title>
+</head>
+<body>
+	<h3>Display Configuration</h3>
+	<div>TeHyBug key: system_config.bug_key</div>
+	<div class="message error">This configuration enables an 128x64 or 128x32 i2c oled display for your TeHyBug.<br/>With an oled display a battery powered "power saving mode" will not work anymore, you should use a different power source, i.e. usb power supply.<br/>Please do not create a display configuration if you don't use an oled display with your TeHyBug, it can cause a malfunction of your TeHyBug.<br/>The "Remove display" link will delete the display configuration file and deactivate the oled display.</div>
+	<!--message-->
+	<div>
+		<form method="get">
+			<input type="hidden" name="configuration_file" value="display_config.lua">
+			<input type="hidden" name="configuration_name" value="display_config">
+			<input type="hidden" name="action" value="save_configuration">
+			<!--div style="margin-top: 15px;">
+				<span>Display type:</span><br/>
+				<input type="text" name="type" display_config.type>
+			</div-->
+			<div style="margin-top: 15px;">
+				<a href="/placeholders.html" target="_blank">Placeholders</a>
+			</div>
+			<div style="margin-top: 15px;">
+				<span>Line 1 icon:</span><br/>
+				<select name="line1_icon" id="line1_icon" onchange="javascript:show_icon(this)">
+				</select>
+				<div id="line1_icon_preview" style="display: inline-block"></div>
+			</div>
+			<div style="margin-top: 15px;">
+				<span>Line 1:</span><br/>
+				<input type="text" name="line1" display_config.line1 placeholder="T: %temp% &deg;C">
+			</div>
+			<hr/>
+			<div style="margin-top: 15px;">
+				<span>Line 2 icon:</span><br/>
+				<select name="line2_icon" id="line2_icon" onchange="javascript:show_icon(this)">
+				</select>
+				<div id="line2_icon_preview" style="display: inline-block"></div>
+			</div>
+			<div style="margin-top: 15px;">
+				<span>Line 2:</span><br/>
+				<input type="text" name="line2" display_config.line2 placeholder="H: %humi% %">
+			</div>
+			<hr/>
+			<div style="margin-top: 15px;">
+				<span>Line 3 icon:</span><br/>
+				<select name="line3_icon" id="line3_icon" onchange="javascript:show_icon(this)">
+				</select>
+				<div id="line3_icon_preview" style="display: inline-block"></div>
+			</div>
+			<div style="margin-top: 15px;">
+				<span>Line 3:</span><br/>
+				<input type="text" name="line3" display_config.line3 placeholder="P: %qfe%hPa">
+			</div>
+			<div style="margin-top: 15px;">
+				<input type="checkbox" id="flip" name="flip" value="180">
+				<label for="flip">Flip screen?</label>
+			</div>
+			<div style="margin-top: 15px;">
+				<input type="submit" value="Save configuration">
+			</div>
+		</form>
+	</div>
+	<div style="margin-top: 15px;">
+		<a href="/?action=remove_display" onclick="return confirm('Are you sure you want to remove display configuration?');">Remove display</a>
+	</div>
+	<div style="margin-top: 15px;">
+		<a href="/">&lt; Main Menu</a>
+	</div>
+
+<script>
+function show_icon(a) {
+	var x = (a.value || a.options[a.selectedIndex].value);
+	if(x!='')
+	{
+		document.getElementById(a.id+'_preview').innerHTML = '<div class="'+x.replace(".MONO","").replace("_","-")+'"></div>';
+	}
+}
+var icons = ["air","air2","barometer","barometer2","battery","bitcoin","burger","calc","camera",
+"clock","cloud","cloudy","cocktail","coffee","cup","dew_point","envelope","fan","fish","globe","heart",
+"house","humidity","key","leaf","lightning","lock","message","night","rain","rainbow","smartphone",
+"sun","sun2","sunset","temperature"];
+var options_html = '<option value="">None</option>';
+for(var i = 0; i < icons.length; i++)
+{
+	options_html += '<option value="icon_'+icons[i]+'.MONO">'+icons[i]+'</option>';
+}
+document.getElementById("line1_icon").innerHTML = options_html;
+document.getElementById("line2_icon").innerHTML = options_html;
+document.getElementById("line3_icon").innerHTML = options_html;
+</script>
+<link rel="stylesheet" href="/style.css.gz">
+
+</body>
+</html>

@@ -6,6 +6,9 @@ Gumboard is a tiny wifi development/hacking board based on the esp8582 M1 Module
 
 <img src="https://github.com/gumslone/tehybug/blob/master/gumboard/images/dwc.jpg?raw=true" width="400">
 
+Available for Purchase at <a href="https://www.tindie.com/products/25406/">Tindie</a>
+
+This board with a TeHyBug universal sensor can replace any TeHyBug board when battery powered operation is not needed.
 
 ## Features
 

@@ -4,7 +4,7 @@
 
 Gumboard is a tiny wifi development/hacking board based on the esp8582 M1 Module. It has most things you need on the  board to connect sensors, display, etc and start hacking.
 
-![enter image description here](https://github.com/gumslone/tehybug/blob/master/gumboard/images/dwc.jpg?raw=true)
+<img src="https://github.com/gumslone/tehybug/blob/master/gumboard/images/dwc.jpg?raw=true" width="400">
 
 # Features
 
@@ -20,5 +20,4 @@ Gumboard is a tiny wifi development/hacking board based on the esp8582 M1 Module
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
 Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash binaries to the board.
 In the src folder you will find binaries and code examples for the board.
-
-![enter image description here](https://github.com/gumslone/tehybug/blob/master/gumboard/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true)
+<img src="https://github.com/gumslone/tehybug/blob/master/gumboard/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">

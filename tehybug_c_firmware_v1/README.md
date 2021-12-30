@@ -18,3 +18,10 @@ Supported sensors:
 * DHT21/DHT22/AM2032 (in dht simulation mode)
 * AHT20
 * MAX44009
+
+how to flash?
+You will need an USB2UART Programmer and python esptool.
+
+Replace /dev/cu.usbserial-1410 with your usb2serial port.
+
+```esptool.py --port=/dev/cu.usbserial-1410  write_flash 0x00000 desired_tehybug_firmware.bin```

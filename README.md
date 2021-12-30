@@ -1,5 +1,5 @@
 # TeHyBug
-WIFI environmental data trackers
+WIFI environmental data loggers
 
 This repository contains code examples and code updates for TeHyBugs which you can order from [Tindie](https://www.tindie.com/stores/gumslone/)
 

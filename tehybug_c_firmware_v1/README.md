@@ -2,7 +2,7 @@ This is a different TeHyBug firmware fully written in c, (previous was partially
 
 This firmware supports easy OTA Updates.
 
-It has a limited sensor, support compared to the Lua firmware.
+It has a limited sensor support compared to the Lua firmware.
 I.e. it doesnt support AM2032 Sensor in i2c mode also there are some issues with ds18b20.
 
 This firmware is compatible with tehybug universal boards like:

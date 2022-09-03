@@ -86,7 +86,7 @@ boolean oldState = HIGH;
 int     mode     = 0;    // Currently-active animation mode, 0-9
 
 
-String key, temp, humi, dew, qfe, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2;
+String key, temp, humi, dew, qfe, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2 = "N/A";
 
 String i2c_addresses = "";
 

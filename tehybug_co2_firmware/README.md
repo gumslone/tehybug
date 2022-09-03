@@ -12,7 +12,7 @@ Features:
 To flash firmware use the .esp8285.bin file.
 You can use esptool.py tool or others which are described at: https://nodemcu.readthedocs.io/en/latest/flash/
 
-To update the firmware from OTA WebInterface open http://tehybug.local/update in your browser, if this doesnt work, try to find out its IP from your router admin menu or use any local network ip scanner app for your mobile phone to get the device ip and then open http://<ip address>/update with your browser.
+To update the firmware from OTA WebInterface open http://tehybug.local/update in your browser, if this doesnt work, try to find out its IP from your router admin menu or use any local network ip scanner app for your mobile phone to get the device ip and then open http://<ip_address<ip address>>/update with your browser.
 
 For the update page you will have to provide a username and a passord:
   

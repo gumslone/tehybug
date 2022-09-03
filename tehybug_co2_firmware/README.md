@@ -19,3 +19,5 @@ For the update page you will have to provide a username and a passord:
 Username: TeHyBug
   
 Password: FreshAirMakesSense
+
+TeHyBug Mini CO2 SCD4X Enclosure for 3D Printing is available on Thingiverse: https://www.thingiverse.com/thing:5494215

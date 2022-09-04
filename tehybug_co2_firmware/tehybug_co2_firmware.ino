@@ -483,7 +483,14 @@ void publishState() {
   wifiJson["rssi"] = WiFi.RSSI();
 
   stateJson["co2"] = co2;
-  stateJson["temperature"] = temp;
+  if (Config::imperial_temp == true)
+  {
+    stateJson["temperature"] = temp_imp;
+  }
+  else
+  {
+    stateJson["temperature"] = temp;
+  }
   stateJson["humidity"] = humi;
   stateJson["pressure"] = qfe;
 
@@ -508,7 +515,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.09.03";
+  device["sw_version"] = "2022.09.04";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;

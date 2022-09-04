@@ -17,7 +17,7 @@ TeHyBug Mini CO2 SCD4X Enclosure for 3D Printing is available on Thingiverse: ht
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
-Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash binaries to the board or or other tools which are described at: https://nodemcu.readthedocs.io/en/latest/flash/
+Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash binaries to the board or other tools which are described at: https://nodemcu.readthedocs.io/en/latest/flash/
 
 
 ## Upload new firmware via web interface

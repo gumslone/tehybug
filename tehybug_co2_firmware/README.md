@@ -1,4 +1,4 @@
-# TeeHyBug CO2 Sensor Firmware
+# TeHyBug CO2 Sensor Firmware
 
 TeHyBug firmware for SCD4X and Senseair S8 sensor with support for OLED Display and additional external sensors like AHT10 and BMX280.
 

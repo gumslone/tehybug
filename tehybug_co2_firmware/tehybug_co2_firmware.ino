@@ -162,14 +162,14 @@ String getSensor()
 
   DynamicJsonDocument root(1024);
   root["co2"] = co2;
-  
+
   if (Config::imperial_temp == true)
   {
-      root["temperature"] = temp_imp;
+    root["temperature"] = temp_imp;
   }
   else
   {
-      root["temperature"] = temp;
+    root["temperature"] = temp;
   }
   root["humidity"] = humi;
   root["pressure"] = qfe;
@@ -196,7 +196,7 @@ void handleSaveConfig()
     {
       Config::imperial_temp = false;
     }
-    
+
   }
   if (server.hasArg("imperial_qfe")) {
     if (server.arg("imperial_qfe"))
@@ -207,7 +207,7 @@ void handleSaveConfig()
     {
       Config::imperial_qfe = false;
     }
-    
+
   }
   Config::save();
   server.sendHeader("Connection", "close");
@@ -547,6 +547,14 @@ void publishAutoConfig() {
   autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
   autoconfPayload["name"] = identifier + String(" Temperature");
   autoconfPayload["unit_of_measurement"] = "°C";
+  if (Config::imperial_temp == true)
+  {
+    autoconfPayload["unit_of_measurement"] = "°F";
+  }
+  else
+  {
+    autoconfPayload["unit_of_measurement"] = "°C";
+  }
   autoconfPayload["value_template"] = "{{value_json.temperature}}";
   autoconfPayload["unique_id"] = identifier + String("_temperature");
   autoconfPayload["icon"] = "mdi:thermometer";
@@ -780,7 +788,7 @@ void read_sensors()
   {
     read_scd4x();
   }
-    
+
   update_oled_display = true;
 
   update_display();

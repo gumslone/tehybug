@@ -2,7 +2,7 @@
 
 TeHyBug firmware for SCD4X and Senseair S8 sensor with support for OLED Display and additional external sensors like AHT10 and BMX280.
 
-Features:
+## Features:
 - OLED Display support
 - RGB indication for normal (green), medium (yellow) and high (red) CO2 level
 - HomeAssistant MQTT Autodiscovery mode (just provide the mqtt brocker ip and the device will appear in your HA)
@@ -19,7 +19,6 @@ To flash firmware use the .esp8285.bin file.
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
 Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash binaries to the board or or other tools which are described at: https://nodemcu.readthedocs.io/en/latest/flash/
 
-<img src="https://github.com/gumslone/tehybug/blob/master/gumboard/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
 
 ## Upload new firmware via web interface
 
@@ -32,3 +31,8 @@ For the update page you will have to provide a username and a passord:
 Username: TeHyBug
   
 Password: FreshAirMakesSense
+ 
+## Pinmapping
+  
+<img src="https://github.com/gumslone/tehybug/blob/master/gumboard/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
+

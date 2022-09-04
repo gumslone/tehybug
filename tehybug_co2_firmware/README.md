@@ -26,7 +26,7 @@ To update the firmware from OTA WebInterface open http://tehybug.local/update in
 
 To show the temperature in Fahrenheit instead of Celsius, open http://tehybug.local/config or http://<ip_address<ip address>>/config with your browser to save the configuration.
 
-For the update page you will have to provide a username and a passord:
+For the update page you will have to provide a username and a password:
   
 Username: TeHyBug
   

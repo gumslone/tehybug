@@ -34,5 +34,8 @@ Password: FreshAirMakesSense
  
 ## Pinmapping
   
-<img src="https://github.com/gumslone/tehybug/blob/master/gumboard/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
+
+## HomeAssistant
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/ha.png?raw=true" width="400">
 

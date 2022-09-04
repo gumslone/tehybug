@@ -759,7 +759,7 @@ void update_display()
     display.setCursor(32, 24);
     display.println("RH: " + (humi) + "%");
     display.setCursor(32, 36);
-    display.println("P: " + qfe + "hpa");
+    display.println("P: " + qfe + "hPa");
     if (wifi_enabled)
     {
       display.setCursor(95, 0);

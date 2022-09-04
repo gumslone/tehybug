@@ -192,22 +192,20 @@ void handleSaveConfig()
     {
       Config::imperial_temp = true;
     }
-    else
-    {
-      Config::imperial_temp = false;
-    }
-
+  }
+  else
+  {
+    Config::imperial_temp = false;
   }
   if (server.hasArg("imperial_qfe")) {
     if (server.arg("imperial_qfe"))
     {
       Config::imperial_qfe = true;
     }
-    else
-    {
-      Config::imperial_qfe = false;
-    }
-
+  }
+  else
+  {
+    Config::imperial_qfe = false;
   }
   Config::save();
   server.sendHeader("Connection", "close");
@@ -398,11 +396,11 @@ void setupButtons()
   Serial.println(" Longpress Time: " + String(button_left.getLongClickTime()) + "ms");
   Serial.println(" DoubleClick Time: " + String(button_left.getDoubleClickTime()) + "ms");
 
-  //button.setChangedHandler(changed);
+  //button_left.setChangedHandler(changed);
   //button_left.setPressedHandler(pressed);
   //button_left.setReleasedHandler(released);
 
-  // button.setTapHandler(tap);
+  //button_left.setTapHandler(tap);
   button_left.setClickHandler(click);
   //button_left.setLongClickDetectedHandler(longClickDetected);
   button_left.setLongClickHandler(longClick);
@@ -418,17 +416,17 @@ void setupButtons()
   Serial.println(" Longpress Time: " + String(button_right.getLongClickTime()) + "ms");
   Serial.println(" DoubleClick Time: " + String(button_right.getDoubleClickTime()) + "ms");
 
-  //button.setChangedHandler(changed);
-  //button_left.setPressedHandler(pressed);
-  //button_left.setReleasedHandler(released);
+  //button_right.setChangedHandler(changed);
+  //button_right.setPressedHandler(pressed);
+  //button_right.setReleasedHandler(released);
 
-  // button.setTapHandler(tap);
+  //button_right.setTapHandler(tap);
   button_right.setClickHandler(click);
-  //button_left.setLongClickDetectedHandler(longClickDetected);
+  //button_right.setLongClickDetectedHandler(longClickDetected);
   button_right.setLongClickHandler(longClick);
 
   button_right.setDoubleClickHandler(doubleClick);
-  //button_left.setTripleClickHandler(tripleClick);
+  //button_right.setTripleClickHandler(tripleClick);
 
   button_mode.begin(BUTTON_MODE);
   button_mode.setLongClickTime(15000);
@@ -437,17 +435,17 @@ void setupButtons()
   Serial.println(" Longpress Time: " + String(button_mode.getLongClickTime()) + "ms");
   Serial.println(" DoubleClick Time: " + String(button_mode.getDoubleClickTime()) + "ms");
 
-  //button.setChangedHandler(changed);
-  //button_left.setPressedHandler(pressed);
-  //button_left.setReleasedHandler(released);
+  //button_mode.setChangedHandler(changed);
+  //button_mode.setPressedHandler(pressed);
+  //button_mode.setReleasedHandler(released);
 
-  // button.setTapHandler(tap);
+  //button_mode.setTapHandler(tap);
   button_mode.setClickHandler(click);
-  //button_left.setLongClickDetectedHandler(longClickDetected);
+  //button_mode.setLongClickDetectedHandler(longClickDetected);
   button_mode.setLongClickHandler(longClick);
 
   button_mode.setDoubleClickHandler(doubleClick);
-  //button_left.setTripleClickHandler(tripleClick);
+  //button_mode.setTripleClickHandler(tripleClick);
 
 }
 

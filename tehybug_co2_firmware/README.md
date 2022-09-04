@@ -1,11 +1,11 @@
-# TeeHyBug CO2 Sensor Firmware
+# TeHyBug CO2 Sensor Firmware
 
 TeHyBug firmware for SCD4X and Senseair S8 sensor with support for OLED Display and additional external sensors like AHT10 and BMX280.
 
 ## Features:
 - OLED Display support
 - RGB indication for normal (green), medium (yellow) and high (red) CO2 level
-- HomeAssistant MQTT Autodiscovery mode (just provide the mqtt brocker ip and the device will appear in your HA)
+- HomeAssistant (https://www.home-assistant.io/) MQTT Autodiscovery mode (just provide the mqtt brocker ip and the device will appear in your HA)
 - Web Server for OTA Updates, simply upload new firmware versions via web interface
 - Web Server that serves the sensor data in Json Format
 - Possible to turn off WIFI and work in offline display only mode (Hit reset and hold the Button IO_5 when you see the TeHyBug logo, once the LED turns purple, release the button). To find out that the wifi is on, there will be a small dot on the right side of the display with sensordata
@@ -26,7 +26,7 @@ To update the firmware from OTA WebInterface open http://tehybug.local/update in
 
 To show the temperature in Fahrenheit instead of Celsius, open http://tehybug.local/config or http://<ip_address<ip address>>/config with your browser to save the configuration.
 
-For the update page you will have to provide a username and a passord:
+For the update page you will have to provide a username and a password:
   
 Username: TeHyBug
   
@@ -34,5 +34,12 @@ Password: FreshAirMakesSense
  
 ## Pinmapping
   
-<img src="https://github.com/gumslone/tehybug/blob/master/gumboard/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
 
+## HomeAssistant
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/ha.png?raw=true" width="600">
+
+## 3D Printed enclosure
+TeHyBug Mini CO2 enclosure for 3D printing is available on Thingiverse: https://www.thingiverse.com/thing:5494215
+
+An enclosure for a larger version of the sensor is in design process and will be published soon.

@@ -20,7 +20,7 @@
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
 #include "Config.h"
 #include "Button2.h"
-
+#include "Webinterface.h"
 
 // dns
 const byte DNS_PORT = 53;
@@ -86,7 +86,7 @@ boolean oldState = HIGH;
 int     mode     = 0;    // Currently-active animation mode, 0-9
 
 
-String key, temp, humi, dew, qfe, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2 = "N/A";
+String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2 = "N/A";
 
 String i2c_addresses = "";
 
@@ -111,7 +111,11 @@ bool oled = false;
 bool update_oled_display = false;
 
 
-// wifi and mqtt
+// wifi and mqtt and http
+const char* update_path = "/update";
+const char* update_username = "TeHyBug";
+const char* update_password = "FreshAirMakesSense";
+
 uint8_t mqttRetryCounter = 0;
 
 WiFiManager wifiManager;
@@ -119,6 +123,7 @@ WiFiClient wifiClient;
 PubSubClient mqttClient;
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
+
 
 
 WiFiManagerParameter custom_mqtt_server("server", "mqtt server", Config::mqtt_server, sizeof(Config::mqtt_server));
@@ -130,6 +135,7 @@ const uint16_t mqttConnectionInterval = 60000; // 1 minute = 60 seconds = 60000 
 
 uint32_t statusPublishPreviousMillis = 0;
 const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
+
 
 char identifier[24];
 #define FIRMWARE_PREFIX "esp8266-tehybug-co2-sensor"
@@ -156,7 +162,15 @@ String getSensor()
 
   DynamicJsonDocument root(1024);
   root["co2"] = co2;
-  root["temperature"] = temp;
+  
+  if (Config::imperial_temp == true)
+  {
+      root["temperature"] = temp_imp;
+  }
+  else
+  {
+      root["temperature"] = temp;
+  }
   root["humidity"] = humi;
   root["pressure"] = qfe;
   root["altitude"] = alt;
@@ -169,6 +183,41 @@ void handleMainPage()
 {
   server.sendHeader("Connection", "close");
   server.send(200, "application/json", getSensor());
+}
+
+void handleSaveConfig()
+{
+  if (server.hasArg("imperial_temp")) {
+    if (server.arg("imperial_temp"))
+    {
+      Config::imperial_temp = true;
+    }
+    else
+    {
+      Config::imperial_temp = false;
+    }
+    
+  }
+  if (server.hasArg("imperial_qfe")) {
+    if (server.arg("imperial_qfe"))
+    {
+      Config::imperial_qfe = true;
+    }
+    else
+    {
+      Config::imperial_qfe = false;
+    }
+    
+  }
+  Config::save();
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/plain", "Configuration saved sucessfully!");
+}
+
+void handleGetConfig()
+{
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", configPage);
 }
 
 void setupHandle() {
@@ -210,8 +259,10 @@ void setupHandle() {
   mqttReconnect();
   setupMDSN();
 
-  httpUpdater.setup(&server);
+  httpUpdater.setup(&server, update_path, update_username, update_password);
   server.on(F("/"), HTTP_GET, handleMainPage);
+  server.on(F("/config"), HTTP_POST, handleSaveConfig);
+  server.on(F("/config"), HTTP_GET, handleGetConfig);
   server.begin();
 }
 
@@ -378,8 +429,6 @@ void setupButtons()
 
   button_right.setDoubleClickHandler(doubleClick);
   //button_left.setTripleClickHandler(tripleClick);
-
-
 
   button_mode.begin(BUTTON_MODE);
   button_mode.setLongClickTime(15000);
@@ -552,6 +601,8 @@ void colorWipe(uint32_t color, int wait) {
 void read_bmx280()
 {
   temp = String((bmx280.readTemperature()));
+  temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+  temp_imp = String(temp_imp);
   Serial.print(F("Temperature: "));
   Serial.print(temp);
   Serial.println(" C");
@@ -586,6 +637,8 @@ void read_aht20()
     Serial.print(humi);
     Serial.print("%\t temperature: ");
     temp = String(temperature, 1);
+    temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+    temp_imp = String(temp_imp);
     Serial.println(temp);
   }
   else        // GET DATA FAIL
@@ -634,6 +687,9 @@ void read_scd4x()
     {
       temp = String(mySensor.getTemperature(), 1);
       humi = String(mySensor.getHumidity(), 1);
+
+      temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+      temp_imp = String(temp_imp);
     }
 
     co2_ampel(co2.toInt());
@@ -679,7 +735,14 @@ void update_display()
     display.setCursor(32, 0);
     display.println("CO2: " + String(co2));
     display.setCursor(32, 12);
-    display.println("T: " + (temp) + "C");
+    if (Config::imperial_temp == true)
+    {
+      display.println("T: " + (temp_imp) + "F");
+    }
+    else
+    {
+      display.println("T: " + (temp) + "C");
+    }
     display.setCursor(32, 24);
     display.println("RH: " + (humi) + "%");
     display.setCursor(32, 36);
@@ -717,7 +780,7 @@ void read_sensors()
   {
     read_scd4x();
   }
-
+    
   update_oled_display = true;
 
   update_display();

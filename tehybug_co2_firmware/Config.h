@@ -9,11 +9,19 @@ char mqtt_server[80] = "example.tld";
 char username[24] = "";
 char password[24] = "";
 
+bool imperial_temp = false;
+bool imperial_qfe = false;
+bool imperial_alt = false;
+
 void save() {
   DynamicJsonDocument json(512);
   json["mqtt_server"] = mqtt_server;
   json["username"] = username;
   json["password"] = password;
+
+  json["imperial_temp"] = imperial_temp;
+  json["imperial_qfe"] = imperial_qfe;
+  json["imperial_alt"] = imperial_alt;
 
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
@@ -41,11 +49,15 @@ void load() {
           strcpy(mqtt_server, json["mqtt_server"]);
           strcpy(username, json["username"]);
           strcpy(password, json["password"]);
+          imperial_temp = json["imperial_temp"];
+          imperial_qfe = json["imperial_qfe"];
+          imperial_alt = json["imperial_alt"];
         }
       }
     }
   }
 }
+
 void reset()
 {
   if (SPIFFS.begin()) {
@@ -57,4 +69,5 @@ void reset()
     }
   }
 }
+
 } // namespace Config

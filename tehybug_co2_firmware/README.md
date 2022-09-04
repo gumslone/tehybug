@@ -49,7 +49,7 @@ An enclosure for a larger version of the sensor is in design process and will be
 - Connect the power supply to micro USB port
 - TeHyBug will boot, the led will turn blue and the logo will appear on the display (if display is available)
 - Connect to a TeHyBug wifi network like the image below
-- <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/wifi.png?raw=true">
+- <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/wifi.png?raw=true" width="600">
 - open http://192.168.4.1/ in your browser, and click the configuration button
 - <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/config.png?raw=true">
 

@@ -13,6 +13,7 @@ TeHyBug firmware for SCD4X and Senseair S8 sensor with support for OLED Display 
 
 
 TeHyBug Mini CO2 SCD4X Enclosure for 3D Printing is available on Thingiverse: https://www.thingiverse.com/thing:5494215
+TeHyBug Senseait S8 CO2 Enclosure for 3D Printing is available on Thingiverse: https://www.thingiverse.com/thing:5505674
 
 ## How to calibrate the CO2 sensor
 SCD4X sensor has an automatic calibration and usually doesnt need to be calibrated.

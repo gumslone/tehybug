@@ -86,7 +86,7 @@ boolean oldState = HIGH;
 int     mode     = 0;    // Currently-active animation mode, 0-9
 
 
-String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2 = "N/A";
+String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2;
 
 String i2c_addresses = "";
 
@@ -138,7 +138,7 @@ const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
 
 
 char identifier[24];
-#define FIRMWARE_PREFIX "esp8266-tehybug-co2-sensor"
+#define FIRMWARE_PREFIX "tehybug-co2-sensor"
 #define AVAILABILITY_ONLINE "online"
 #define AVAILABILITY_OFFLINE "offline"
 char MQTT_TOPIC_AVAILABILITY[128];
@@ -369,6 +369,11 @@ void longClick(Button2& btn) {
   {
     Serial.println("reset wifi\n");
     resetWifiSettingsAndReboot();
+  }
+  if (btn.getPin() == BUTTON_RIGHT)
+  {
+    Serial.println("reset wifi\n");
+    calibrate_sensor();
   }
 }
 void doubleClick(Button2& btn) {
@@ -735,37 +740,89 @@ void read_s8()
 
 }
 
+void calibrate_s8()
+{
+  if (s8_sensor)
+  {
+    if (oled)
+    {
+      display_show("Calibration started", "Put sensor", "outside and wait", "7 Minutes", false);
+    }
+    // Countdown waiting outside
+    Serial.println("Now, you put the sensor outside and wait.");
+    Serial.println("Countdown begins...");
+    unsigned int seconds = 360;
+    while (seconds > 0) {
+      printf("%d minutes %d seconds left\n", seconds / 60, seconds % 60);
+      delay(1000);
+      seconds--;
+    }
+    Serial.println("Time reamining: 0 minutes 0 seconds");
+
+    // Start manual calibration
+    Serial.println("Starting manual calibration...");
+    if (!sensor_S8->manual_calibration()) {
+      Serial.println("Error setting manual calibration!");
+      delay(1000);
+    }
+    delay(6000);
+    // Check if background calibration is finished
+    sensor.ack = sensor_S8->get_acknowledgement();
+    if (sensor.ack & S8_MASK_CO2_BACKGROUND_CALIBRATION) {
+      printf("Manual calibration is finished.");
+    } else {
+      Serial.println("Doing manual calibration...");
+    }
+  }
+}
+
+void calibrate_sensor()
+{
+  calibrate_s8();
+}
+
+void display_show(String line1, String line2, String line3, String line4, bool show_dot)
+{
+  if (oled)
+  {
+    display.clearDisplay();
+
+
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(32, 0);
+    display.println(line1);
+    display.setCursor(32, 12);
+    display.println(line2);
+    display.setCursor(32, 24);
+    display.println(line3);
+    display.setCursor(32, 36);
+    display.println(line4);
+    if (show_dot)
+    {
+      display.setCursor(95, 0);
+      display.println("^");
+    }
+    display.display();
+  }
+}
+
 void update_display()
 {
 
   if (oled && update_oled_display)
   {
 
-    display.clearDisplay();
-
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(32, 0);
-    display.println("CO2: " + String(co2));
-    display.setCursor(32, 12);
+    String line2;
     if (Config::imperial_temp == true)
     {
-      display.println("T: " + (temp_imp) + "F");
+      line2 = "T: " + (temp_imp) + "F";
     }
     else
     {
-      display.println("T: " + (temp) + "C");
+      line2 = "T: " + (temp) + "C";
     }
-    display.setCursor(32, 24);
-    display.println("RH: " + (humi) + "%");
-    display.setCursor(32, 36);
-    display.println("P: " + qfe + "hPa");
-    if (wifi_enabled)
-    {
-      display.setCursor(95, 0);
-      display.println("^");
-    }
-    display.display();
+    display_show("CO2: " + String(co2), line2, "RH: " + (humi) + "%", "P: " + qfe + "hPa", wifi_enabled);
 
   }
 
@@ -1005,7 +1062,6 @@ void setup()
     }
   }
 
-  //testdrawline();      // Draw many lines
   if (scd4x_sensor)
   {
     //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on Serial

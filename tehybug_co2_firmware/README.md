@@ -14,11 +14,14 @@ TeHyBug firmware for SCD4X and Senseair S8 sensor with support for OLED Display 
 
 TeHyBug Mini CO2 SCD4X Enclosure for 3D Printing is available on Thingiverse: https://www.thingiverse.com/thing:5494215
 
+## How to calibrate the CO2 sensor
+SCD4X sensor has an automatic calibration and usually doesnt need to be calibrated.
+The senseair s8 needs sometimes a manual calibration. Hold the right button on the back for 15 Seconds, then release the button and the calibration will start. Put the sensor outside on the fresh air and wait, the calibration will be finished after 7 minutes. 
+
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
 Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash binaries to the board or other tools which are described at: https://nodemcu.readthedocs.io/en/latest/flash/
-
 
 ## Upload new firmware via web interface
 

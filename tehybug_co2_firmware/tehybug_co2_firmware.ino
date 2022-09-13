@@ -746,7 +746,7 @@ void calibrate_s8()
   {
     if (oled)
     {
-      display_show("Calibration started", "Put sensor", "outside and wait", "7 Minutes", false);
+      display_show("Calibration started", "Put sensor", "outside and", "wait 7 min", false);
     }
     // Countdown waiting outside
     Serial.println("Now, you put the sensor outside and wait.");

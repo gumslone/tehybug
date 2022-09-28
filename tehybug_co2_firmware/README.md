@@ -57,4 +57,7 @@ An enclosure for a larger version of the sensor is in design process and will be
 - open http://192.168.4.1/ in your browser, and click the configuration button
 - <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/config.png?raw=true">
 
-
+## Articles:
+- https://blog.tindie.com/2022/09/affordable-portable-co2-measurments/
+- https://www.cnx-software.com/2022/09/06/sensirion-scd40-co2-sensor-units-for-makers-m5stack-unit-co2-and-tehybug-esp8285-device/?fbclid=IwAR1-4947I3m_kvyDzOXxJrO1CapwlxPDFNaJKcEdamvzNgL3oAj3siubAzQ
+- https://blog.tehybug.com/index.php/2022/08/28/tehybug-co2-mini-sensor/

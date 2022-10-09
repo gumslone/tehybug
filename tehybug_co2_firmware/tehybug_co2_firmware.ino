@@ -41,8 +41,6 @@ Button2 button_left;
 Button2 button_right;
 Button2 button_mode;
 
-bool wifi_enabled = true;
-
 #define PIXEL_PIN    12  // Digital IO pin connected to the NeoPixels.
 
 #define PIXEL_COUNT 1  // Number of NeoPixels
@@ -241,8 +239,6 @@ void setupHandle() {
   snprintf(MQTT_TOPIC_AUTOCONF_H_SENSOR, 127, "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127, "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
   WiFi.hostname(identifier);
-
-  Config::load();
 
   setupWifi();
   setupOTA();
@@ -520,7 +516,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.09.04";
+  device["sw_version"] = "2022.10.09";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -746,7 +742,7 @@ void calibrate_s8()
   {
     if (oled)
     {
-      display_show("Calibration started", "Put sensor", "outside and", "wait 7 min", false);
+      display_show("Calibration started", "Put sensor", "outside and", "wait 7 min", true);
     }
     // Countdown waiting outside
     Serial.println("Now, you put the sensor outside and wait.");
@@ -781,7 +777,7 @@ void calibrate_sensor()
   calibrate_s8();
 }
 
-void display_show(String line1, String line2, String line3, String line4, bool show_dot)
+void display_show(String line1, String line2, String line3, String line4, bool offline)
 {
   if (oled)
   {
@@ -798,7 +794,7 @@ void display_show(String line1, String line2, String line3, String line4, bool s
     display.println(line3);
     display.setCursor(32, 36);
     display.println(line4);
-    if (show_dot)
+    if (offline == false)
     {
       display.setCursor(95, 0);
       display.println("^");
@@ -822,7 +818,7 @@ void update_display()
     {
       line2 = "T: " + (temp) + "C";
     }
-    display_show("CO2: " + String(co2), line2, "RH: " + (humi) + "%", "P: " + qfe + "hPa", wifi_enabled);
+    display_show("CO2: " + String(co2), line2, "RH: " + (humi) + "%", "P: " + qfe + "hPa", Config::offline_mode);
 
   }
 
@@ -1064,6 +1060,7 @@ void setup()
 
   if (scd4x_sensor)
   {
+    //The SCD4x has data ready every five seconds
     //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on Serial
 
     //.begin will start periodic measurements for us (see the later examples for details on how to override this)
@@ -1106,20 +1103,28 @@ void setup()
   }
 
 
-
-  //The SCD4x has data ready every five seconds
-
   setupButtons();
 
+  // load the config
+  Config::load();
+  
   int val = digitalRead(BUTTON_LEFT);   // read the input pin
-  if (val == 0)
+  if (val == 0 && oled == true)
   {
     colorWipe(strip.Color(  255, 0,   255), 90);    // Blue
     strip.show();
-    Serial.println("WIFI Disabled!");
-    wifi_enabled = false;
+    Serial.println("WIFI toggled!");
+    Config::offline_mode = !Config::offline_mode;
+    Config::save();
+    
+    String line3 = "[OFF]";
+    
+    if(Config::offline_mode)
+        line3 = "[ON]";
+    
+    display_show("Offline", "mode:", line3, "", true);
   }
-  if (wifi_enabled)
+  if (Config::offline_mode == false)
   {
     setupHandle();
 
@@ -1152,7 +1157,7 @@ void loop()
   yield();
   button_mode.loop();
   yield();
-  if (wifi_enabled)
+  if (Config::offline_mode == false)
   {
     //ArduinoOTA.handle();
     mqttClient.loop();

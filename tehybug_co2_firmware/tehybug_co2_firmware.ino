@@ -1117,10 +1117,10 @@ void setup()
     Config::offline_mode = !Config::offline_mode;
     Config::save();
     
-    String line3 = "[OFF]";
+    String line3 = "OFF";
     
     if(Config::offline_mode)
-        line3 = "[ON]";
+        line3 = "ON";
     
     display_show("Offline", "mode:", line3, "", true);
   }

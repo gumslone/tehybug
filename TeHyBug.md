@@ -26,7 +26,7 @@ Press the RESET „BLACK“ button and shortly after that press the MODE „RED�
 In case you have put your TeHyBug into a configuration mode by mistake (the blue led lights up solid) and you don’t want to change your previous settings, you can activate the live mode by pressing the RESET „BLACK“ button and short after that press the MODE „RED“ button (same way you put your TeHyBug from a live mode to a configuration mode), the blue led will blink short (it means that you TeHyBug is in live mode, connecting to the configured Wi-Fi network and is serving the data).
 
 Your TeHyBug has an additional a Micro USB connector, so you can power it directly from a USB power supply. DO NOT use a battery and a USB power supply at the same time, it will damage your devices.
-For more info’s please visit http://tehybug.com/
+For more info’s please visit http://tehybug.com/ or at https://tehybug.com/faq
 
 <img width="453" alt="image" src="https://user-images.githubusercontent.com/12110353/195143010-7ac8ccf5-6283-4824-8fe2-9d40e3a58f26.png">
 

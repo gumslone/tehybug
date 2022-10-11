@@ -16,6 +16,7 @@ Get a TeHyBug scriptable iOS 14 widget from here https://gist.github.com/gumslon
 
 ### TeHyBug Universal 18650 / TeHyBug Mini / TeHyBug Classic firmware
 Documentation for the TeHyBug Lua firmware you can get here: https://github.com/gumslone/tehybug/blob/master/TeHyBug.md
+and more at https://tehybug.com/faq
 
 
 ### TeHyBug FreshAirMakesSense CO2 Sensor

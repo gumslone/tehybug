@@ -31,5 +31,5 @@ For more info’s please visit http://tehybug.com/
 <img width="453" alt="image" src="https://user-images.githubusercontent.com/12110353/195143010-7ac8ccf5-6283-4824-8fe2-9d40e3a58f26.png">
 
 #### Configuration tips:
-To enable battery powered power saving deep sleep mode the configured data frequency should be higher than or equal to 6 minutes. For every velue that is below 6 minutes your TeHyBug will remain connected to the wifi and the power consumption with be hight (not recomended for a battery powered operation).
+To enable battery powered power saving deep sleep mode the configured data frequency should be higher than or equal to 6 minutes. For every value that is below 6 minutes your TeHyBug will remain connected to the wifi and the power consumption with be hight (not recomended for a battery powered operation).
 Recommended data frequency for battery powered operation is 15 or more minutes, the maximum possible value forr thee data frequency you can get from the node info page.

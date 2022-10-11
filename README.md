@@ -16,3 +16,7 @@ Documentation for the TeHyBug Lua firmware you can get here: https://github.com/
 
 ### TeHyBug FreshAirMakesSense CO2 Sensor
 Documentation and the latest firmware binaries you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_co2_firmware
+
+
+### TeHyBug Display / Clock
+Latest firmware binaries and documentation you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_display_c_firmware_v1

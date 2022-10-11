@@ -2,6 +2,9 @@
 <img width="162" alt="image" src="https://user-images.githubusercontent.com/12110353/195146098-03df797c-b357-48bd-8f26-aab0660727b0.png">
 
 WIFI environmental data loggers
+![image](https://user-images.githubusercontent.com/12110353/195148751-415b2703-193b-4d1f-b4a8-68d814f23aee.png)
+![image](https://user-images.githubusercontent.com/12110353/195148833-edc0a3df-1d44-4b1c-92e2-4e26d639fd07.png)
+
 
 This repository contains code examples and code updates for TeHyBugs which you can order from [Tindie](https://www.tindie.com/stores/gumslone/)
 

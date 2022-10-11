@@ -7,3 +7,5 @@ You may have a look at [GumCP](https://github.com/gumslone/GumCP), a Raspberry P
 
 
 Get a TeHyBug scriptable iOS 14 widget from here https://gist.github.com/gumslone/542ceb3afc6a9977123608f6982c59ad
+
+Docummentation for the TeHyBug Universal 18650 / TeHyBug Mini / TeHyBug Classic firmware you can get here: https://github.com/gumslone/tehybug/blob/master/TeHyBug.md

@@ -21,5 +21,6 @@ Documentation and the latest firmware binaries you can find here: https://github
 ### TeHyBug Display / Clock
 Latest firmware binaries and documentation you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_display_c_firmware_v1
 
+
 ### GumBoard / TeHyBug Sensor Board
 Latest firmware binaries and docummentation you can find here: https://github.com/gumslone/tehybug/tree/master/gumboard

@@ -19,10 +19,10 @@ Documentation for the TeHyBug Lua firmware you can get here: https://github.com/
 and more at https://tehybug.com/faq
 
 Tindie:
-- https://www.tindie.com/products/11872/
-- https://www.tindie.com/products/21467/
 - https://www.tindie.com/products/25268/
 - https://www.tindie.com/products/19651/
+- https://www.tindie.com/products/11872/
+- https://www.tindie.com/products/21467/
 
 
 ### TeHyBug FreshAirMakesSense CO2 Sensor

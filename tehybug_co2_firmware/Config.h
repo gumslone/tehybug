@@ -7,7 +7,7 @@ namespace Config {
 char mqtt_server[80] = "example.tld";
 
 char username[24] = "";
-char password[24] = "";
+char password[65] = "";
 
 bool imperial_temp = false;
 bool imperial_qfe = false;

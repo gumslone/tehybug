@@ -39,6 +39,7 @@ Password: FreshAirMakesSense
 ## Buttons
 
 <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/Download%20(1).jpeg?raw=true">
+
 ### Mode Button
 
 - hold 15 seconds to do a faactory reset (works only with already configured devices)

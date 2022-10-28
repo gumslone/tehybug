@@ -17,7 +17,7 @@ TeHyBug Senseait S8 CO2 Enclosure for 3D Printing is available on Thingiverse: h
 
 ## How to calibrate the CO2 sensor
 SCD4X sensor has an automatic calibration and usually doesnt need to be calibrated.
-The senseair s8 needs sometimes a manual calibration. Hold the right button on the back for 15 Seconds, then release the button and the calibration will start. Put the sensor outside on the fresh air and wait, the calibration will be finished after 7 minutes. 
+The senseair s8 needs sometimes a manual calibration. Hold the right button IO_14 on the back for 15 Seconds, then release the button and the calibration will start. Put the sensor outside on the fresh air and wait, the calibration will be finished after 7 minutes. 
 
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.

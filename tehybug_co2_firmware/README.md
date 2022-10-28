@@ -43,7 +43,7 @@ Password: FreshAirMakesSense
 ### Mode Button
 
 - hold 15 seconds to do a faactory reset (works only with already configured devices)
-- hold and hit the Reset Button to boot the device into a flashing mode (in case you want to flash a firmware manually via USB)
+- hold the Mode button and hit the Reset button to boot the device into a flashing mode (in case you want to flash a firmware manually via USB)
 
 ### Reset Button
 

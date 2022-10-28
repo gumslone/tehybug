@@ -51,7 +51,7 @@ Password: FreshAirMakesSense
  
 ### IO_5 Button
 
-- toggles offline or online mode, hold the IO_5 button and hit the reset button, keep holding the IO_5 Button untill the led becomes purple. This will toggle the oonline or offline (no wifi connection) mode
+- toggles offline or online mode, hold the IO_5 button and hit the reset button, keep holding the IO_5 Button until the led becomes purple. This will toggle the online or an offline (no wifi connection) mode
 
 ### IO_14 Button
 

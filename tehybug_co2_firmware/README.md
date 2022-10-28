@@ -36,6 +36,26 @@ Username: TeHyBug
   
 Password: FreshAirMakesSense
  
+## Buttons
+
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/Download%20(1).jpeg?raw=true">
+### Mode Button
+
+- hold 15 seconds to do a faactory reset (works only with already configured devices)
+- hold and hit the Reset Button to boot the device into a flashing mode (in case you want to flash a firmware manually via USB)
+
+### Reset Button
+
+ - hit it to reboot the device, works in combination with other buttons
+ 
+### IO_5 Button
+
+- toggles offline or online mode, hold the IO_5 button and hit the reset button, keep holding the IO_5 Button untill the led becomes purple. This will toggle the oonline or offline (no wifi connection) mode
+
+### IO_14 Button
+
+- starts senseair s8 sensor calibration, hold it for 15 seconds to start the calibation. Put the device outside into a fresh air for the calibration.
+
 ## Pinmapping
   
 <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">

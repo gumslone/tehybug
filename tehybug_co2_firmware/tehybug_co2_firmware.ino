@@ -516,7 +516,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.10.28";
+  device["sw_version"] = "2022.10.31";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -788,12 +788,21 @@ void display_show(String line1, String line2, String line3, String line4, bool o
     display.setTextColor(WHITE);
     display.setCursor(32, 0);
     display.println(line1);
-    display.setCursor(32, 12);
-    display.println(line2);
-    display.setCursor(32, 24);
-    display.println(line3);
-    display.setCursor(32, 36);
-    display.println(line4);
+    if (line2 != "")
+    {
+      display.setCursor(32, 12);
+      display.println(line2);
+    }
+    if (line3 != "")
+    {
+      display.setCursor(32, 24);
+      display.println(line3);
+    }
+    if (line4 != "")
+    {
+      display.setCursor(32, 36);
+      display.println(line4);
+    }
     if (offline == false)
     {
       display.setCursor(95, 0);
@@ -809,16 +818,29 @@ void update_display()
   if (oled && update_oled_display)
   {
 
-    String line2;
-    if (Config::imperial_temp == true)
+    String line1, line2, line3, line4;
+    
+    if (temp != "")
     {
-      line2 = "T: " + (temp_imp) + "F";
+      if (Config::imperial_temp == true)
+      {
+        line2 = "T: " + (temp_imp) + "F";
+      }
+      else
+      {
+        line2 = "T: " + (temp) + "C";
+      }
     }
-    else
+    if (humi != "")
     {
-      line2 = "T: " + (temp) + "C";
+        line3 = "RH: " + (humi) + "%";
     }
-    display_show("CO2: " + String(co2), line2, "RH: " + (humi) + "%", "P: " + qfe + "hPa", Config::offline_mode);
+    if (qfe != "")
+    {
+        line4 = "P: " + qfe + "hPa";
+    }
+    
+    display_show("CO2: " + String(co2), line2, line3, line4, Config::offline_mode);
 
   }
 
@@ -1107,7 +1129,7 @@ void setup()
 
   // load the config
   Config::load();
-  
+
   int val = digitalRead(BUTTON_LEFT);   // read the input pin
   if (val == 0 && oled == true)
   {
@@ -1116,12 +1138,12 @@ void setup()
     Serial.println("WIFI toggled!");
     Config::offline_mode = !Config::offline_mode;
     Config::save();
-    
+
     String line3 = "OFF";
-    
-    if(Config::offline_mode)
-        line3 = "ON";
-    
+
+    if (Config::offline_mode)
+      line3 = "ON";
+
     display_show("Offline", "mode:", line3, "", true);
   }
   if (Config::offline_mode == false)

@@ -452,6 +452,7 @@ void setupButtons()
 
 void resetWifiSettingsAndReboot() {
   wifiManager.resetSettings();
+  ESP.eraseConfig();
   delay(3000);
   ESP.restart();
 }
@@ -777,7 +778,7 @@ void calibrate_sensor()
   calibrate_s8();
 }
 
-void display_show(String line1, String line2, String line3, String line4, bool offline)
+void display_show(const String line1, const String line2, const String line3, const String line4, bool offline)
 {
   if (oled)
   {

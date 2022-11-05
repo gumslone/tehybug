@@ -821,7 +821,12 @@ void update_display()
   {
 
     String line1, line2, line3, line4;
-    
+
+    if (co2 != "")
+    {
+      line1 = "CO2: " + String(co2);
+    }
+
     if (temp != "")
     {
       if (Config::imperial_temp == true)
@@ -835,14 +840,14 @@ void update_display()
     }
     if (humi != "")
     {
-        line3 = "RH: " + (humi) + "%";
+      line3 = "RH: " + (humi) + "%";
     }
     if (qfe != "")
     {
-        line4 = "P: " + qfe + "hPa";
+      line4 = "P: " + qfe + "hPa";
     }
-    
-    display_show("CO2: " + String(co2), line2, line3, line4, Config::offline_mode);
+
+    display_show(line1, line2, line3, line4, Config::offline_mode);
 
   }
 
@@ -1111,19 +1116,22 @@ void setup()
     int len = strlen(sensor.firm_version);
     if (len == 0) {
       Serial.println("SenseAir S8 CO2 sensor not found!");
-      while (1) {
-        delay(1);
-      };
+      //while (1) {
+      //  delay(1);
+      //};
+      s8_sensor = false;
     }
+    if (s8_sensor)
+    {
+      // Show basic S8 sensor info
+      Serial.println(">>> SenseAir S8 NDIR CO2 sensor <<<");
+      printf("Firmware version: %s\n", sensor.firm_version);
+      sensor.sensor_id = sensor_S8->get_sensor_ID();
+      Serial.print("Sensor ID: 0x"); printIntToHex(sensor.sensor_id, 4); Serial.println("");
 
-    // Show basic S8 sensor info
-    Serial.println(">>> SenseAir S8 NDIR CO2 sensor <<<");
-    printf("Firmware version: %s\n", sensor.firm_version);
-    sensor.sensor_id = sensor_S8->get_sensor_ID();
-    Serial.print("Sensor ID: 0x"); printIntToHex(sensor.sensor_id, 4); Serial.println("");
-
-    Serial.println("Setup done!");
-    Serial.flush();
+      Serial.println("Setup done!");
+      Serial.flush();
+    }
   }
 
 

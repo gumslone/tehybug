@@ -38,7 +38,7 @@ Password: FreshAirMakesSense
  
 ## Buttons
 
-<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/Download%20(1).jpeg?raw=true">
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/tehybug_co2_buttons.png?raw=true">
 
 ### Mode Button
 

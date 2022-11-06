@@ -518,7 +518,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.11.01";
+  device["sw_version"] = "2022.11.06";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -831,11 +831,11 @@ void update_display()
     {
       if (Config::imperial_temp == true)
       {
-        line2 = "T: " + (temp_imp) + "F";
+        line2 = "T: " + (temp_imp) + (char)247 + "F";
       }
       else
       {
-        line2 = "T: " + (temp) + "C";
+        line2 = "T: " + (temp) + (char)247 + "C";
       }
     }
     if (humi != "")

@@ -518,7 +518,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.11.06";
+  device["sw_version"] = "2022.11.20";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -1141,37 +1141,44 @@ void setup()
   Config::load();
 
   int val = digitalRead(BUTTON_LEFT);   // read the input pin
-  if (val == 0 && oled == true)
+  if (val == 0)
   {
-    colorWipe(strip.Color(  255, 0,   255), 90);    // Blue
+    colorWipe(strip.Color(  255, 0,   255), 90);    // pink
     strip.show();
     Serial.println("WIFI toggled!");
     Config::offline_mode = !Config::offline_mode;
     Config::save();
+    if (oled == true)
+    {
+      String line3 = "OFF";
 
-    String line3 = "OFF";
+      if (Config::offline_mode)
+        line3 = "ON";
 
-    if (Config::offline_mode)
-      line3 = "ON";
-
-    display_show("Offline", "mode:", line3, "", true);
+      display_show("Offline", "mode:", line3, "", true);
+    }
   }
+
+  while (digitalRead(BUTTON_LEFT) == 0)
+  {
+    delay(1);
+  }
+
+  
   if (Config::offline_mode == false)
   {
+    colorWipe(strip.Color(  0, 0,   255), 90);    // Blue
+    strip.show();
     setupHandle();
 
   }
   else
   {
+    colorWipe(strip.Color(  0, 0,   0), 90);    // off
+    strip.show();
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
     delay(1); //Needed, at least in my tests WiFi doesn't power off without this for some reason
-  }
-
-
-  while (digitalRead(BUTTON_LEFT) == 0)
-  {
-    delay(1);
   }
 
   ticker.add(0, 10033, [&](void*) {

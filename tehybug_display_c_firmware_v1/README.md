@@ -12,5 +12,5 @@ features:
 - Supports TeHyBug Universal sensors
 - 3 Buttons, 2 left and right and one on the top
 - USB2Uart IC that allows flashing programming via USB from Arduino IDE/Platformio or others.
-- Buzzer that can be use as an alarm
+- Buzzer that can be used as an alarm
 - Single ws2812b RGB LED that works as an Indicator

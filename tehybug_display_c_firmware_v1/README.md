@@ -17,7 +17,7 @@ features:
 
 ### Mode Button
 
-- hold the Mode button for 15 seconds to do a faactory reset (works only with already configured devices)
+- hold the Mode button for 15 seconds to do a factory reset (works only with already configured devices)
 - hold the Mode button and hit the Reset button to boot the device into a flashing mode (in case you want to flash a firmware manually via USB)
 
 ### Reset Button

@@ -32,6 +32,9 @@ Tindie:
 - https://www.tindie.com/products/27887/
 - https://www.tindie.com/products/26085/
 
+Enclosures for 3D Printing:
+- https://www.thingiverse.com/thing:5494215 SCD40 CO2
+- https://www.thingiverse.com/thing:5505674 Senseair S8 CO2
 
 ### TeHyBug Display / Clock
 Latest firmware binaries and documentation you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_display_c_firmware_v1

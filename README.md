@@ -24,6 +24,8 @@ Tindie:
 - https://www.tindie.com/products/11872/
 - https://www.tindie.com/products/21467/
 
+Enclosures for 3D Printing:
+- https://www.thingiverse.com/thing:5752129 TeHyBug Universal 18650
 
 ### TeHyBug FreshAirMakesSense CO2 Sensor
 Documentation and the latest firmware binaries you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_co2_firmware
@@ -41,6 +43,9 @@ Latest firmware binaries and documentation you can find here: https://github.com
 
 Tindie:
 - https://www.tindie.com/products/25408/
+
+Enclosures for 3D Printing:
+https://www.thingiverse.com/thing:5744609 TeHyBug Display / Clock
 
 ### GumBoard / TeHyBug Sensor Board
 Latest firmware binaries and docummentation you can find here: https://github.com/gumslone/tehybug/tree/master/gumboard

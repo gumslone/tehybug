@@ -19,10 +19,12 @@ Documentation for the TeHyBug Lua firmware you can get here: https://github.com/
 and more at https://tehybug.com/faq
 
 Tindie:
-- https://www.tindie.com/products/25268/
+- https://www.tindie.com/products/25268/ TeHyBug Universal 18650
+- https://www.tindie.com/products/16458/ TeHyBug Mini
+- https://www.tindie.com/products/21467/ TeHyButton Mini, WIFI Water Leakage Sensor
 - https://www.tindie.com/products/19651/
 - https://www.tindie.com/products/11872/
-- https://www.tindie.com/products/21467/
+
 
 Enclosures for 3D Printing:
 - https://www.thingiverse.com/thing:5752129 TeHyBug Universal 18650
@@ -31,8 +33,8 @@ Enclosures for 3D Printing:
 Documentation and the latest firmware binaries you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_co2_firmware
 
 Tindie:
-- https://www.tindie.com/products/27887/
-- https://www.tindie.com/products/26085/
+- https://www.tindie.com/products/27887/ SCD4X Mini CO2, Temp, Humi, Pressure - WIFI Sensor
+- https://www.tindie.com/products/26085/ Senseair S8 CO2, Temp, Humi, Pressure - WIFI Sensor
 
 Enclosures for 3D Printing:
 - https://www.thingiverse.com/thing:5494215 SCD40 CO2

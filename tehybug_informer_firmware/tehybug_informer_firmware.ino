@@ -22,7 +22,10 @@
 #include "Button2.h"
 #include "Webinterface.h"
 
+
 #include "pitches.h"
+
+#define TONE_PIN   5
 // notes in the melody:
 int melody[] = {
   NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4
@@ -46,7 +49,7 @@ String escapedMac;
 // Digital IO pin connected to the button. This will be driven with a
 // pull-up resistor so the switch pulls the pin to ground momentarily.
 // On a high -> low transition the button press logic will execute.
-#define BUTTON_BACK   4
+#define BUTTON_BACK   14
 #define BUTTON_MODE   0
 /////////////////////////////////////////////////////////////////
 Button2 button_back;
@@ -113,7 +116,7 @@ bool update_oled_display = false;
 // wifi and mqtt and http
 const char* update_path = "/update";
 const char* update_username = "TeHyBug";
-const char* update_password = "FreshAirMakesSense";
+const char* update_password = "InformerMakesSense";
 
 uint8_t mqttRetryCounter = 0;
 
@@ -137,7 +140,7 @@ const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
 
 
 char identifier[24];
-#define FIRMWARE_PREFIX "tehybug-co2-sensor"
+#define FIRMWARE_PREFIX "tehybug-informer"
 #define AVAILABILITY_ONLINE "online"
 #define AVAILABILITY_OFFLINE "offline"
 char MQTT_TOPIC_AVAILABILITY[128];
@@ -220,7 +223,7 @@ void handleGetConfig()
 void setupHandle() {
 
   Serial.println("\n");
-  Serial.println("Hello from esp8266-tehybug-co2-sensor");
+  Serial.println("Hello from esp8266-tehybug-informer");
   Serial.printf("Core Version: %s\n", ESP.getCoreVersion().c_str());
   Serial.printf("Boot Version: %u\n", ESP.getBootVersion());
   Serial.printf("Boot Mode: %u\n", ESP.getBootMode());
@@ -229,7 +232,7 @@ void setupHandle() {
 
   delay(3000);
 
-  snprintf(identifier, sizeof(identifier), "TEHYBUG-CO2-%X", ESP.getChipId());
+  snprintf(identifier, sizeof(identifier), "TEHYBUG-INFORMER-%X", ESP.getChipId());
   snprintf(MQTT_TOPIC_AVAILABILITY, 127, "%s/%s/status", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_STATE, 127, "%s/%s/state", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_COMMAND, 127, "%s/%s/command", FIRMWARE_PREFIX, identifier);
@@ -353,7 +356,19 @@ void changed(Button2& btn) {
   Serial.println("changed");
 }
 void click(Button2& btn) {
-  Serial.println("click\n");
+  if (btn.getPin() == BUTTON_MODE)
+  {
+    Serial.println("mode button\n");
+  }
+  if (btn.getPin() == BUTTON_BACK)
+  {
+    Serial.println("back button\n");
+  }
+  tone(TONE_PIN, NOTE_C4, 1000 / 16);
+  // stop the tone playing:
+  delay(200);
+  noTone(TONE_PIN);
+  Serial.println("click pin: ");
   Serial.println(btn.getPin());
   Serial.println("\n");
 }
@@ -882,17 +897,17 @@ void setup()
 // iterate over the notes of the melody:
   for (int thisNote = 0; thisNote < 8; thisNote++) {
 
-    // to calculate the note duration, take one second divided by the note type.
+    // to calculate the note duration, take one second divided by the note type.f
     //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
     int noteDuration = 1000 / noteDurations[thisNote];
-    tone(5, melody[thisNote], noteDuration);
+    tone(TONE_PIN, melody[thisNote], noteDuration);
 
     // to distinguish the notes, set a minimum time between them.
     // the note's duration + 30% seems to work well:
     int pauseBetweenNotes = noteDuration * 1.30;
     delay(pauseBetweenNotes);
     // stop the tone playing:
-    noTone(5);
+    noTone(TONE_PIN);
   }
 
 

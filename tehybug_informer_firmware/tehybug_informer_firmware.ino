@@ -22,19 +22,13 @@
 #include "Button2.h"
 #include "Webinterface.h"
 
+#include "light.h"
 
-#include "pitches.h"
+#include "buzzer.h"
+
 
 #define TONE_PIN   5
-// notes in the melody:
-int melody[] = {
-  NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4
-};
 
-// note durations: 4 = quarter note, 8 = eighth note, etc.:
-int noteDurations[] = {
-  4, 8, 8, 4, 4, 4, 4, 4
-};
 
 
 
@@ -153,6 +147,16 @@ char MQTT_TOPIC_AUTOCONF_P_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_SENSOR[128];
 
+//LED
+char MQTT_TOPIC_LEDS_AUTOCONF[128];
+char MQTT_TOPIC_LEDS_STATE[128];
+char MQTT_TOPIC_LEDS_COMMAND[128];
+char MQTT_TOPIC_LEDS_BRIGHTNEESS_STATE[128];
+char MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND[128];
+char MQTT_TOPIC_LEDS_RGB_STATE[128];
+char MQTT_TOPIC_LEDS_RGB_COMMAND[128];
+
+
 bool shouldSaveConfig = false;
 
 void saveConfigCallback() {
@@ -242,6 +246,15 @@ void setupHandle() {
   snprintf(MQTT_TOPIC_AUTOCONF_T_SENSOR, 127, "homeassistant/sensor/%s/%s_t/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_H_SENSOR, 127, "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127, "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
+
+  snprintf(MQTT_TOPIC_LEDS_AUTOCONF, 127, "homeassistant/light/%s/light/config", identifier);
+  snprintf(MQTT_TOPIC_LEDS_STATE, 127, "%s/%s/light/status", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_LEDS_COMMAND, 127, "%s/%s/light/switch", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_LEDS_BRIGHTNEESS_STATE, 127, "%s/%s/brightness/status", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND, 127, "%s/%s/brightness/set", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_LEDS_RGB_STATE, 127, "%s/%s/rgb/status", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_LEDS_RGB_COMMAND, 127, "%s/%s/rgb/set", FIRMWARE_PREFIX, identifier);
+      
   WiFi.hostname(identifier);
 
   setupWifi();
@@ -364,10 +377,9 @@ void click(Button2& btn) {
   {
     Serial.println("back button\n");
   }
-  tone(TONE_PIN, NOTE_C4, 1000 / 16);
-  // stop the tone playing:
-  delay(200);
-  noTone(TONE_PIN);
+  
+  Buzzer::beep();
+
   Serial.println("click pin: ");
   Serial.println(btn.getPin());
   Serial.println("\n");
@@ -460,6 +472,9 @@ void mqttReconnect() {
 
       // Make sure to subscribe after polling the status so that we never execute commands with the default data
       mqttClient.subscribe(MQTT_TOPIC_COMMAND);
+      mqttClient.subscribe(MQTT_TOPIC_LEDS_COMMAND);
+      mqttClient.subscribe(MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND);
+      mqttClient.subscribe(MQTT_TOPIC_LEDS_RGB_COMMAND);
       break;
     }
     delay(5000);
@@ -472,8 +487,9 @@ bool isMqttConnected() {
 
 void publishState() {
   DynamicJsonDocument wifiJson(192);
+  DynamicJsonDocument color(192);
   DynamicJsonDocument stateJson(604);
-  char payload[256];
+  char payload[512];
 
   wifiJson["ssid"] = WiFi.SSID();
   wifiJson["ip"] = WiFi.localIP().toString();
@@ -492,16 +508,80 @@ void publishState() {
   stateJson["pressure"] = qfe;
 
   stateJson["wifi"] = wifiJson.as<JsonObject>();
-
   serializeJson(stateJson, payload);
   mqttClient.publish(&MQTT_TOPIC_STATE[0], &payload[0], true);
+  stateJson.clear();
+
+  stateJson["brightness"] = Light::brightness;
+  stateJson["color_mode"] = "rgb";
+ 
+  serializeJson(stateJson, payload);
+  mqttClient.publish(&MQTT_TOPIC_LEDS_BRIGHTNEESS_STATE[0], &payload[0], true);
+  stateJson.clear();
+
+  color["r"] = Light::r;
+  color["g"] = Light::g;
+  color["b"] = Light::b;
+  stateJson["color"] = color.as<JsonObject>();
+  serializeJson(stateJson, payload);
+  mqttClient.publish(&MQTT_TOPIC_LEDS_RGB_STATE[0], &payload[0], true);
+  stateJson.clear();
+
+
+  stateJson["state"] = Light::state;
+  serializeJson(stateJson, payload);
+  mqttClient.publish(&MQTT_TOPIC_LEDS_STATE[0], &payload[0], true);
+  stateJson.clear();
+  
 }
 
-void mqttCallback(char* topic, uint8_t* payload, unsigned int length) { }
+void mqttCallback(char* topic, uint8_t* payload, unsigned int length) { 
+  String msg = "";
+  
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  
+  Serial.print("] ");
+  for (int i=0;i<length;i++) {
+   char receivedChar = (char)payload[i]; 
+   // Serial.print(receivedChar); 
+   msg += receivedChar;
+  }
+  Serial.print(msg); 
+  
+  if (strcmp(topic, MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND) == 0)       
+  {
+    Light::brightness = msg.toInt();
+  }
+  if (strcmp(topic, MQTT_TOPIC_LEDS_RGB_COMMAND) == 0)       
+  {
+        if (sscanf(msg.c_str(), "%d,%d,%d", &Light::r, &Light::g, &Light::b) == 3)
+        {
+          
+        }
+  }
+  if (strcmp(topic, MQTT_TOPIC_LEDS_COMMAND) == 0)    
+  {
+    Light::state = msg;
+    if(msg == "OFF")
+    {
+      colorWipe(strip.Color( 0, 0, 0), 0);    // Blue
+      strip.show();
+    }
+    else
+    {
+      colorWipe(strip.Color( Light::r, Light::g, Light::b), Light::brightness);    // Blue
+      strip.show();
+    }
+  }
+  Serial.println();
+
+}
 
 void publishAutoConfig() {
   char mqttPayload[2048];
   DynamicJsonDocument device(256);
+  DynamicJsonDocument colorModes(256);
   DynamicJsonDocument autoconfPayload(1024);
   StaticJsonDocument<64> identifiersDoc;
   JsonArray identifiers = identifiersDoc.to<JsonArray>();
@@ -510,9 +590,13 @@ void publishAutoConfig() {
 
   device["identifiers"] = identifiers;
   device["manufacturer"] = "TeHyBug";
-  device["model"] = "FreshAirMakesSense";
+  device["model"] = "InformerMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.11.20";
+  device["sw_version"] = "2023.01.19";
+
+  colorModes.add("rgb");
+  colorModes.add("brightness");
+  colorModes.add("onoff");
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -591,6 +675,38 @@ void publishAutoConfig() {
 
   serializeJson(autoconfPayload, mqttPayload);
   mqttClient.publish(&MQTT_TOPIC_AUTOCONF_P_SENSOR[0], &mqttPayload[0], true);
+
+  autoconfPayload.clear();
+
+
+  device["identifiers"] = identifiers;
+ 
+  autoconfPayload["device"] = device.as<JsonObject>();
+  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  autoconfPayload["state_topic"] = MQTT_TOPIC_LEDS_STATE;
+  autoconfPayload["name"] = identifier + String(" Leds");
+  autoconfPayload["command_topic"] = MQTT_TOPIC_LEDS_COMMAND;
+
+  autoconfPayload["brightness_state_topic"] = MQTT_TOPIC_LEDS_BRIGHTNEESS_STATE;
+  autoconfPayload["brightness_command_topic"] = MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND;
+  autoconfPayload["rgb_state_topic"] = MQTT_TOPIC_LEDS_RGB_STATE;
+  autoconfPayload["rgb_command_topic"] = MQTT_TOPIC_LEDS_RGB_COMMAND;
+
+  autoconfPayload["state_value_template"] = "{{ value_json.state }}";
+  autoconfPayload["brightness_value_template"] = "{{ value_json.brightness }}";
+  autoconfPayload["rgb_value_template"] = "{{ value_json.rgb | join(',') }}";
+  autoconfPayload["payload_on"] = "ON";
+  autoconfPayload["payload_off"] = "OFF";
+      
+  autoconfPayload["brightness"] = true;
+  autoconfPayload["color_mode"] = true;
+  autoconfPayload["schema"] = "json";
+  autoconfPayload["supported_color_modes"] = colorModes;
+  autoconfPayload["unique_id"] = identifier + String("_leds");
+  autoconfPayload["icon"] = "mdi:spotlight";
+
+  serializeJson(autoconfPayload, mqttPayload);
+  mqttClient.publish(&MQTT_TOPIC_LEDS_AUTOCONF[0], &mqttPayload[0], true);
 
   autoconfPayload.clear();
 }
@@ -891,26 +1007,8 @@ uint8_t strContains(const char* string, char* toFind)
 void setup()
 {
   strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
-  colorWipe(strip.Color(  0, 0,   255), 90);    // Blue
+  colorWipe(strip.Color( Light::r, Light::g, Light::b), Light::brightness);    // Blue
   strip.show();
-
-// iterate over the notes of the melody:
-  for (int thisNote = 0; thisNote < 8; thisNote++) {
-
-    // to calculate the note duration, take one second divided by the note type.f
-    //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
-    int noteDuration = 1000 / noteDurations[thisNote];
-    tone(TONE_PIN, melody[thisNote], noteDuration);
-
-    // to distinguish the notes, set a minimum time between them.
-    // the note's duration + 30% seems to work well:
-    int pauseBetweenNotes = noteDuration * 1.30;
-    delay(pauseBetweenNotes);
-    // stop the tone playing:
-    noTone(TONE_PIN);
-  }
-
-
   /*
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();

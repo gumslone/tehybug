@@ -6,8 +6,8 @@ namespace Light {
  int brightness = 90;
  int r = 0;
  int g = 0;
- int b = 255;
- String state = "ON";
+ int b = 0;
+ String state = "OFF";
 
 void show()
 {

@@ -28,6 +28,8 @@
 
 #include "pir.h"
 
+#include "reed_switch.h"
+
 // dns
 const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 4, 1);
@@ -141,6 +143,7 @@ char MQTT_TOPIC_AUTOCONF_T_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_H_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_P_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_MOT_SENSOR[128];
+char MQTT_TOPIC_AUTOCONF_REED_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_SENSOR[128];
 
@@ -248,6 +251,7 @@ void setupHandle() {
   snprintf(MQTT_TOPIC_AUTOCONF_H_SENSOR, 127, "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127, "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_MOT_SENSOR, 127, "homeassistant/sensor/%s/%s_mot/config", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_REED_SENSOR, 127, "homeassistant/sensor/%s/%s_reed/config", FIRMWARE_PREFIX, identifier);
 
   //LED
   snprintf(MQTT_TOPIC_LEDS_AUTOCONF, 127, "homeassistant/light/%s/light/config", identifier);
@@ -516,6 +520,7 @@ void publishState() {
   stateJson["humidity"] = humi;
   stateJson["pressure"] = qfe;
   stateJson["motion"] = Pir::state;
+  stateJson["reed"] = ReedSwitch::state;
   stateJson["wifi"] = wifiJson.as<JsonObject>();
   serializeJson(stateJson, payload);
   mqttClient.publish(&MQTT_TOPIC_STATE[0], &payload[0], true);
@@ -721,6 +726,19 @@ void publishAutoConfig() {
 
   autoconfPayload.clear();
 
+  autoconfPayload["device"] = device.as<JsonObject>();
+  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
+  autoconfPayload["name"] = identifier + String(" Door");
+  autoconfPayload["value_template"] = "{{value_json.reed}}";
+  autoconfPayload["unique_id"] = identifier + String("_door");
+  autoconfPayload["icon"] = "mdi:door";
+
+  serializeJson(autoconfPayload, mqttPayload);
+  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_REED_SENSOR[0], &mqttPayload[0], true);
+
+  autoconfPayload.clear();
+
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -881,6 +899,14 @@ void read_scd4x()
 
 }
 
+
+void read_pin_sensors()
+{
+  read_pir();
+  read_reed_switch();
+
+}
+
 void read_pir()
 {
   int val = digitalRead(PIR_PIN);   // read sensor value
@@ -895,6 +921,26 @@ void read_pir()
   }
 
   if (Pir::state != prev_state)
+  {
+    publishState();
+  }
+
+}
+
+void read_reed_switch()
+{
+  int val = digitalRead(REED_PIN);   // read sensor value
+  String prev_state = ReedSwitch::state;
+
+  if (val == HIGH) {           // check if the sensor is HIGH
+    ReedSwitch::state = "open";
+  }
+  else
+  {
+    ReedSwitch::state = "closed";
+  }
+
+  if (ReedSwitch::state != prev_state)
   {
     publishState();
   }
@@ -1101,6 +1147,7 @@ void setup()
 
 
   pinMode(PIR_PIN, INPUT);    // initialize sensor as an input
+  pinMode(REED_PIN, INPUT_PULLUP);    // initialize sensor as an input
 
 
 
@@ -1232,7 +1279,7 @@ void setup()
 
   // load the config
   Config::load();
-
+/*
   int val = digitalRead(BUTTON_MODE);   // read the input pin
   if (val == 0)
   {
@@ -1256,7 +1303,7 @@ void setup()
   {
     delay(1);
   }
-
+*/
 
   if (Config::offline_mode == false)
   {
@@ -1273,6 +1320,7 @@ void setup()
     WiFi.forceSleepBegin();
     delay(1); //Needed, at least in my tests WiFi doesn't power off without this for some reason
   }
+  
 
   ticker.add(0, 10033, [&](void*) {
     read_sensors();
@@ -1283,7 +1331,7 @@ void setup()
   }, nullptr, true);
 
   ticker.add(2, 1000, [&](void*) {
-    read_pir();
+    read_pin_sensors();
   }, nullptr, true);
 }
 

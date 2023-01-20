@@ -26,11 +26,7 @@
 
 #include "buzzer.h"
 
-
-#define TONE_PIN   5
-
-
-
+#include "pir.h"
 
 // dns
 const byte DNS_PORT = 53;
@@ -110,7 +106,7 @@ bool update_oled_display = false;
 // wifi and mqtt and http
 const char* update_path = "/update";
 const char* update_username = "TeHyBug";
-const char* update_password = "InformerMakesSense";
+const char* update_password = "IndicatorMakesSense";
 
 uint8_t mqttRetryCounter = 0;
 
@@ -134,7 +130,7 @@ const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
 
 
 char identifier[24];
-#define FIRMWARE_PREFIX "tehybug-informer"
+#define FIRMWARE_PREFIX "tehybug-indicator"
 #define AVAILABILITY_ONLINE "online"
 #define AVAILABILITY_OFFLINE "offline"
 char MQTT_TOPIC_AVAILABILITY[128];
@@ -144,6 +140,7 @@ char MQTT_TOPIC_COMMAND[128];
 char MQTT_TOPIC_AUTOCONF_T_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_H_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_P_SENSOR[128];
+char MQTT_TOPIC_AUTOCONF_MOT_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_SENSOR[128];
 
@@ -231,7 +228,7 @@ void handleGetConfig()
 void setupHandle() {
 
   Serial.println("\n");
-  Serial.println("Hello from esp8266-tehybug-informer");
+  Serial.println("Hello from esp8266-tehybug-indicator");
   Serial.printf("Core Version: %s\n", ESP.getCoreVersion().c_str());
   Serial.printf("Boot Version: %u\n", ESP.getBootVersion());
   Serial.printf("Boot Mode: %u\n", ESP.getBootMode());
@@ -240,7 +237,7 @@ void setupHandle() {
 
   delay(3000);
 
-  snprintf(identifier, sizeof(identifier), "TEHYBUG-INFORMER-%X", ESP.getChipId());
+  snprintf(identifier, sizeof(identifier), "TEHYBUG-INDICATOR-%X", ESP.getChipId());
   snprintf(MQTT_TOPIC_AVAILABILITY, 127, "%s/%s/status", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_STATE, 127, "%s/%s/state", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_COMMAND, 127, "%s/%s/command", FIRMWARE_PREFIX, identifier);
@@ -250,6 +247,7 @@ void setupHandle() {
   snprintf(MQTT_TOPIC_AUTOCONF_T_SENSOR, 127, "homeassistant/sensor/%s/%s_t/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_H_SENSOR, 127, "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127, "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_MOT_SENSOR, 127, "homeassistant/sensor/%s/%s_mot/config", FIRMWARE_PREFIX, identifier);
 
   //LED
   snprintf(MQTT_TOPIC_LEDS_AUTOCONF, 127, "homeassistant/light/%s/light/config", identifier);
@@ -517,7 +515,7 @@ void publishState() {
   }
   stateJson["humidity"] = humi;
   stateJson["pressure"] = qfe;
-
+  stateJson["motion"] = Pir::state;
   stateJson["wifi"] = wifiJson.as<JsonObject>();
   serializeJson(stateJson, payload);
   mqttClient.publish(&MQTT_TOPIC_STATE[0], &payload[0], true);
@@ -626,7 +624,7 @@ void publishAutoConfig() {
 
   device["identifiers"] = identifiers;
   device["manufacturer"] = "TeHyBug";
-  device["model"] = "InformerMakesSense";
+  device["model"] = "IndicatorMakesSense";
   device["name"] = identifier;
   device["sw_version"] = "2023.01.19";
 
@@ -707,6 +705,19 @@ void publishAutoConfig() {
 
   serializeJson(autoconfPayload, mqttPayload);
   mqttClient.publish(&MQTT_TOPIC_AUTOCONF_P_SENSOR[0], &mqttPayload[0], true);
+
+  autoconfPayload.clear();
+
+  autoconfPayload["device"] = device.as<JsonObject>();
+  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
+  autoconfPayload["name"] = identifier + String(" Motion");
+  autoconfPayload["value_template"] = "{{value_json.motion}}";
+  autoconfPayload["unique_id"] = identifier + String("_motion");
+  autoconfPayload["icon"] = "mdi:motion-sensor";
+
+  serializeJson(autoconfPayload, mqttPayload);
+  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_MOT_SENSOR[0], &mqttPayload[0], true);
 
   autoconfPayload.clear();
 
@@ -869,6 +880,28 @@ void read_scd4x()
   }
 
 }
+
+void read_pir()
+{
+  int val = digitalRead(PIR_PIN);   // read sensor value
+  String prev_state = Pir::state;
+
+  if (val == HIGH) {           // check if the sensor is HIGH
+    Pir::state = "detected";
+  }
+  else
+  {
+    Pir::state = "clear";
+  }
+
+  if (Pir::state != prev_state)
+  {
+    publishState();
+  }
+
+}
+
+
 void display_show(const String line1, const String line2, const String line3, const String line4, bool offline)
 {
   if (oled)
@@ -962,6 +995,8 @@ void read_sensors()
   {
     read_scd4x();
   }
+
+
 
   update_oled_display = true;
 
@@ -1063,7 +1098,12 @@ void setup()
   */
 
   pinMode(TONE_PIN, OUTPUT);
-  
+
+
+  pinMode(PIR_PIN, INPUT);    // initialize sensor as an input
+
+
+
   Serial.begin(115200);
   Wire.begin(0, 2);
 
@@ -1238,8 +1278,12 @@ void setup()
     read_sensors();
   }, nullptr, true);
 
-  ticker.add(1, 100, [&](void*) {
+  ticker.add(1, 150, [&](void*) {
     Buzzer::alarm();
+  }, nullptr, true);
+
+  ticker.add(2, 1000, [&](void*) {
+    read_pir();
   }, nullptr, true);
 }
 

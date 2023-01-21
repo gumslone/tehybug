@@ -1134,9 +1134,7 @@ uint8_t strContains(const char* string, char* toFind)
 void setup()
 {
   strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
-  strip.setBrightness(Light::brightness);
-  colorWipe(strip.Color( Light::r, Light::g, Light::b), 100);    // Blue
-  strip.show();
+  
   /*
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
@@ -1333,6 +1331,10 @@ void setup()
   ticker.add(2, 1000, [&](void*) {
     read_pin_sensors();
   }, nullptr, true);
+
+  strip.setBrightness(Light::brightness);
+  colorWipe(strip.Color( Light::r, Light::g, Light::b), 100);    // Blue
+  strip.show();
 }
 
 void loop()

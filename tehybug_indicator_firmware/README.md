@@ -7,6 +7,8 @@ TeHyBug firmware for Indicatorr Board with 15 WS2812B LEDS, Buzzer, Pir Sensor a
 - 15 RGB indication LEDs
 - Buzzer for generating sounds
 - Pir Motion Sensor
+- Open door (reed switch) sensor support
+- AHT20 Temperature and Humidity Sensor on board
 - HomeAssistant (https://www.home-assistant.io/) MQTT Autodiscovery mode (just provide the mqtt brocker ip and the device will appear in your HA)
 - Web Server for OTA Updates, simply upload new firmware versions via web interface
 - Web Server that serves the sensor data in Json Format

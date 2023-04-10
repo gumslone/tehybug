@@ -620,7 +620,7 @@ void read_bmx280()
   Serial.print(temp);
   Serial.println(" C");
   if (bmx280.getChipID() == CHIP_ID_BME280) {
-    humi = String(bmx280.readHumidity(),0);
+    humi = String(bmx280.readHumidity(), 0);
     Serial.print(F("Humidity:    "));
     Serial.print(humi);
     Serial.println(" %");
@@ -716,16 +716,16 @@ void calibrate_sensor()
 {
 }
 
-void display_show(const String line1, const String line2, const String line3, const String line4, bool offline)
+void display_show(const String line1, const String line2, const String line3, const String line4, const String line5, const String line6, bool partial)
 {
   if (epaper)
   {
     display.fillScreen(GxEPD_WHITE);
 
-
     display.setFont(&FreeSans12pt7b);
     display.setCursor(0, 0);
-    display.println(0);
+    display.println();
+    display.println(line1);
     if (line2 != "")
     {
       display.println(line2);
@@ -738,13 +738,30 @@ void display_show(const String line1, const String line2, const String line3, co
     {
       display.println(line4);
     }
-
-    display.update();
+    if (line5 != "")
+    {
+      display.println(line5);
+    }
+    if (line6 != "")
+    {
+      display.println(line6);
+    }
+    if (partial)
+    {
+      display.updateWindow(0, 0, display.width(), display.height());
+    }
+    else
+    {
+      display.update();
+    }
   }
 }
 
 void update_display()
 {
+  int16_t tbx, tby;
+  uint16_t tbw, tbh;
+  uint16_t x, y;
 
   if (epaper && update_epaper_display)
   {
@@ -758,22 +775,24 @@ void update_display()
       {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);
+        display.getTextBounds(temp_imp, 0, 0, &tbx, &tby, &tbw, &tbh);
         display.println(temp_imp);
         display.setFont(&FreeSans9pt7b);
-        display.setCursor(92, 21);
+        display.setCursor(tbw + 6, 21);
         display.println("o");
-        display.setCursor(92, 44);
-        display.println("C");
+        display.setCursor(tbw + 6, 44);
+        display.println("F");
       }
       else
       {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);
+        display.getTextBounds(temp, 0, 0, &tbx, &tby, &tbw, &tbh);
         display.println(temp);
         display.setFont(&FreeSans9pt7b);
-        display.setCursor(92, 21);
+        display.setCursor(tbw + 6, 21);
         display.println("o");
-        display.setCursor(92, 44);
+        display.setCursor(tbw + 6, 44);
         display.println("C");
       }
     }
@@ -793,7 +812,13 @@ void update_display()
     {
       display.setTextSize(2);
       display.setFont(&FreeSansBold18pt7b);
-      display.setCursor(0, 120);
+
+      display.getTextBounds(co2, 0, 0, &tbx, &tby, &tbw, &tbh);
+      // center the bounding box by transposition of the origin:
+      x = ((display.width() - tbw) / 2) - tbx;
+      //y = ((display.height() - tbh) / 2) - tby;
+
+      display.setCursor(x, 120);
       display.println(co2);
       display.setTextSize(1);
       display.setCursor(92, 146);
@@ -803,24 +828,32 @@ void update_display()
 
     if (qfe != "")
     {
-      display.setCursor(0, 200);
+      display.setFont(&FreeSans18pt7b);
+      display.setCursor(0, 197);
       display.println(qfe);
 
+
+
+      display.getTextBounds(qfe, 0, 0, &tbx, &tby, &tbw, &tbh);
+      // center the bounding box by transposition of the origin:
+      //x = ((display.width() - tbw) / 2) - tbx;
+      //y = ((display.height() - tbh) / 2) - tby;
+
       display.setFont(&FreeSans9pt7b);
-      display.setCursor(80, 197);
+      display.setCursor(tbw + 6, 197);
       display.println("hpa");
     }
-    if(update_epaper_display_counter < 50)
+    if (update_epaper_display_counter < 30)
     {
-        display.updateWindow(0, 0, display.width(), display.height());
-        update_epaper_display_counter++;
+      display.updateWindow(0, 0, display.width(), display.height());
+      update_epaper_display_counter++;
     }
     else
     {
       display.update();
       update_epaper_display_counter = 0;
     }
-    
+
 
   }
 
@@ -937,9 +970,11 @@ void setup()
 
   if (epaper)
   {
-    display.init(); // enable diagnostic output on Serial
+    display.init(115200); // enable diagnostic output on Serial
     display.setRotation(1);
     display.fillScreen(GxEPD_WHITE);
+    display.setTextSize(1);
+    display.setTextColor(GxEPD_BLACK);
     display.update();
     delay(500);
   }
@@ -1078,7 +1113,7 @@ void setup()
       if (Config::offline_mode)
         line3 = "ON";
 
-      //display_show("Offline", "mode:", line3, "", true);
+      display_show("Offline", "mode:", line3, "", "", "", true);
     }
   }
 

@@ -30,11 +30,7 @@
 #include <Fonts/FreeSans12pt7b.h>
 #include <Fonts/FreeSans18pt7b.h>
 #include <Fonts/FreeSans24pt7b.h>
-#include <Fonts/FreeSansBold9pt7b.h>
-#include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold18pt7b.h>
-#include <Fonts/FreeSansBold24pt7b.h>
-
 
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
 #include <GxIO/GxIO.h>
@@ -118,7 +114,6 @@ WiFiClient wifiClient;
 PubSubClient mqttClient;
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
-
 
 
 WiFiManagerParameter custom_mqtt_server("server", "mqtt server", Config::mqtt_server, sizeof(Config::mqtt_server));
@@ -515,7 +510,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.11.20";
+  device["sw_version"] = "2023.04.10";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -556,10 +551,7 @@ void publishAutoConfig() {
   {
     autoconfPayload["unit_of_measurement"] = "°F";
   }
-  else
-  {
-    autoconfPayload["unit_of_measurement"] = "°C";
-  }
+  
   autoconfPayload["value_template"] = "{{value_json.temperature}}";
   autoconfPayload["unique_id"] = identifier + String("_temperature");
   autoconfPayload["icon"] = "mdi:thermometer";
@@ -786,25 +778,37 @@ void update_display()
       {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);
-        display.getTextBounds(temp_imp, 0, 0, &tbx, &tby, &tbw, &tbh);
-        display.println(temp_imp);
+        int index = temp_imp.indexOf('.');
+        String temp_imp_a = temp.substring(0, index);
+        String temp_imp_b = temp.substring(index + 1, index + 2);
+        temp_imp_a += ".";
+        display.getTextBounds(temp_imp_a, 0, 0, &tbx, &tby, &tbw, &tbh);
+        display.println(temp_imp_a);
         display.setFont(&FreeSans9pt7b);
-        display.setCursor(tbw + 6, 21);
+        display.setCursor(tbw - 5, 21);
         display.println("o");
-        display.setCursor(tbw + 6, 44);
+        display.setCursor(tbw + 6, 24);
         display.println("F");
+        display.setCursor(tbw + 6, 44);
+        display.println(temp_imp_b);
       }
       else
       {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);
-        display.getTextBounds(temp, 0, 0, &tbx, &tby, &tbw, &tbh);
-        display.println(temp);
+        int index = temp.indexOf('.');
+        String temp_a = temp.substring(0, index);
+        String temp_b = temp.substring(index + 1, index + 2);
+        temp_a += ".";
+        display.getTextBounds(temp_a, 0, 0, &tbx, &tby, &tbw, &tbh);
+        display.println(temp_a);
         display.setFont(&FreeSans9pt7b);
-        display.setCursor(tbw + 6, 21);
+        display.setCursor(tbw - 5, 21);
         display.println("o");
-        display.setCursor(tbw + 6, 44);
+        display.setCursor(tbw + 6, 24);
         display.println("C");
+        display.setCursor(tbw + 6, 44);
+        display.println(temp_b);
       }
     }
 

@@ -11,16 +11,37 @@
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Adafruit_NeoPixel.h>
 #include <ErriezBMX280.h>
 #include "AHT20.h"
 #include <TickerScheduler.h>
-#include "s8_uart.h"
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
 #include "Config.h"
 #include "Button2.h"
 #include "Webinterface.h"
+// include library, include base class, make path known
+#include <GxEPD.h>
+
+// select the display class to use, only one
+#include <GxDEPG0150BN/GxDEPG0150BN.h>    // 1.50" b/w// include library, include base class, make path known
+
+// FreeFonts from Adafruit_GFX
+#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSans12pt7b.h>
+#include <Fonts/FreeSans18pt7b.h>
+#include <Fonts/FreeSans24pt7b.h>
+#include <Fonts/FreeSansBold9pt7b.h>
+#include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/FreeSansBold18pt7b.h>
+#include <Fonts/FreeSansBold24pt7b.h>
+
+
+#include <GxIO/GxIO_SPI/GxIO_SPI.h>
+#include <GxIO/GxIO.h>
+
+// BUSY -> DISSCONNECTED, RST -> DISSCONNECTED, DC -> GPIO0, CS -> GPIO15(CS), CLK -> GPIO14(SCLK), SDI -> GPIO13(MOSI), GND -> GND, 3.3V -> 3.3V
+GxIO_Class io(SPI, /*CS*/16, /*DC*/15, -1);
+GxEPD_Class display(io, -1, -1); // no RST, no BUSY
 
 // dns
 const byte DNS_PORT = 53;
@@ -34,7 +55,7 @@ String escapedMac;
 // pull-up resistor so the switch pulls the pin to ground momentarily.
 // On a high -> low transition the button press logic will execute.
 #define BUTTON_LEFT   5
-#define BUTTON_RIGHT   14
+#define BUTTON_RIGHT   4
 #define BUTTON_MODE   0
 /////////////////////////////////////////////////////////////////
 Button2 button_left;
@@ -43,20 +64,10 @@ Button2 button_mode;
 
 #define PIXEL_PIN    12  // Digital IO pin connected to the NeoPixels.
 
-#define PIXEL_COUNT 1  // Number of NeoPixels
+#define PIXEL_COUNT 2  // Number of NeoPixels
 
 SCD4x mySensor;
 bool scd4x_sensor = false;
-
-#define S8_RX_PIN 4         // Rx pin 
-#define S8_TX_PIN 13         // Tx pin 
-
-SoftwareSerial S8_serial(S8_RX_PIN, S8_TX_PIN);
-
-S8_UART *sensor_S8;
-S8_sensor sensor;
-bool s8_sensor = false;
-unsigned long s8_last_measurenment = 0;
 
 // Adjust sea level for altitude calculation
 #define SEA_LEVEL_PRESSURE_HPA      1026.25
@@ -90,23 +101,9 @@ String i2c_addresses = "";
 
 TickerScheduler ticker(5);
 
-#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-
-
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-// The pins for I2C are defined by the Wire-library.
-// On an arduino UNO:       A4(SDA), A5(SCL)
-// On an arduino MEGA 2560: 20(SDA), 21(SCL)
-// On an arduino LEONARDO:   2(SDA),  3(SCL), ...
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-bool oled = false;
-bool update_oled_display = false;
+bool epaper = true;
+byte update_epaper_display_counter = 0;
+bool update_epaper_display = false;
 
 
 // wifi and mqtt and http
@@ -623,7 +620,7 @@ void read_bmx280()
   Serial.print(temp);
   Serial.println(" C");
   if (bmx280.getChipID() == CHIP_ID_BME280) {
-    humi = String((bmx280.readHumidity()));
+    humi = String(bmx280.readHumidity(),0);
     Serial.print(F("Humidity:    "));
     Serial.print(humi);
     Serial.println(" %");
@@ -702,7 +699,7 @@ void read_scd4x()
     if (aht20_sensor == false && bmx_sensor == false)
     {
       temp = String(mySensor.getTemperature(), 1);
-      humi = String(mySensor.getHumidity(), 1);
+      humi = String(mySensor.getHumidity(), 0);
 
       temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
       temp_imp = String(temp_imp);
@@ -713,141 +710,117 @@ void read_scd4x()
   }
 
 }
-void read_s8()
-{
-  if (millis() - s8_last_measurenment >= 5000) // 5 seconds
-  {
-    //printf("Millis: %lu\n", millis());
 
-    // Get CO2 measure
-    co2 = String(sensor_S8->get_co2());
-    Serial.println();
-    Serial.print(F("CO2(ppm):"));
-    Serial.print(co2);
-    Serial.println();
-    co2_ampel(co2.toInt());
-    //Serial.printf("/*%u*/\n", sensor.co2);   // Format to use with Serial Studio program
-
-    // Compare with PWM output
-    //sensor.pwm_output = sensor_S8->get_PWM_output();
-    //printf("PWM output = %0.0f ppm\n", (sensor.pwm_output / 16383.0) * 2000.0);
-
-    // Wait 5 second for next measure
-    s8_last_measurenment = millis();
-  }
-
-}
-
-void calibrate_s8()
-{
-  if (s8_sensor)
-  {
-    if (oled)
-    {
-      display_show("Calibration started", "Put sensor", "outside and", "wait 7 min", true);
-    }
-    // Countdown waiting outside
-    Serial.println("Now, you put the sensor outside and wait.");
-    Serial.println("Countdown begins...");
-    unsigned int seconds = 360;
-    while (seconds > 0) {
-      printf("%d minutes %d seconds left\n", seconds / 60, seconds % 60);
-      delay(1000);
-      seconds--;
-    }
-    Serial.println("Time reamining: 0 minutes 0 seconds");
-
-    // Start manual calibration
-    Serial.println("Starting manual calibration...");
-    if (!sensor_S8->manual_calibration()) {
-      Serial.println("Error setting manual calibration!");
-      delay(1000);
-    }
-    delay(6000);
-    // Check if background calibration is finished
-    sensor.ack = sensor_S8->get_acknowledgement();
-    if (sensor.ack & S8_MASK_CO2_BACKGROUND_CALIBRATION) {
-      printf("Manual calibration is finished.");
-    } else {
-      Serial.println("Doing manual calibration...");
-    }
-  }
-}
 
 void calibrate_sensor()
 {
-  calibrate_s8();
 }
 
 void display_show(const String line1, const String line2, const String line3, const String line4, bool offline)
 {
-  if (oled)
+  if (epaper)
   {
-    display.clearDisplay();
+    display.fillScreen(GxEPD_WHITE);
 
 
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(32, 0);
-    display.println(line1);
+    display.setFont(&FreeSans12pt7b);
+    display.setCursor(0, 0);
+    display.println(0);
     if (line2 != "")
     {
-      display.setCursor(32, 12);
       display.println(line2);
     }
     if (line3 != "")
     {
-      display.setCursor(32, 24);
       display.println(line3);
     }
     if (line4 != "")
     {
-      display.setCursor(32, 36);
       display.println(line4);
     }
-    if (offline == false)
-    {
-      display.setCursor(95, 0);
-      display.println("^");
-    }
-    display.display();
+
+    display.update();
   }
 }
 
 void update_display()
 {
 
-  if (oled && update_oled_display)
+  if (epaper && update_epaper_display)
   {
-
-    String line1, line2, line3, line4;
-
-    if (co2 != "")
-    {
-      line1 = "CO2: " + String(co2);
-    }
+    display.fillScreen(GxEPD_WHITE);
+    display.setTextSize(1);
+    display.setTextColor(GxEPD_BLACK);
 
     if (temp != "")
     {
       if (Config::imperial_temp == true)
       {
-        line2 = "T: " + (temp_imp) + (char)247 + "F";
+        display.setFont(&FreeSans24pt7b);
+        display.setCursor(0, 44);
+        display.println(temp_imp);
+        display.setFont(&FreeSans9pt7b);
+        display.setCursor(92, 21);
+        display.println("o");
+        display.setCursor(92, 44);
+        display.println("C");
       }
       else
       {
-        line2 = "T: " + (temp) + (char)247 + "C";
+        display.setFont(&FreeSans24pt7b);
+        display.setCursor(0, 44);
+        display.println(temp);
+        display.setFont(&FreeSans9pt7b);
+        display.setCursor(92, 21);
+        display.println("o");
+        display.setCursor(92, 44);
+        display.println("C");
       }
     }
+
     if (humi != "")
     {
-      line3 = "RH: " + (humi) + "%";
+      display.setFont(&FreeSans24pt7b);
+      display.setCursor(120, 44);
+      display.println(humi);
+      display.setFont(&FreeSans9pt7b);
+      display.setCursor(174, 24);
+      display.println("%");
+      display.setCursor(174, 44);
+      display.println("RH");
     }
-    if (qfe != "")
+    if (co2 != "")
     {
-      line4 = "P: " + qfe + "hPa";
+      display.setTextSize(2);
+      display.setFont(&FreeSansBold18pt7b);
+      display.setCursor(0, 120);
+      display.println(co2);
+      display.setTextSize(1);
+      display.setCursor(92, 146);
+      display.setFont(&FreeSans12pt7b);
+      display.println("CO2 PPM");
     }
 
-    display_show(line1, line2, line3, line4, Config::offline_mode);
+    if (qfe != "")
+    {
+      display.setCursor(0, 200);
+      display.println(qfe);
+
+      display.setFont(&FreeSans9pt7b);
+      display.setCursor(80, 197);
+      display.println("hpa");
+    }
+    if(update_epaper_display_counter < 50)
+    {
+        display.updateWindow(0, 0, display.width(), display.height());
+        update_epaper_display_counter++;
+    }
+    else
+    {
+      display.update();
+      update_epaper_display_counter = 0;
+    }
+    
 
   }
 
@@ -866,17 +839,13 @@ void read_sensors()
     read_aht20();
   }
 
-  if (s8_sensor)
-  {
-    read_s8();
-  }
 
   if (scd4x_sensor)
   {
     read_scd4x();
   }
 
-  update_oled_display = true;
+  update_epaper_display = true;
 
   update_display();
 
@@ -965,6 +934,16 @@ uint8_t strContains(const char* string, char* toFind)
 
 void setup()
 {
+
+  if (epaper)
+  {
+    display.init(); // enable diagnostic output on Serial
+    display.setRotation(1);
+    display.fillScreen(GxEPD_WHITE);
+    display.update();
+    delay(500);
+  }
+
   strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
   colorWipe(strip.Color(  0, 0,   255), 90);    // Blue
   strip.show();
@@ -981,10 +960,6 @@ void setup()
   i2c_addresses = "";
   i2c_scanner();
 
-  if (strContains(i2c_addresses.c_str(), "0x3c") == 1)
-  {
-    oled = true;
-  }
 
   if (strContains(i2c_addresses.c_str(), "0x77") == 1)
   {
@@ -1005,26 +980,8 @@ void setup()
   {
     scd4x_sensor = true;
   }
-  else
-  {
-    s8_sensor = true;
-  }
 
 
-  if (oled)
-  {
-    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-      Serial.println(F("SSD1306 allocation failed"));
-      for (;;); // Don't proceed, loop forever
-    }
-    // Show initial display buffer contents on the screen --
-    // the library initializes this with an Adafruit splash screen.
-    display.display();
-    display.setRotation(2);
-    delay(2000); // Pause for 2 seconds
-
-  }
 
 
   // bmx280 and bme680 have same address
@@ -1101,40 +1058,6 @@ void setup()
     }
   }
 
-  if (s8_sensor)
-  {
-    // First message, we are alive
-    Serial.println("");
-    Serial.println("Init");
-
-    // Initialize S8 sensor
-    S8_serial.begin(S8_BAUDRATE);
-    sensor_S8 = new S8_UART(S8_serial);
-
-    // Check if S8 is available
-    sensor_S8->get_firmware_version(sensor.firm_version);
-    int len = strlen(sensor.firm_version);
-    if (len == 0) {
-      Serial.println("SenseAir S8 CO2 sensor not found!");
-      //while (1) {
-      //  delay(1);
-      //};
-      s8_sensor = false;
-    }
-    if (s8_sensor)
-    {
-      // Show basic S8 sensor info
-      Serial.println(">>> SenseAir S8 NDIR CO2 sensor <<<");
-      printf("Firmware version: %s\n", sensor.firm_version);
-      sensor.sensor_id = sensor_S8->get_sensor_ID();
-      Serial.print("Sensor ID: 0x"); printIntToHex(sensor.sensor_id, 4); Serial.println("");
-
-      Serial.println("Setup done!");
-      Serial.flush();
-    }
-  }
-
-
   setupButtons();
 
   // load the config
@@ -1148,14 +1071,14 @@ void setup()
     Serial.println("WIFI toggled!");
     Config::offline_mode = !Config::offline_mode;
     Config::save();
-    if (oled == true)
+    if (epaper == true)
     {
       String line3 = "OFF";
 
       if (Config::offline_mode)
         line3 = "ON";
 
-      display_show("Offline", "mode:", line3, "", true);
+      //display_show("Offline", "mode:", line3, "", true);
     }
   }
 
@@ -1164,7 +1087,7 @@ void setup()
     delay(1);
   }
 
-  
+
   if (Config::offline_mode == false)
   {
     colorWipe(strip.Color(  0, 0,   255), 90);    // Blue

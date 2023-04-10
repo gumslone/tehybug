@@ -408,7 +408,7 @@ void longClick(Button2& btn) {
   }
   if (btn.getPin() == BUTTON_BACK)
   {
-    Serial.println("reset wifi\n");
+    Serial.println("not set yet\n");
   }
 }
 void doubleClick(Button2& btn) {
@@ -556,7 +556,7 @@ void publishLightState() {
 
 void publishBuzzerState() {
   char payload[512];
-  snprintf(payload, 256, "%s", Buzzer::state);
+  snprintf(payload, 256, "%s", Buzzer::state.c_str());
   mqttClient.publish(&MQTT_TOPIC_BUZZ_STATE[0], &payload[0], true);
 }
 
@@ -631,7 +631,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "IndicatorMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2023.01.19";
+  device["sw_version"] = "2023.02.12";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;

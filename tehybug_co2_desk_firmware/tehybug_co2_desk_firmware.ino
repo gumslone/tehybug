@@ -360,7 +360,7 @@ void longClick(Button2& btn) {
   }
   if (btn.getPin() == BUTTON_RIGHT)
   {
-    Serial.println("calibrate sensoor\n");
+    Serial.println("calibrate sensor\n");
     calibrate_sensor();
   }
 }

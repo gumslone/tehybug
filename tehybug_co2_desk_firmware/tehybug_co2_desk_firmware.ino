@@ -765,6 +765,17 @@ void update_display()
 
   if (epaper && update_epaper_display)
   {
+    if (update_epaper_display_counter >= 30)
+    {
+      update_epaper_display_counter = 0;
+      display.setRotation(1);
+      display.fillScreen(GxEPD_WHITE);
+      display.setTextSize(1);
+      display.setTextColor(GxEPD_BLACK);
+      display.update();
+      delay(500);
+    }
+
     display.fillScreen(GxEPD_WHITE);
     display.setTextSize(1);
     display.setTextColor(GxEPD_BLACK);
@@ -832,8 +843,6 @@ void update_display()
       display.setCursor(0, 197);
       display.println(qfe);
 
-
-
       display.getTextBounds(qfe, 0, 0, &tbx, &tby, &tbw, &tbh);
       // center the bounding box by transposition of the origin:
       //x = ((display.width() - tbw) / 2) - tbx;
@@ -843,16 +852,9 @@ void update_display()
       display.setCursor(tbw + 6, 197);
       display.println("hpa");
     }
-    if (update_epaper_display_counter < 30)
-    {
-      display.updateWindow(0, 0, display.width(), display.height());
-      update_epaper_display_counter++;
-    }
-    else
-    {
-      display.update();
-      update_epaper_display_counter = 0;
-    }
+
+    display.updateWindow(0, 0, display.width(), display.height());
+    update_epaper_display_counter++;
 
 
   }

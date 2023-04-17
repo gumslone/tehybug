@@ -22,10 +22,19 @@
 // include library, include base class, make path known
 #include <GxEPD.h>
 
+
 // select the display class to use, only one
-#include <GxDEPG0150BN/GxDEPG0150BN.h>    // 1.50" b/w// include library, include base class, make path known
+
+//#include <GxDEPG0150BN/GxDEPG0150BN.h>    // 1.50" b/w// 200x200
+
+#include <GxDEPG0154BxS800FxX_BW/GxDEPG0154BxS800FxX_BW.h>   // 1.54" b/w// 152x152
 
 // FreeFonts from Adafruit_GFX
+// small display
+#include <Fonts/FreeSans7pt7b.h>
+#include <Fonts/FreeSansBold24pt7b.h>
+
+// large display
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSans12pt7b.h>
 #include <Fonts/FreeSans18pt7b.h>
@@ -551,7 +560,7 @@ void publishAutoConfig() {
   {
     autoconfPayload["unit_of_measurement"] = "°F";
   }
-  
+
   autoconfPayload["value_template"] = "{{value_json.temperature}}";
   autoconfPayload["unique_id"] = identifier + String("_temperature");
   autoconfPayload["icon"] = "mdi:thermometer";
@@ -749,6 +758,120 @@ void display_show(const String line1, const String line2, const String line3, co
   }
 }
 
+#if defined(_GxDEPG0154BxS800FxX_BW_H_)
+void update_display()
+{
+  int16_t tbx, tby;
+  uint16_t tbw, tbh;
+  uint16_t x, y;
+
+  if (epaper && update_epaper_display)
+  {
+    if (update_epaper_display_counter >= 30)
+    {
+      display.setRotation(1);
+      display.fillScreen(GxEPD_WHITE);
+      display.setTextSize(1);
+      display.setTextColor(GxEPD_BLACK);
+      display.update();
+      delay(500);
+    }
+
+    display.fillScreen(GxEPD_WHITE);
+    display.setTextSize(1);
+    display.setTextColor(GxEPD_BLACK);
+
+    if (temp != "")
+    {
+      display.setFont(&FreeSans18pt7b);
+      display.setCursor(0, 30);
+      if (Config::imperial_temp == true)
+      {
+
+        int index = temp_imp.indexOf('.');
+        String temp_a = temp.substring(0, index);
+        String temp_b = temp.substring(index + 1, index + 2);
+        temp_a += ".";
+        display.getTextBounds(temp_a, 0, 0, &tbx, &tby, &tbw, &tbh);
+        display.println(temp_a);
+        display.setFont(&FreeSans7pt7b);
+        display.setCursor(tbw - 4, 11);
+        display.println("o");
+        display.setCursor(tbw + 6, 14);
+        display.println("F");
+        display.setCursor(tbw + 6, 30);
+        display.println(temp_b);
+      }
+      else
+      {
+        int index = temp.indexOf('.');
+        String temp_a = temp.substring(0, index);
+        String temp_b = temp.substring(index + 1, index + 2);
+        temp_a += ".";
+        display.getTextBounds(temp_a, 0, 0, &tbx, &tby, &tbw, &tbh);
+        display.println(temp_a);
+        display.setFont(&FreeSans7pt7b);
+        display.setCursor(tbw - 4, 11);
+        display.println("o");
+        display.setCursor(tbw + 6, 14);
+        display.println("C");
+        display.setCursor(tbw + 6, 30);
+        display.println(temp_b);
+      }
+    }
+
+    if (humi != "")
+    {
+      display.setFont(&FreeSans18pt7b);
+      display.setCursor(90, 30);
+      display.println(humi);
+      display.setFont(&FreeSans7pt7b);
+      display.setCursor(130, 14);
+      display.println("%");
+      display.setCursor(130, 30);
+      display.println("RH");
+    }
+    if (co2 != "")
+    {
+      display.setTextSize(1);
+      display.setFont(&FreeSansBold24pt7b);
+
+      display.getTextBounds(co2, 0, 0, &tbx, &tby, &tbw, &tbh);
+      // center the bounding box by transposition of the origin:
+      x = ((display.width() - tbw) / 2) - tbx;
+      //y = ((display.height() - tbh) / 2) - tby;
+
+      display.setCursor(x, 86);
+      display.println(co2);
+      display.setTextSize(1);
+      display.setCursor(70, 106);
+      display.setFont(&FreeSans9pt7b);
+      display.println("CO2 PPM");
+    }
+
+    if (qfe != "")
+    {
+      display.setFont(&FreeSans18pt7b);
+      display.setCursor(0, 150);
+      display.println(qfe);
+
+      display.getTextBounds(qfe, 0, 0, &tbx, &tby, &tbw, &tbh);
+      // center the bounding box by transposition of the origin:
+      //x = ((display.width() - tbw) / 2) - tbx;
+      //y = ((display.height() - tbh) / 2) - tby;
+
+      display.setFont(&FreeSans9pt7b);
+      display.setCursor(tbw + 6, 149);
+      display.println("hpa");
+    }
+
+    display.updateWindow(0, 0, display.width(), display.height());
+    update_epaper_display_counter++;
+
+  }
+}
+#endif
+#if defined(_GxDEPG0150BN_H_)
 void update_display()
 {
   int16_t tbx, tby;
@@ -864,7 +987,7 @@ void update_display()
   }
 
 }
-
+#endif
 
 void read_sensors()
 {

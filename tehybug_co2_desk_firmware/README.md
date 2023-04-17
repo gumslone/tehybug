@@ -1,9 +1,11 @@
-# TeHyBug CO2 Sensor Firmware
+# TeHyBug CO2 Desk Sensor Firmware
 
-TeHyBug firmware for SCD4X and Senseair S8 sensor with support for OLED Display and additional external sensors like AHT10 and BMX280.
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_desk_firmware/images/tehybug_co2_desk.jpg?raw=true" width=500>
+
+TeHyBug firmware for SCD4X and Senseair S8 sensor with E-Ink Display and additional external sensors like AHT10 and BMX280.
 
 ## Features:
-- 152x152 or 200x200 Epaper Display
+- 152x152 or 200x200 E-Paper Display
 - RGB indication for normal (green), medium (yellow) and high (red) CO2 level
 - HomeAssistant (https://www.home-assistant.io/) MQTT Autodiscovery mode (just provide the mqtt brocker ip and the device will appear in your HA)
 - Web Server for OTA Updates, simply upload new firmware versions via web interface
@@ -34,7 +36,7 @@ Password: FreshAirMakesSense
  
 ## Buttons
 
-<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/tehybug_co2_buttons.png?raw=true">
+
 
 ### Mode Button
 

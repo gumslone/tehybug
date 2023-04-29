@@ -26,8 +26,10 @@
 // select the display class to use, only one
 
 //#include <GxDEPG0150BN/GxDEPG0150BN.h>    // 1.50" b/w// 200x200
+#include <GxDEPG0150BN2/GxDEPG0150BN2.h>    // combbined GxDEPG0150BN and GxGDEH0154D67 1.50" b/w// 200x200
 
-#include <GxDEPG0154BxS800FxX_BW/GxDEPG0154BxS800FxX_BW.h>   // 1.54" b/w// 152x152
+//#include <GxGDEH0154D67/GxGDEH0154D67.h> // 1.54" b/w// 200x200 works
+//#include <GxDEPG0154BxS800FxX_BW/GxDEPG0154BxS800FxX_BW.h>   // 1.54" b/w// 152x152
 
 // FreeFonts from Adafruit_GFX
 // small display
@@ -870,8 +872,9 @@ void update_display()
 
   }
 }
-#endif
-#if defined(_GxDEPG0150BN_H_)
+//#endif
+#else
+//#if defined(_GxDEPG0150BN_H_)
 void update_display()
 {
   int16_t tbx, tby;
@@ -1099,7 +1102,7 @@ void setup()
 
   if (epaper)
   {
-    display.init(115200); // enable diagnostic output on Serial
+    display.init(); // disable diagnostic output on Serial
     display.setRotation(1);
     display.fillScreen(GxEPD_WHITE);
     display.setTextSize(1);

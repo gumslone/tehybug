@@ -62,7 +62,7 @@ Password: FreshAirMakesSense
 <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/ha.png?raw=true" width="600">
 
 ## 3D Printed enclosure
-TeHyBug Mini CO2 enclosure for 3D printing is available on Thingiverse: https://www.thingiverse.com/thing:5494215
+TeHyBug Mini CO2 enclosure for 3D printing is available on Thingiverse: https://www.thingiverse.com/thing:5999218
 
 An enclosure for a larger version of the sensor is in design process and will be published soon.
 

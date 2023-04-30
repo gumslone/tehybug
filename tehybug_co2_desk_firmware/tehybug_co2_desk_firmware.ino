@@ -19,6 +19,8 @@
 #include "Config.h"
 #include "Button2.h"
 #include "Webinterface.h"
+#include "images.h"
+
 // include library, include base class, make path known
 #include <GxEPD.h>
 
@@ -1107,6 +1109,11 @@ void setup()
     display.fillScreen(GxEPD_WHITE);
     display.setTextSize(1);
     display.setTextColor(GxEPD_BLACK);
+    display.fillScreen(GxEPD_WHITE);
+    uint16_t x = (display.width() - 180) / 2;
+    uint16_t y = 5;
+  
+    display.drawExampleBitmap(tehybug_logo_white, x, y, 180, 180, GxEPD_BLACK, GxEPD::bm_invert);
     display.update();
     delay(500);
   }

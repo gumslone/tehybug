@@ -37,8 +37,18 @@ Tindie:
 - https://www.tindie.com/products/26085/ Senseair S8 CO2, Temp, Humi, Pressure - WIFI Sensor
 
 Enclosures for 3D Printing:
-- https://www.thingiverse.com/thing:5494215 SCD40 CO2
-- https://www.thingiverse.com/thing:5505674 Senseair S8 CO2
+- https://www.thingiverse.com/thing:5494215 Mini SCD40 CO2 with Oled Display
+- https://www.thingiverse.com/thing:5505674 Senseair S8 CO2 with Oled Display
+- https://www.thingiverse.com/thing:5999218 Desk SCD40 CO2 with E-Ink Display
+
+### TeHyBug FreshAirMakesSense Desk CO2 Sensor
+Documentation and the latest firmware binaries you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_co2_desk_firmware
+
+Tindie:
+- https://www.tindie.com/products/30173/
+
+Enclosures for 3D Printing:
+- https://www.thingiverse.com/thing:5999218 Desk SCD40 CO2 with E-Ink Display
 
 ### TeHyBug Display / Clock
 Latest firmware binaries and documentation you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_display_c_firmware_v1

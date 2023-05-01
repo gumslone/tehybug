@@ -984,7 +984,23 @@ void update_display()
       display.setCursor(tbw + 6, 197);
       display.println("hpa");
     }
+#if defined(_GxDEPG0154BxS800FxX_BW_H_)
+    if (Config::offline_mode == false)
+    {
+      uint16_t x = display.width() - 12;
+      uint16_t y = display.height() - 12;
 
+      display.drawExampleBitmap(wifi_icon_small, x, y, 12, 12, GxEPD_BLACK, GxEPD::bm_invert);
+    }
+#else
+    if (Config::offline_mode == false)
+    {
+      uint16_t x = display.width() - 24;
+      uint16_t y = display.height() - 24;
+
+      display.drawExampleBitmap(wifi_icon, x, y, 24, 24, GxEPD_BLACK, GxEPD::bm_invert);
+    }
+#endif
     display.updateWindow(0, 0, display.width(), display.height());
     update_epaper_display_counter++;
 
@@ -1112,7 +1128,7 @@ void setup()
     display.fillScreen(GxEPD_WHITE);
     uint16_t x = (display.width() - 180) / 2;
     uint16_t y = 5;
-  
+
     display.drawExampleBitmap(tehybug_logo_white, x, y, 180, 180, GxEPD_BLACK, GxEPD::bm_invert);
     display.update();
     delay(500);
@@ -1247,10 +1263,10 @@ void setup()
     Config::save();
     if (epaper == true)
     {
-      String line3 = "OFF";
+      String line3 = "OFF, WIFI enabled!";
 
       if (Config::offline_mode)
-        line3 = "ON";
+        line3 = "ON, WIFI disabled!";
 
       display_show("Offline", "mode:", line3, "", "", "", true);
     }

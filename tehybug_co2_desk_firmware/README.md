@@ -4,6 +4,8 @@
 
 TeHyBug firmware for SCD4X and Senseair S8 sensor with E-Ink Display and additional external sensors like AHT10 and BMX280.
 
+Order your device here: https://www.tindie.com/products/30173/
+
 ## Features:
 - 152x152 or 200x200 E-Paper Display
 - RGB indication for normal (green), medium (yellow) and high (red) CO2 level

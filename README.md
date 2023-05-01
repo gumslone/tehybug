@@ -45,7 +45,7 @@ Enclosures for 3D Printing:
 Documentation and the latest firmware binaries you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_co2_desk_firmware
 
 Tindie:
-- WIP
+- https://www.tindie.com/products/30173/
 
 Enclosures for 3D Printing:
 - https://www.thingiverse.com/thing:5999218 Desk SCD40 CO2 with E-Ink Display

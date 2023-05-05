@@ -37,7 +37,7 @@ Username: TeHyBug
 Password: FreshAirMakesSense
  
 ## Buttons
-
+<img src="https://raw.githubusercontent.com/gumslone/tehybug/master/tehybug_co2_desk_firmware/images/desk%20tehybug%20co2%20buttons.drawio.png" width=500>
 
 
 ### Mode Button

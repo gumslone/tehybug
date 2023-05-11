@@ -8,7 +8,6 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <WiFiManager.h>
-
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoPixel.h>
@@ -20,13 +19,13 @@
 #include "Button2.h"
 #include "Webinterface.h"
 #include "images.h"
+#include "Calibration.h"
+#include "Helper.h"
 
 // include library, include base class, make path known
 #include <GxEPD.h>
 
-
 // select the display class to use, only one
-
 //#include <GxDEPG0150BN/GxDEPG0150BN.h>    // 1.50" b/w// 200x200
 #include <GxDEPG0150BN2/GxDEPG0150BN2.h>    // combbined GxDEPG0150BN and GxGDEH0154D67 1.50" b/w// 200x200
 
@@ -72,7 +71,6 @@ Button2 button_right;
 Button2 button_mode;
 
 #define PIXEL_PIN    12  // Digital IO pin connected to the NeoPixels.
-
 #define PIXEL_COUNT 2  // Number of NeoPixels
 
 SCD4x mySensor;
@@ -100,10 +98,6 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
-boolean oldState = HIGH;
-int     mode     = 0;    // Currently-active animation mode, 0-9
-
-
 String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2;
 
 String i2c_addresses = "";
@@ -111,9 +105,8 @@ String i2c_addresses = "";
 TickerScheduler ticker(5);
 
 bool epaper = true;
-byte update_epaper_display_counter = 0;
-bool update_epaper_display = false;
-
+byte update_epaper_display_counter = 100;
+bool update_epaper_display = true;
 
 // wifi and mqtt and http
 const char* update_path = "/update";
@@ -138,7 +131,6 @@ const uint16_t mqttConnectionInterval = 60000; // 1 minute = 60 seconds = 60000 
 
 uint32_t statusPublishPreviousMillis = 0;
 const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
-
 
 char identifier[24];
 #define FIRMWARE_PREFIX "tehybug-co2-sensor"
@@ -377,11 +369,13 @@ void longClick(Button2& btn) {
     calibrate_sensor();
   }
 }
+
 void doubleClick(Button2& btn) {
   Serial.println("double click\n");
   Serial.println(btn.getPin());
   Serial.println("\n");
 }
+
 void tripleClick(Button2& btn) {
   Serial.println("triple click\n");
 }
@@ -391,7 +385,6 @@ void setupButtons()
   pinMode(BUTTON_LEFT, INPUT_PULLUP);
   pinMode(BUTTON_RIGHT, INPUT_PULLUP);
   pinMode(BUTTON_MODE, INPUT_PULLUP);
-
 
   Serial.println("\n\nButton Demo");
 
@@ -413,7 +406,6 @@ void setupButtons()
 
   button_left.setDoubleClickHandler(doubleClick);
   //button_left.setTripleClickHandler(tripleClick);
-
 
   button_right.begin(BUTTON_RIGHT);
   button_right.setLongClickTime(1000);
@@ -468,7 +460,6 @@ void mqttReconnect() {
     if (mqttClient.connect(identifier, Config::username, Config::password, MQTT_TOPIC_AVAILABILITY, 1, true, AVAILABILITY_OFFLINE)) {
       mqttClient.publish(MQTT_TOPIC_AVAILABILITY, AVAILABILITY_ONLINE, true);
       publishAutoConfig();
-
       // Make sure to subscribe after polling the status so that we never execute commands with the default data
       mqttClient.subscribe(MQTT_TOPIC_COMMAND);
       break;
@@ -523,7 +514,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2023.04.10";
+  device["sw_version"] = "2023.05.09";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -678,8 +669,7 @@ void co2_ampel(int val)
   }
   else
   {
-    colorWipe(strip.Color(  0, 255,   0), 90);    // Green
-
+    colorWipe(strip.Color(  0, 255,   0), 90);    // green
   }
   strip.show();
 }
@@ -703,8 +693,11 @@ void read_scd4x()
 
     if (aht20_sensor == false && bmx_sensor == false)
     {
-      temp = String(mySensor.getTemperature(), 1);
-      humi = String(mySensor.getHumidity(), 0);
+      float calib_temp = (Config::offline_mode) ? Calibration::scd4x_offline_temp : Calibration::scd4x_online_temp;
+      float calib_humi = (Config::offline_mode) ? Calibration::scd4x_offline_humi : Calibration::scd4x_online_humi;
+
+      temp = String((mySensor.getTemperature() + calib_temp), 1);
+      humi = String((mySensor.getHumidity() + calib_humi), 0);
 
       temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
       temp_imp = String(temp_imp);
@@ -715,7 +708,6 @@ void read_scd4x()
   }
 
 }
-
 
 void calibrate_sensor()
 {
@@ -780,7 +772,6 @@ void update_display()
       display.update();
       delay(500);
     }
-
     display.fillScreen(GxEPD_WHITE);
     display.setTextSize(1);
     display.setTextColor(GxEPD_BLACK);
@@ -791,7 +782,6 @@ void update_display()
       display.setCursor(0, 30);
       if (Config::imperial_temp == true)
       {
-
         int index = temp_imp.indexOf('.');
         String temp_a = temp.substring(0, index);
         String temp_b = temp.substring(index + 1, index + 2);
@@ -839,12 +829,10 @@ void update_display()
     {
       display.setTextSize(1);
       display.setFont(&FreeSansBold24pt7b);
-
       display.getTextBounds(co2, 0, 0, &tbx, &tby, &tbw, &tbh);
       // center the bounding box by transposition of the origin:
       x = ((display.width() - tbw) / 2) - tbx;
       //y = ((display.height() - tbh) / 2) - tby;
-
       display.setCursor(x, 86);
       display.println(co2);
       display.setTextSize(1);
@@ -858,15 +846,20 @@ void update_display()
       display.setFont(&FreeSans18pt7b);
       display.setCursor(0, 150);
       display.println(qfe);
-
       display.getTextBounds(qfe, 0, 0, &tbx, &tby, &tbw, &tbh);
       // center the bounding box by transposition of the origin:
       //x = ((display.width() - tbw) / 2) - tbx;
       //y = ((display.height() - tbh) / 2) - tby;
-
       display.setFont(&FreeSans9pt7b);
       display.setCursor(tbw + 6, 149);
       display.println("hpa");
+    }
+
+    if (Config::offline_mode == false)
+    {
+      uint16_t x = display.width() - 16;
+      uint16_t y = display.height() - 16;
+      display.drawExampleBitmap(wifi_icon_small, x, y, 16, 16, GxEPD_BLACK, GxEPD::bm_invert);
     }
 
     display.updateWindow(0, 0, display.width(), display.height());
@@ -955,12 +948,10 @@ void update_display()
     {
       display.setTextSize(2);
       display.setFont(&FreeSansBold18pt7b);
-
       display.getTextBounds(co2, 0, 0, &tbx, &tby, &tbw, &tbh);
       // center the bounding box by transposition of the origin:
       x = ((display.width() - tbw) / 2) - tbx;
       //y = ((display.height() - tbh) / 2) - tby;
-
       display.setCursor(x, 120);
       display.println(co2);
       display.setTextSize(1);
@@ -984,15 +975,7 @@ void update_display()
       display.setCursor(tbw + 6, 197);
       display.println("hpa");
     }
-#if defined(_GxDEPG0154BxS800FxX_BW_H_)
-    if (Config::offline_mode == false)
-    {
-      uint16_t x = display.width() - 12;
-      uint16_t y = display.height() - 12;
 
-      display.drawExampleBitmap(wifi_icon_small, x, y, 12, 12, GxEPD_BLACK, GxEPD::bm_invert);
-    }
-#else
     if (Config::offline_mode == false)
     {
       uint16_t x = display.width() - 24;
@@ -1000,13 +983,11 @@ void update_display()
 
       display.drawExampleBitmap(wifi_icon, x, y, 24, 24, GxEPD_BLACK, GxEPD::bm_invert);
     }
-#endif
+
     display.updateWindow(0, 0, display.width(), display.height());
     update_epaper_display_counter++;
 
-
   }
-
 }
 #endif
 
@@ -1022,16 +1003,13 @@ void read_sensors()
     read_aht20();
   }
 
-
   if (scd4x_sensor)
   {
     read_scd4x();
   }
 
   update_epaper_display = true;
-
   update_display();
-
 }
 
 void i2c_scanner()
@@ -1083,38 +1061,6 @@ void i2c_scanner()
   //i2c scanner end
 }
 
-// find in string
-uint8_t strContains(const char* string, char* toFind)
-{
-  uint8_t slen = strlen(string);
-  uint8_t tFlen = strlen(toFind);
-  uint8_t found = 0;
-
-  if ( slen >= tFlen )
-  {
-    for (uint8_t s = 0, t = 0; s < slen; s++)
-    {
-      do {
-
-        if ( string[s] == toFind[t] )
-        {
-          if ( ++found == tFlen ) return 1;
-          s++;
-          t++;
-        }
-        else {
-          s -= found;
-          found = 0;
-          t = 0;
-        }
-
-      } while (found);
-    }
-    return 0;
-  }
-  else return -1;
-}
-
 void setup()
 {
 
@@ -1150,7 +1096,6 @@ void setup()
   i2c_addresses = "";
   i2c_scanner();
 
-
   if (strContains(i2c_addresses.c_str(), "0x77") == 1)
   {
     bmx280 = bmp280;
@@ -1170,9 +1115,6 @@ void setup()
   {
     scd4x_sensor = true;
   }
-
-
-
 
   // bmx280 and bme680 have same address
   if (bmx_sensor)
@@ -1201,7 +1143,6 @@ void setup()
           break;
       }
 
-
       // Set sampling - Recommended modes of operation
       //
       // Weather
@@ -1229,8 +1170,6 @@ void setup()
                          BMX280_SAMPLING_X16,   // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
                          BMX280_FILTER_X16,     // OFF, X2, X4, X8, X16
                          BMX280_STANDBY_MS_500);// 0_5, 10, 20, 62_5, 125, 250, 500, 1000
-
-
     }
   }
 
@@ -1264,10 +1203,10 @@ void setup()
     if (epaper == true)
     {
       String line3 = "OFF, WIFI enabled!";
-
       if (Config::offline_mode)
+      {
         line3 = "ON, WIFI disabled!";
-
+      }
       display_show("Offline", "mode:", line3, "", "", "", true);
     }
   }
@@ -1277,13 +1216,13 @@ void setup()
     delay(1);
   }
 
-
   if (Config::offline_mode == false)
   {
     colorWipe(strip.Color(  0, 0,   255), 90);    // Blue
     strip.show();
     setupHandle();
-
+    WiFi.mode(WIFI_STA);
+    delay(1);
   }
   else
   {
@@ -1318,15 +1257,11 @@ void loop()
     yield();
     server.handleClient();
 
-
     const uint32_t currentMillis = millis();
     if (currentMillis - statusPublishPreviousMillis >= statusPublishInterval) {
       statusPublishPreviousMillis = currentMillis;
-
-
       printf("Publish state\n");
       publishState();
-
     }
 
     if (!mqttClient.connected() && currentMillis - lastMqttConnectionAttempt >= mqttConnectionInterval) {

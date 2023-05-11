@@ -37,7 +37,7 @@ Username: TeHyBug
 Password: FreshAirMakesSense
  
 ## Buttons
-
+<img src="https://raw.githubusercontent.com/gumslone/tehybug/master/tehybug_co2_desk_firmware/images/desk%20tehybug%20co2%20buttons.drawio.png" width=500>
 
 
 ### Mode Button
@@ -51,7 +51,7 @@ Password: FreshAirMakesSense
  
 ### IO_5 Button
 
-- toggles offline or online mode, hold the IO_5 button and hit the reset button, keep holding the IO_5 Button until the led becomes purple. This will toggle the online or an offline (no wifi connection) mode
+- toggles offline or online mode, hold the IO_5 button and hit the reset button, keep holding the IO_5 Button until the led becomes purple. This will toggle the online or an offline (no wifi connection) mode. In online mode your device can serve sensor data through MQTT with HomeAssistant auto discover.
 
 ### IO_4 Button
 

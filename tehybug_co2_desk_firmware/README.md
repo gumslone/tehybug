@@ -1,3 +1,5 @@
+<a href="https://www.buymeacoffee.com/gumslone" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
 # TeHyBug CO2 Desk Sensor Firmware
 
 <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_desk_firmware/images/tehybug_co2_desk.jpg?raw=true" width=500>

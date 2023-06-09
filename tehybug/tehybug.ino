@@ -14,11 +14,13 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <ErriezBMX280.h>
+#include <Adafruit_NeoPixel.h>
 #include <Adafruit_Sensor.h>
 #include "Adafruit_BME680.h"
 #include "Max44009.h"
 #include "AHT20.h"
 #include "DHTesp.h"
+#include "UUID.h"
 #include <AM2320_asukiaaa.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -35,7 +37,14 @@
 
 #ifndef PIXEL_ACTIVE
 #define PIXEL_ACTIVE 1
+#define PIXEL_COUNT 1  // Number of NeoPixels
+#define PIXEL_PIN    12  // Digital IO pin connected to the NeoPixels.
+
+Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #endif
+// pin 4 HIGH to turn on the pixel
+#define SIGNAL_LED_PIN 4
+
 
 char identifier[24];
 
@@ -77,14 +86,9 @@ bool ds18b20_sensor = false;
 long lastSensorUpdate = 0;
 // end sensors
 
-String line1 = "%temp% °C";
-String line2 = "%humi% %RH";
-String line3 = "%qfe% hPa";
-
 //Button
 #define BUTTON_PIN 0
 
-#define SIGNAL_LED_PIN 1
 //EasyButton button(BUTTON_PIN, 50, false, true);
 
 // dns
@@ -163,6 +167,8 @@ String websocketConnection[10];
 
 int Year, Month, Day, Hour, Minute, Second ;
 
+UUID uuid;
+
 String key, temp, humi, dew, qfe, qnh, alt, air, aiq, lux, uv, adc, tvoc, eco2;
 
 String i2c_addresses = "";
@@ -173,7 +179,6 @@ void SaveConfigCallback()
 {
   shouldSaveConfig = true;
 }
-
 
 /////////////////////////////////////////////////////////////////////
 String replace_placeholders(String text)
@@ -218,10 +223,6 @@ void SaveConfig()
     json["httpPostActive"] = httpPostActive;
     json["httpPostFrequency"] = httpPostFrequency;
     json["httpPostJson"] = httpPostJson;
-
-    json["line1"] = line1;
-    json["line2"] = line2;
-    json["line3"] = line3;
 
     json["calibrationActive"] = calibrationActive;
     json["calibrationTemp"] = calibrationTemp;
@@ -340,18 +341,6 @@ void LoadConfig()
         {
           configModeActive = json["configModeActive"];
         }
-        if (json.containsKey("line1"))
-        {
-          line1 = json["line1"].as<String>();
-        }
-        if (json.containsKey("line2"))
-        {
-          line2 = json["line2"].as<String>();
-        }
-        if (json.containsKey("line3"))
-        {
-          line3 = json["line3"].as<String>();
-        }
 
         if (json.containsKey("calibrationActive"))
         {
@@ -373,10 +362,12 @@ void LoadConfig()
         {
           sleepModeActive = json["sleepModeActive"];
         }
-        if (json.containsKey("key"))
-        {
+        /*
+          if (json.containsKey("key"))
+          {
           key = json["key"].as<String>();
-        }
+          }
+        */
         if (json.containsKey("am2320_sensor"))
         {
           am2320_sensor = json["am2320_sensor"];
@@ -489,20 +480,6 @@ void SetConfig(JsonObject& json)
     configModeActive = json["configModeActive"];
   }
 
-
-  if (json.containsKey("line1"))
-  {
-    line1 = json["line1"].as<String>();
-  }
-  if (json.containsKey("line2"))
-  {
-    line2 = json["line2"].as<String>();
-  }
-  if (json.containsKey("line3"))
-  {
-    line3 = json["line3"].as<String>();
-  }
-
   if (json.containsKey("calibrationActive"))
   {
     calibrationActive = json["calibrationActive"];
@@ -524,10 +501,12 @@ void SetConfig(JsonObject& json)
   {
     sleepModeActive = json["sleepModeActive"];
   }
-  if (json.containsKey("key"))
-  {
+  /*
+    if (json.containsKey("key"))
+    {
     key = json["key"].as<String>();
-  }
+    }
+  */
   if (json.containsKey("am2320_sensor"))
   {
     am2320_sensor = json["am2320_sensor"];
@@ -782,6 +761,7 @@ String GetInfo()
   root["chipID"] = ESP.getChipId();
   root["cpuFreqMHz"] = ESP.getCpuFreqMHz();
   root["sleepModeActive"] = sleepModeActive;
+  root["key"] = key;
 
   String json;
   serializeJson(root, json);
@@ -908,16 +888,26 @@ void doFactoryReset()
 }
 void toggleConfigMode()
 {
+
   Serial.println(F("Config mode changed"));
   configModeActive = !configModeActive;
+  if (configModeActive)
+  {
+    Serial.println(F("Config mode activated"));
+  }
+  else
+  {
+    Serial.println(F("Config mode deactivated"));
+  }
   SaveConfigCallback();
   SaveConfig();
-  delay(100);
+  yield();
   if (configModeActive == false)
   {
-    ESP.restart();
+    //ESP.restart();
   }
 }
+
 void startDeepSleep(int freq) {
   Serial.println("Going to deep sleep...");
   ESP.deepSleep(freq * 1000000);
@@ -1413,13 +1403,43 @@ void serve_data()
     }
   }
 }
+void led_on()
+{
+  digitalWrite(SIGNAL_LED_PIN, HIGH); //on
+  if (PIXEL_ACTIVE == 1)
+  {
+    pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+    pixel.setPixelColor(0,  pixel.Color(  0, 0, 255));
+    pixel.setBrightness(50);
+    pixel.show();  // Initialize all pixels to 'off'
+  }
+}
+void led_off()
+{
+  if (PIXEL_ACTIVE == 1)
+  {
+    pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+    pixel.setPixelColor(0,  pixel.Color(  0,   0,   0));         //  Set pixel's color (in RAM)
+    pixel.setBrightness(0);
+    pixel.show();
+  }
+  digitalWrite(SIGNAL_LED_PIN, LOW); //off
+}
 
+void configModeCallback(WiFiManager *myWiFiManager) {
+  led_on();
+  Serial.println("##########  Entered wifi config mode    ##################");
+  Serial.println(WiFi.softAPIP());
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+}
 void setupWifi() {
-
-  wifiManager.setDebugOutput(false);
+  Serial.println("Setup WIFI");
+  wifiManager.setDebugOutput(true);
   // Set config save notify callback
   wifiManager.setSaveConfigCallback(SaveConfigCallback);
   wifiManager.setMinimumSignalQuality();
+  wifiManager.setAPCallback(configModeCallback);
+
   // Config menue timeout 180 seconds.
 
   wifiManager.setConfigPortalTimeout(180);
@@ -1611,9 +1631,7 @@ void setupSensors()
     DallasTemperature ds18b20sensors(&oneWire);
     // Start up the library
     ds18b20sensors.begin();
-
   }
-
 
   if (am2320_sensor)
   {
@@ -1621,45 +1639,45 @@ void setupSensors()
   }
 }
 
+
+
 void setupMode()
 {
 
   delay(100);
-  pinMode(SIGNAL_LED_PIN, OUTPUT);
-  if (configModeActive == true)
-  {
-    digitalWrite(SIGNAL_LED_PIN, LOW); //on
-  }
-
   pinMode(BUTTON_PIN, INPUT);
-  delay(10);
   if (digitalRead(BUTTON_PIN) == LOW)
   {
     delay(300);
     if (digitalRead(BUTTON_PIN) == LOW)
     {
-      if (configModeActive == true)
-      {
-        digitalWrite(SIGNAL_LED_PIN, HIGH); //off
-      }
-      else
-      {
-        digitalWrite(SIGNAL_LED_PIN, HIGH); //off
-      }
       toggleConfigMode();
     }
   }
-
+  if (configModeActive == true)
+  {
+    led_on();
+  }
+  else
+  {
+    led_off();
+  }
 }
 
 void setup()
 {
+  uuid.seed(ESP.getChipId());
+  uuid.generate();
+  key = String(uuid.toCharArray());
+
+  pinMode(SIGNAL_LED_PIN, OUTPUT);
 
   snprintf(identifier, sizeof(identifier), "TEHYBUG-%X", ESP.getChipId());
 
   Serial.begin(115200);
   while (!Serial);
-
+  Serial.println(F("key: "));
+  Serial.println(key);
   // Mounting FileSystem
   Serial.println(F("Mounting file system..."));
   if (SPIFFS.begin())
@@ -1673,11 +1691,11 @@ void setup()
   }
 
   setupWifi();
-
   setupMode();
 
   if (configModeActive == true)
   {
+    Serial.println(F("Starting config mode"));
     httpUpdater.setup(&server);
     server.on(F("/api/info"), HTTP_GET, HandleGetInfo);
     server.on(F("/api/config"), HTTP_POST, HandleSetConfig);
@@ -1692,6 +1710,10 @@ void setup()
     webSocket.onEvent(webSocketEvent);
     Log(F("Setup"), F("Webserver started"));
   }
+  else
+  {
+    Serial.println(F("Starting live mode"));
+  }
 
   if (configModeActive == false && mqttActive == true)
   {
@@ -1703,6 +1725,12 @@ void setup()
 
   delay(1000);
   setupSensors();
+  if (configModeActive == false)
+  {
+    ticker.add(0, 10033, [&](void*) {
+      read_sensors();
+    }, nullptr, true);
+  }
 }
 
 void loop()

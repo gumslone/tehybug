@@ -169,7 +169,7 @@ int Year, Month, Day, Hour, Minute, Second ;
 
 UUID uuid;
 
-String key, temp, humi, dew, qfe, qnh, alt, air, aiq, lux, uv, adc, tvoc, eco2;
+String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2, eco2;
 
 String i2c_addresses = "";
 
@@ -185,6 +185,7 @@ String replace_placeholders(String text)
 {
   text.replace("%key%", key);
   text.replace("%temp%", temp);
+  text.replace("%temp_imp%", temp_imp);
   text.replace("%humi%", humi);
   text.replace("%qfe%", qfe);
   text.replace("%qnh%", qnh);
@@ -1013,6 +1014,8 @@ void read_sensors()
 void read_bmx280()
 {
   temp = String(calibrate_temp(bmx280.readTemperature()));
+  temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+  temp_imp = String(temp_imp);
   Serial.print(F("Temperature: "));
   Serial.print(temp);
   Serial.println(" C");
@@ -1059,6 +1062,8 @@ void read_bme680()
   }
   Serial.print("Temperature = ");
   temp = String(calibrate_temp(bme680.temperature));
+  temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+  temp_imp = String(temp_imp);
   Serial.print(temp);
   Serial.println(" *C");
 
@@ -1128,6 +1133,8 @@ void read_aht20()
     Serial.print(humi);
     Serial.print("%\t temperature: ");
     temp = String(calibrate_temp(temperature));
+    temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+    temp_imp = String(temp_imp);
     Serial.println(temp);
   }
   else        // GET DATA FAIL
@@ -1154,6 +1161,8 @@ void read_dht()
   //Serial.print("\t");
   humi = String(calibrate_humi(humidity));
   temp = String(calibrate_temp(temperature));
+  temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+  temp_imp = String(temp_imp);
   Serial.print(humi);
   Serial.print("\t\t");
   Serial.print(temp);
@@ -1189,6 +1198,8 @@ void read_am2320()
   humidity = am2320.humidity;
   humi = String(calibrate_humi(humidity));
   temp = String(calibrate_temp(temperature));
+  temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+  temp_imp = String(temp_imp);
   Serial.print(humi);
   Serial.print("\t\t");
   Serial.print(temp);
@@ -1247,6 +1258,8 @@ void read_ds18b20(void)
     if (temperature != DEVICE_DISCONNECTED_C)
     {
     temp = String(calibrate_temp(temperature));
+    temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+    temp_imp = String(temp_imp);
     Serial.print("Temperature for the device 1 (index 0) is: ");
     Serial.println(temp);
     }

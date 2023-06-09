@@ -1,3 +1,5 @@
+<a href="https://www.buymeacoffee.com/gumslone" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
 # TeHyBug
 <img width="162" alt="image" src="https://user-images.githubusercontent.com/12110353/195146098-03df797c-b357-48bd-8f26-aab0660727b0.png">
 

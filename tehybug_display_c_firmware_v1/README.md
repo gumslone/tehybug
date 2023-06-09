@@ -1,3 +1,5 @@
+<a href="https://www.buymeacoffee.com/gumslone" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
 Firmware made for TeHyBug display Weatherstation which is available at tindie:
  https://www.tindie.com/products/25408/
 <img src="https://raw.githubusercontent.com/gumslone/tehybug/master/tehybug_display_c_firmware_v1/images/Bildschirmfoto%202022-02-13%20um%2019.54.41.png" width=400>

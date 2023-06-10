@@ -10,7 +10,6 @@
 #include <PubSubClient.h> // Attention in the lib the #define MQTT_MAX_PACKET_SIZE must be increased to 4000!
 #include <FS.h>
 #include <ArduinoJson.h>
-#include <EasyButton.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include <ErriezBMX280.h>
@@ -89,8 +88,6 @@ long lastSensorUpdate = 0;
 //Button
 #define BUTTON_PIN 0
 
-//EasyButton button(BUTTON_PIN, 50, false, true);
-
 // dns
 const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 1, 1);
@@ -119,7 +116,7 @@ String  mqttMessage = "";
 int mqttPort = 1883;
 int mqttFrequency = 900;
 int mqttRetryCounter = 0;
-int mqttMaxRetrys = 99;
+int mqttMaxRetries = 99;
 long mqttLastReconnectAttempt = 0;
 long mqttReconnectWait = 10000; // wait 10 seconds and try to reconnect again
 char data[80];
@@ -526,7 +523,7 @@ void SetConfig(JsonObject& json)
 
   if (json.containsKey("reboot"))
   {
-    if (json["reboot"] == true)
+    if (json["reboot"])
     {
       delay(1000);
       ESP.restart();
@@ -809,7 +806,7 @@ void MqttSendData()
 void MqttReconnect()
 {
   // Loop until we're reconnected
-  while (!client.connected() && mqttRetryCounter < mqttMaxRetrys)
+  while (!client.connected() && mqttRetryCounter < mqttMaxRetries)
   {
     bool connected = false;
     if (mqttUser != NULL && mqttUser.length() > 0 && mqttPassword != NULL && mqttPassword.length() > 0)
@@ -820,7 +817,7 @@ void MqttReconnect()
     else
     {
       Log(F("MqttReconnect"), F("MQTT connect to server without User and Password"));
-      connected = client.connect(("gumboard_" + GetChipID()).c_str(), "state", 0, true, "diconnected");
+      connected = client.connect(("gumboard_" + GetChipID()).c_str(), "state", 0, true, "disconnected");
     }
 
     // Attempt to connect
@@ -839,7 +836,7 @@ void MqttReconnect()
     }
   }
 
-  if (mqttRetryCounter >= mqttMaxRetrys)
+  if (mqttRetryCounter >= mqttMaxRetries)
   {
     Log(F("MqttReconnect"), F("No connection to MQTT-Server, MQTT temporarily deactivated!"));
   }
@@ -870,23 +867,6 @@ int second() {
 
 //BUTTON
 // Attach callback.
-void singleClick()
-{
-  Serial.println(F("singleClick"));
-  Log(F("singleClick"), F("singleClick!"));
-
-}
-
-void doRestart()
-{
-  Serial.println(F("5 Clicks"));
-  ESP.restart();
-}
-void doFactoryReset()
-{
-  Serial.println(F("15 Seconds Long Click"));
-  Handle_factoryreset();
-}
 void toggleConfigMode()
 {
 
@@ -957,7 +937,7 @@ void http_get(String url)
 
 float calibrate_temp(float _v)
 {
-  if (calibrationActive == true)
+  if (calibrationActive)
   {
     _v = _v + calibrationTemp;
   }
@@ -965,7 +945,7 @@ float calibrate_temp(float _v)
 }
 float calibrate_humi(float _v)
 {
-  if (calibrationActive == true)
+  if (calibrationActive)
   {
     _v = _v + calibrationHumi;
   }
@@ -973,7 +953,7 @@ float calibrate_humi(float _v)
 }
 float calibrate_qfe(float _v)
 {
-  if (calibrationActive == true)
+  if (calibrationActive)
   {
     _v = _v + calibrationQfe;
   }
@@ -1320,13 +1300,11 @@ void read_ds18b20(void)
 void SendInfo(bool force)
 {
   String Info;
-  // Prüfen ob die ermittlung der MatrixInfo überhaupt erforderlich ist
   if ((webSocket.connectedClients() > 0))
   {
     Info = GetInfo();
   }
 
-  // Prüfen ob über Websocket versendet werden muss
   if (webSocket.connectedClients() > 0 && OldInfo != Info)
   {
     for (int i = 0; i < sizeof websocketConnection / sizeof websocketConnection[0]; i++)
@@ -1349,12 +1327,10 @@ void SendSensor(bool force)
   }
 
   String Sensor;
-  // Prüfen ob die Abfrage des LuxSensor überhaupt erforderlich ist
   if ((webSocket.connectedClients() > 0))
   {
     Sensor = GetSensor();
   }
-  // Prüfen ob über Websocket versendet werden muss
   if (webSocket.connectedClients() > 0 && OldSensor != Sensor)
   {
     for (uint i = 0; i < sizeof websocketConnection / sizeof websocketConnection[0]; i++)
@@ -1394,11 +1370,9 @@ void SendConfig()
 void Log(String function, String message)
 {
 
-  String timeStamp = IntFormat(year()) + "-" + IntFormat(month()) + "-" + IntFormat(day()) + "T" + IntFormat(hour()) + ":" + IntFormat(minute()) + ":" + IntFormat(second());
-
+  //String timeStamp = IntFormat(year()) + "-" + IntFormat(month()) + "-" + IntFormat(day()) + "T" + IntFormat(hour()) + ":" + IntFormat(minute()) + ":" + IntFormat(second());
+  String timeStamp = "";
   if (DEBUG) Serial.println("[" + timeStamp + "] " + function + ": " + message);
-
-  // Prüfen ob über Websocket versendet werden muss
   if (webSocket.connectedClients() > 0)
   {
     for (int i = 0; i < sizeof websocketConnection / sizeof websocketConnection[0]; i++)
@@ -1420,11 +1394,11 @@ void serve_data()
     configModeActive = true;
   }
 
-  if (httpGetActive == true)
+  if (httpGetActive)
   {
     http_get(httpGetURL);
     delay(1000);
-    if (sleepModeActive == true)
+    if (sleepModeActive)
     {
       startDeepSleep(httpGetFrequency);
     }
@@ -1434,12 +1408,12 @@ void serve_data()
     }
   }
 
-  if (httpPostActive == true)
+  if (httpPostActive)
   {
     http_post(httpPostJson);
     delay(1000);
 
-    if (sleepModeActive == true)
+    if (sleepModeActive)
     {
       startDeepSleep(httpPostFrequency);
     }
@@ -1449,11 +1423,11 @@ void serve_data()
     }
   }
 
-  if (mqttActive == true)
+  if (mqttActive)
   {
     MqttSendData();
     delay(1000);
-    if (sleepModeActive == true)
+    if (sleepModeActive)
     {
       startDeepSleep(mqttFrequency);
     }
@@ -1470,7 +1444,7 @@ void led_on()
     Serial.println("Led on");
   }
   digitalWrite(SIGNAL_LED_PIN, HIGH); //on
-  if (PIXEL_ACTIVE == 1)
+  if (PIXEL_ACTIVE)
   {
     pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
     pixel.setPixelColor(0,  pixel.Color(  0, 0, 255));
@@ -1511,7 +1485,7 @@ void setupWifi() {
   wifiManager.setMinimumSignalQuality();
   wifiManager.setAPCallback(configModeCallback);
 
-  // Config menue timeout 180 seconds.
+  // Config menu timeout 180 seconds.
 
   wifiManager.setConfigPortalTimeout(180);
 
@@ -1614,7 +1588,7 @@ void setupSensors()
       bmx_sensor = false;
       break;
     }
-    if (bmx_sensor == true)
+    if (bmx_sensor)
     {
       // Print sensor type
       if (DEBUG)Serial.print(F("\nSensor type: "));
@@ -1729,7 +1703,7 @@ void setupMode()
       toggleConfigMode();
     }
   }
-  if (configModeActive == true)
+  if (configModeActive)
   {
     led_on();
   }
@@ -1771,7 +1745,7 @@ void setup()
   setupWifi();
   setupMode();
 
-  if (configModeActive == true)
+  if (configModeActive)
   {
     if (DEBUG)Serial.println(F("Starting config mode"));
     httpUpdater.setup(&server);
@@ -1793,7 +1767,7 @@ void setup()
     if (DEBUG)Serial.println(F("Starting live mode"));
   }
 
-  if (configModeActive == false && mqttActive == true)
+  if (configModeActive == false && mqttActive)
   {
     client.setServer(mqttServer.c_str(), mqttPort);
     client.setCallback(callback);
@@ -1813,7 +1787,7 @@ void setup()
 
 void loop()
 {
-  if (configModeActive == true)
+  if (configModeActive)
   {
     server.handleClient();
     yield();

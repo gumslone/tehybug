@@ -10,7 +10,6 @@ This firmware is compatible with tehybug universal boards (without display) like
 * Gumboard 
 * or other tehybug boards with have audio jack connector for the sensors
 
-
 Supported sensors:
 * BME680
 * BME280/BMP280
@@ -25,3 +24,5 @@ You will need an USB2UART Programmer and python esptool.
 Replace /dev/cu.usbserial-1410 with your usb2serial port.
 
 ```esptool.py --port=/dev/cu.usbserial-1410  write_flash 0x00000 desired_tehybug_firmware.bin```
+
+Demo web configuration page: https://tehybug.com/tehybug/v1/html/demo.html

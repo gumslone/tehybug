@@ -17,6 +17,7 @@ Supported sensors:
 * DHT21/DHT22/AM2032 (in dht simulation mode)
 * AHT20
 * MAX44009
+* DS18B20
 
 how to flash?
 You will need an USB2UART Programmer and python esptool.

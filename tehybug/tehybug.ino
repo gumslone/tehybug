@@ -25,14 +25,7 @@
 #include <WiFiManager.h>
 #include <Wire.h>
 
-// ds18b20 Data wire is plugged into port 2 on the Arduino
-#define ONE_WIRE_BUS 2
-
-// gumboard Stuff
-#include "Tools.h"
-#include "Webinterface.h"
-
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -45,6 +38,10 @@
 #define D_write(...)
 #define D_println(...)
 #endif
+
+// gumboard Stuff
+#include "Tools.h"
+#include "Webinterface.h"
 
 #ifndef PIXEL_ACTIVE
 #define PIXEL_ACTIVE 1
@@ -90,9 +87,15 @@ bool dht_sensor = false; // in the setup the i2c scanner searches for the sensor
 AM2320_asukiaaa am2320;
 bool am2320_sensor = false;
 
-DallasTemperature ds18b20sensors;
-// arrays to hold device address
-DeviceAddress insideThermometer;
+// Data wire is plugged into port 2 on the Arduino
+#define ONE_WIRE_BUS 2
+
+// Setup a oneWire instance to communicate with any OneWire devices (not just
+// Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature ds18b20_sensors(&oneWire);
 
 bool ds18b20_sensor = false;
 
@@ -252,7 +255,6 @@ void SaveConfig() {
     json["sleepModeActive"] = sleepModeActive;
 
     json["key"] = key;
-    json["am2320_sensor"] = am2320_sensor;
     json["dht_sensor"] = dht_sensor;
 
     json["ds18b20_sensor"] = ds18b20_sensor;
@@ -353,15 +355,7 @@ void LoadConfig() {
         if (json.containsKey("sleepModeActive")) {
           sleepModeActive = json["sleepModeActive"];
         }
-        /*
-          if (json.containsKey("key"))
-          {
-          key = json["key"].as<String>();
-          }
-        */
-        if (json.containsKey("am2320_sensor")) {
-          am2320_sensor = json["am2320_sensor"];
-        }
+
         if (json.containsKey("dht_sensor")) {
           dht_sensor = json["dht_sensor"];
         }
@@ -462,15 +456,6 @@ void SetConfig(JsonObject &json) {
   if (json.containsKey("sleepModeActive")) {
     sleepModeActive = json["sleepModeActive"];
   }
-  /*
-    if (json.containsKey("key"))
-    {
-    key = json["key"].as<String>();
-    }
-  */
-  if (json.containsKey("am2320_sensor")) {
-    am2320_sensor = json["am2320_sensor"];
-  }
   if (json.containsKey("dht_sensor")) {
     dht_sensor = json["dht_sensor"];
   }
@@ -502,7 +487,7 @@ void HandleGetMainPage() {
 }
 
 #pragma region //////////////////////////// HTTP API
-               ///////////////////////////////
+///////////////////////////////
 void HandleNotFound() {
   if (server.method() == HTTP_OPTIONS) {
     server.sendHeader("Access-Control-Allow-Origin", "*");
@@ -1058,59 +1043,30 @@ void read_am2320() {
 }
 
 void read_ds18b20(void) {
-  float temperature;
-  // call sensors.requestTemperatures() to issue a global temperature
-  // request to all devices on the bus
-  /*
-    Serial.print("Found ");
-    Serial.print(ds18b20sensors.getDeviceCount(), DEC);
-    Serial.println(" devices.");
+  pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
+  // Start up the library
+  ds18b20_sensors.begin();
+  // Setup a oneWire instance to communicate with any OneWire devices (not just
+  // Maxim/Dallas temperature ICs) call ds18b20_sensors.requestTemperatures() to
+  // issue a global temperature request to all devices on the bus
+  D_print("Requesting temperatures...");
+  ds18b20_sensors.requestTemperatures(); // Send the command to get temperatures
+  D_println("DONE");
+  // After we got the temperatures, we can print them here.
+  // We use the function ByIndex, and as an example get the temperature from the
+  // first sensor only.
+  float tempC = ds18b20_sensors.getTempCByIndex(0);
 
-    // report parasite power requirements
-    Serial.print("Parasite power is: ");
-    if (ds18b20sensors.isParasitePowerMode()) Serial.println("ON");
-    else Serial.println("OFF");
-
-    // Method 1:
-    // Search for devices on the bus and assign based on an index. Ideally,
-    // you would do this to initially discover addresses on the bus and then
-    // use those addresses and manually assign them (see above) once you know
-    // the devices on your bus (and assuming they don't change).
-    if (!ds18b20sensors.getAddress(insideThermometer, 0)) Serial.println("Unable
-    to find address for Device 0");
-    // show the addresses we found on the bus
-    Serial.print("Device 0 Address: ");
-    printAddress(insideThermometer);
-    Serial.println();
-
-    // set the resolution to 9 bit (Each Dallas/Maxim device is capable of
-    several different resolutions)
-    ds18b20sensors.setResolution(insideThermometer, 9);
-
-    Serial.print("Device 0 Resolution: ");
-    Serial.print(ds18b20sensors.getResolution(insideThermometer), DEC);
-    Serial.println();
-
-    Serial.print("Requesting temperatures...");
-    ds18b20sensors.requestTemperatures(); // Send the command to get
-    temperatures Serial.println("DONE");
-    // After we got the temperatures, we can print them here.
-    // We use the function ByIndex, and as an example get the temperature from
-    the first sensor only. temperature = sensors.getTempC(deviceAddress);
-
-    // Check if reading was successful
-    if (temperature != DEVICE_DISCONNECTED_C)
-    {
-    temp = String(calibrate_temp(temperature));
-    temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+  // Check if reading was successful
+  if (tempC != DEVICE_DISCONNECTED_C) {
+    D_print("Temperature for the device 1 (index 0) is: ");
+    D_println(tempC);
+    temp = String(calibrate_temp(tempC));
+    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
     temp_imp = String(temp_imp);
-    Serial.print("Temperature for the device 1 (index 0) is: ");
-    Serial.println(temp);
-    }
-    else
-    {
+  } else {
     Serial.println("Error: Could not read temperature data");
-    }*/
+  }
 }
 
 // end of sensor
@@ -1428,29 +1384,31 @@ void setupSensors() {
     dht.setup(2, DHTesp::DHT22); // Connect DHT sensor to GPIO 2
   }
 
-  if (ds18b20_sensor) {
-    // Setup a oneWire instance to communicate with any OneWire devices (not
-    // just Maxim/Dallas temperature ICs)
-    OneWire oneWire(ONE_WIRE_BUS);
-    // Pass our oneWire reference to Dallas Temperature.
-    DallasTemperature ds18b20sensors(&oneWire);
-    // Start up the library
-    ds18b20sensors.begin();
-  }
-
   if (am2320_sensor) {
     am2320.setWire(&Wire);
+  }
+
+  if (ds18b20_sensor) {
+    pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
   }
 }
 
 void setupMode() {
 
   delay(100);
-  pinMode(BUTTON_PIN, INPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
   if (digitalRead(BUTTON_PIN) == LOW) {
     delay(300);
     if (digitalRead(BUTTON_PIN) == LOW) {
       toggleConfigMode();
+      if (configModeActive) {
+        led_on();
+      } else {
+        led_off();
+      }
+      while (digitalRead(BUTTON_PIN) == LOW) {
+        delay(10);
+      }
     }
   }
   if (configModeActive) {

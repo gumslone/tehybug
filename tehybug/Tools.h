@@ -149,7 +149,7 @@ String i2c_scanner() {
   byte error, address;
   int nDevices;
 
-  Serial.println("Scanning...");
+  D_println("Scanning...");
 
   nDevices = 0;
   for (address = 1; address < 127; address++) {
@@ -160,29 +160,29 @@ String i2c_scanner() {
     error = Wire.endTransmission();
 
     if (error == 0) {
-      Serial.print("I2C device found at address 0x");
+      D_print("I2C device found at address 0x");
       i2c_addresses = i2c_addresses + "0x";
       if (address < 16) {
-        Serial.print("0");
+        D_print("0");
         i2c_addresses = i2c_addresses + "0";
       }
 
-      Serial.print(address, HEX);
+      D_print(address, HEX);
       i2c_addresses = i2c_addresses + String(address, HEX) + ",";
-      Serial.println("  !");
+      D_println("  !");
 
       nDevices++;
     } else if (error == 4) {
-      Serial.print("Unknown error at address 0x");
+      D_print("Unknown error at address 0x");
       if (address < 16)
-        Serial.print("0");
-      Serial.println(address, HEX);
+        D_print("0");
+      D_println(address, HEX);
     }
   }
   if (nDevices == 0)
-    Serial.println("No I2C devices found\n");
+    D_println("No I2C devices found\n");
   else
-    Serial.println("done\n");
+    D_println("done\n");
   return i2c_addresses;
   // i2c scanner end
 }

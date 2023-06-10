@@ -1,25 +1,25 @@
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
+#include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
 #include <ESP8266HTTPUpdateServer.h>
-#include <DNSServer.h>            //Local DNS Server used for redirecting all requests to the configuration portal
-#include <ESP8266mDNS.h>
+#include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <PubSubClient.h>
 #include <WiFiManager.h>
 
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <Adafruit_NeoPixel.h>
-#include <ErriezBMX280.h>
 #include "AHT20.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_SSD1306.h>
+#include <ErriezBMX280.h>
 #include <TickerScheduler.h>
+#include <Wire.h>
 
-#include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
-#include "Config.h"
 #include "Button2.h"
+#include "Config.h"
+#include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
 #include "Webinterface.h"
 
 #include "light.h"
@@ -37,25 +37,25 @@ DNSServer dnsServer;
 char cmDNS[33];
 String escapedMac;
 
-//Button
-// Digital IO pin connected to the button. This will be driven with a
-// pull-up resistor so the switch pulls the pin to ground momentarily.
-// On a high -> low transition the button press logic will execute.
-#define BUTTON_BACK   14
-#define BUTTON_MODE   0
+// Button
+//  Digital IO pin connected to the button. This will be driven with a
+//  pull-up resistor so the switch pulls the pin to ground momentarily.
+//  On a high -> low transition the button press logic will execute.
+#define BUTTON_BACK 14
+#define BUTTON_MODE 0
 /////////////////////////////////////////////////////////////////
 Button2 button_back;
 Button2 button_mode;
 
-#define PIXEL_PIN    12  // Digital IO pin connected to the NeoPixels.
+#define PIXEL_PIN 12 // Digital IO pin connected to the NeoPixels.
 
-#define PIXEL_COUNT 15  // Number of NeoPixels
+#define PIXEL_COUNT 15 // Number of NeoPixels
 
 SCD4x mySensor;
 bool scd4x_sensor = false;
 
 // Adjust sea level for altitude calculation
-#define SEA_LEVEL_PRESSURE_HPA      1026.25
+#define SEA_LEVEL_PRESSURE_HPA 1026.25
 
 // Create BMX280 object I2C address 0x76 or 0x77
 ErriezBMX280 bmx280 = ErriezBMX280(0x76);
@@ -63,7 +63,8 @@ ErriezBMX280 bmp280 = ErriezBMX280(0x77);
 bool bmx_sensor = false; // in the setup the i2c scanner searches for the sensor
 
 AHT20 AHT;
-bool aht20_sensor = false; // in the setup the i2c scanner searches for the sensor
+bool aht20_sensor =
+    false; // in the setup the i2c scanner searches for the sensor
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
@@ -77,18 +78,18 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
 boolean oldState = HIGH;
-int     mode     = 0;    // Currently-active animation mode, 0-9
+int mode = 0; // Currently-active animation mode, 0-9
 
-
-String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2;
+String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux,
+    uv, adc, tvoc, co2;
 
 String i2c_addresses = "";
 
 TickerScheduler ticker(5);
 
-#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-
+#define OLED_RESET 4 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS                                                         \
+  0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -98,17 +99,17 @@ TickerScheduler ticker(5);
 // On an arduino UNO:       A4(SDA), A5(SCL)
 // On an arduino MEGA 2560: 20(SDA), 21(SCL)
 // On an arduino LEONARDO:   2(SDA),  3(SCL), ...
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+#define OLED_RESET -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS                                                         \
+  0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 bool oled = false;
 bool update_oled_display = false;
 
-
 // wifi and mqtt and http
-const char* update_path = "/update";
-const char* update_username = "TeHyBug";
-const char* update_password = "IndicatorMakesSense";
+const char *update_path = "/update";
+const char *update_username = "TeHyBug";
+const char *update_password = "IndicatorMakesSense";
 
 uint8_t mqttRetryCounter = 0;
 
@@ -118,18 +119,20 @@ PubSubClient mqttClient;
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
 
-
-
-WiFiManagerParameter custom_mqtt_server("server", "mqtt server", Config::mqtt_server, sizeof(Config::mqtt_server));
-WiFiManagerParameter custom_mqtt_user("user", "MQTT username", Config::username, sizeof(Config::username));
-WiFiManagerParameter custom_mqtt_pass("pass", "MQTT password", Config::password, sizeof(Config::password));
+WiFiManagerParameter custom_mqtt_server("server", "mqtt server",
+                                        Config::mqtt_server,
+                                        sizeof(Config::mqtt_server));
+WiFiManagerParameter custom_mqtt_user("user", "MQTT username", Config::username,
+                                      sizeof(Config::username));
+WiFiManagerParameter custom_mqtt_pass("pass", "MQTT password", Config::password,
+                                      sizeof(Config::password));
 
 uint32_t lastMqttConnectionAttempt = 0;
-const uint16_t mqttConnectionInterval = 60000; // 1 minute = 60 seconds = 60000 milliseconds
+const uint16_t mqttConnectionInterval =
+    60000; // 1 minute = 60 seconds = 60000 milliseconds
 
 uint32_t statusPublishPreviousMillis = 0;
 const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
-
 
 char identifier[24];
 #define FIRMWARE_PREFIX "tehybug-indicator"
@@ -147,7 +150,7 @@ char MQTT_TOPIC_AUTOCONF_REED_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_SENSOR[128];
 
-//LED
+// LED
 char MQTT_TOPIC_LEDS_AUTOCONF[128];
 char MQTT_TOPIC_LEDS_STATE[128];
 char MQTT_TOPIC_LEDS_COMMAND[128];
@@ -156,29 +159,23 @@ char MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND[128];
 char MQTT_TOPIC_LEDS_RGB_STATE[128];
 char MQTT_TOPIC_LEDS_RGB_COMMAND[128];
 
-//Buzzer
+// Buzzer
 char MQTT_TOPIC_BUZZ_AUTOCONF[128];
 char MQTT_TOPIC_BUZZ_STATE[128];
 char MQTT_TOPIC_BUZZ_COMMAND[128];
 
 bool shouldSaveConfig = false;
 
-void saveConfigCallback() {
-  shouldSaveConfig = true;
-}
+void saveConfigCallback() { shouldSaveConfig = true; }
 
-String getSensor()
-{
+String getSensor() {
 
   DynamicJsonDocument root(1024);
   root["co2"] = co2;
 
-  if (Config::imperial_temp == true)
-  {
+  if (Config::imperial_temp == true) {
     root["temperature"] = temp_imp;
-  }
-  else
-  {
+  } else {
     root["temperature"] = temp;
   }
   root["humidity"] = humi;
@@ -189,32 +186,24 @@ String getSensor()
   return json;
 }
 
-void handleMainPage()
-{
+void handleMainPage() {
   server.sendHeader("Connection", "close");
   server.send(200, "application/json", getSensor());
 }
 
-void handleSaveConfig()
-{
+void handleSaveConfig() {
   if (server.hasArg("imperial_temp")) {
-    if (server.arg("imperial_temp"))
-    {
+    if (server.arg("imperial_temp")) {
       Config::imperial_temp = true;
     }
-  }
-  else
-  {
+  } else {
     Config::imperial_temp = false;
   }
   if (server.hasArg("imperial_qfe")) {
-    if (server.arg("imperial_qfe"))
-    {
+    if (server.arg("imperial_qfe")) {
       Config::imperial_qfe = true;
     }
-  }
-  else
-  {
+  } else {
     Config::imperial_qfe = false;
   }
   Config::save();
@@ -222,8 +211,7 @@ void handleSaveConfig()
   server.send(200, "text/plain", "Configuration saved sucessfully!");
 }
 
-void handleGetConfig()
-{
+void handleGetConfig() {
   server.sendHeader("Connection", "close");
   server.send(200, "text/html", configPage);
 }
@@ -240,32 +228,56 @@ void setupHandle() {
 
   delay(3000);
 
-  snprintf(identifier, sizeof(identifier), "TEHYBUG-INDICATOR-%X", ESP.getChipId());
-  snprintf(MQTT_TOPIC_AVAILABILITY, 127, "%s/%s/status", FIRMWARE_PREFIX, identifier);
+  snprintf(identifier, sizeof(identifier), "TEHYBUG-INDICATOR-%X",
+           ESP.getChipId());
+  snprintf(MQTT_TOPIC_AVAILABILITY, 127, "%s/%s/status", FIRMWARE_PREFIX,
+           identifier);
   snprintf(MQTT_TOPIC_STATE, 127, "%s/%s/state", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_COMMAND, 127, "%s/%s/command", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_COMMAND, 127, "%s/%s/command", FIRMWARE_PREFIX,
+           identifier);
 
-  snprintf(MQTT_TOPIC_AUTOCONF_SENSOR, 127, "homeassistant/sensor/%s/%s_co2/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_WIFI_SENSOR, 127, "homeassistant/sensor/%s/%s_wifi/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_T_SENSOR, 127, "homeassistant/sensor/%s/%s_t/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_H_SENSOR, 127, "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127, "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_MOT_SENSOR, 127, "homeassistant/sensor/%s/%s_mot/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_REED_SENSOR, 127, "homeassistant/sensor/%s/%s_reed/config", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_co2/config", FIRMWARE_PREFIX,
+           identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_WIFI_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_wifi/config", FIRMWARE_PREFIX,
+           identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_T_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_t/config", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_H_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_MOT_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_mot/config", FIRMWARE_PREFIX,
+           identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_REED_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_reed/config", FIRMWARE_PREFIX,
+           identifier);
 
-  //LED
-  snprintf(MQTT_TOPIC_LEDS_AUTOCONF, 127, "homeassistant/light/%s/light/config", identifier);
-  snprintf(MQTT_TOPIC_LEDS_STATE, 127, "%s/%s/light/status", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_LEDS_COMMAND, 127, "%s/%s/light/switch", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_LEDS_BRIGHTNEESS_STATE, 127, "%s/%s/brightness/status", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND, 127, "%s/%s/brightness/set", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_LEDS_RGB_STATE, 127, "%s/%s/rgb/status", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_LEDS_RGB_COMMAND, 127, "%s/%s/rgb/set", FIRMWARE_PREFIX, identifier);
+  // LED
+  snprintf(MQTT_TOPIC_LEDS_AUTOCONF, 127, "homeassistant/light/%s/light/config",
+           identifier);
+  snprintf(MQTT_TOPIC_LEDS_STATE, 127, "%s/%s/light/status", FIRMWARE_PREFIX,
+           identifier);
+  snprintf(MQTT_TOPIC_LEDS_COMMAND, 127, "%s/%s/light/switch", FIRMWARE_PREFIX,
+           identifier);
+  snprintf(MQTT_TOPIC_LEDS_BRIGHTNEESS_STATE, 127, "%s/%s/brightness/status",
+           FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND, 127, "%s/%s/brightness/set",
+           FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_LEDS_RGB_STATE, 127, "%s/%s/rgb/status", FIRMWARE_PREFIX,
+           identifier);
+  snprintf(MQTT_TOPIC_LEDS_RGB_COMMAND, 127, "%s/%s/rgb/set", FIRMWARE_PREFIX,
+           identifier);
 
-  //Buzzer
-  snprintf(MQTT_TOPIC_BUZZ_AUTOCONF, 127, "homeassistant/switch/%s/config", identifier);
-  snprintf(MQTT_TOPIC_BUZZ_STATE, 127, "%s/%s/switch/status", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_BUZZ_COMMAND, 127, "%s/%s/switch/set", FIRMWARE_PREFIX, identifier);
+  // Buzzer
+  snprintf(MQTT_TOPIC_BUZZ_AUTOCONF, 127, "homeassistant/switch/%s/config",
+           identifier);
+  snprintf(MQTT_TOPIC_BUZZ_STATE, 127, "%s/%s/switch/status", FIRMWARE_PREFIX,
+           identifier);
+  snprintf(MQTT_TOPIC_BUZZ_COMMAND, 127, "%s/%s/switch/set", FIRMWARE_PREFIX,
+           identifier);
 
   WiFi.hostname(identifier);
 
@@ -290,12 +302,8 @@ void setupHandle() {
 }
 
 void setupOTA() {
-  ArduinoOTA.onStart([]() {
-    Serial.println("Start");
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
-  });
+  ArduinoOTA.onStart([]() { Serial.println("Start"); });
+  ArduinoOTA.onEnd([]() { Serial.println("\nEnd"); });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
   });
@@ -346,8 +354,7 @@ void setupWifi() {
     Config::load();
   }
 }
-void setupMDSN()
-{
+void setupMDSN() {
   // generate module IDs
   escapedMac = WiFi.macAddress();
   escapedMac.replace(":", "");
@@ -365,28 +372,21 @@ void setupMDSN()
     Serial.println(F("mDNS started"));
     MDNS.addService("http", "tcp", 80);
     MDNS.addServiceTxt("http", "tcp", "mac", escapedMac.c_str());
-
   }
 }
-//BUTTON
-// Attach callback.
-void pressed(Button2& btn) {
-  Serial.println("pressed");
-}
-void released(Button2& btn) {
+// BUTTON
+//  Attach callback.
+void pressed(Button2 &btn) { Serial.println("pressed"); }
+void released(Button2 &btn) {
   Serial.print("released: ");
   Serial.println(btn.wasPressedFor());
 }
-void changed(Button2& btn) {
-  Serial.println("changed");
-}
-void click(Button2& btn) {
-  if (btn.getPin() == BUTTON_MODE)
-  {
+void changed(Button2 &btn) { Serial.println("changed"); }
+void click(Button2 &btn) {
+  if (btn.getPin() == BUTTON_MODE) {
     Serial.println("mode button\n");
   }
-  if (btn.getPin() == BUTTON_BACK)
-  {
+  if (btn.getPin() == BUTTON_BACK) {
     Serial.println("back button\n");
   }
 
@@ -396,35 +396,29 @@ void click(Button2& btn) {
   Serial.println(btn.getPin());
   Serial.println("\n");
 }
-void longClickDetected(Button2& btn) {
+void longClickDetected(Button2 &btn) {
   Serial.println("long click detected\n");
 }
-void longClick(Button2& btn) {
+void longClick(Button2 &btn) {
   Serial.println("long click\n");
-  if (btn.getPin() == BUTTON_MODE)
-  {
+  if (btn.getPin() == BUTTON_MODE) {
     Serial.println("reset wifi\n");
     resetWifiSettingsAndReboot();
   }
-  if (btn.getPin() == BUTTON_BACK)
-  {
+  if (btn.getPin() == BUTTON_BACK) {
     Serial.println("not set yet\n");
   }
 }
-void doubleClick(Button2& btn) {
+void doubleClick(Button2 &btn) {
   Serial.println("double click\n");
   Serial.println(btn.getPin());
   Serial.println("\n");
 }
-void tripleClick(Button2& btn) {
-  Serial.println("triple click\n");
-}
+void tripleClick(Button2 &btn) { Serial.println("triple click\n"); }
 
-void setupButtons()
-{
+void setupButtons() {
   pinMode(BUTTON_BACK, INPUT_PULLUP);
   pinMode(BUTTON_MODE, INPUT_PULLUP);
-
 
   Serial.println("\n\nButton Demo");
 
@@ -432,40 +426,43 @@ void setupButtons()
   button_back.setLongClickTime(1000);
   button_back.setDoubleClickTime(400);
 
-  Serial.println(" Longpress Time: " + String(button_back.getLongClickTime()) + "ms");
-  Serial.println(" DoubleClick Time: " + String(button_back.getDoubleClickTime()) + "ms");
+  Serial.println(" Longpress Time: " + String(button_back.getLongClickTime()) +
+                 "ms");
+  Serial.println(
+      " DoubleClick Time: " + String(button_back.getDoubleClickTime()) + "ms");
 
-  //button_back.setChangedHandler(changed);
-  //button_back.setPressedHandler(pressed);
-  //button_back.setReleasedHandler(released);
+  // button_back.setChangedHandler(changed);
+  // button_back.setPressedHandler(pressed);
+  // button_back.setReleasedHandler(released);
 
-  //button_back.setTapHandler(tap);
+  // button_back.setTapHandler(tap);
   button_back.setClickHandler(click);
-  //button_back.setLongClickDetectedHandler(longClickDetected);
+  // button_back.setLongClickDetectedHandler(longClickDetected);
   button_back.setLongClickHandler(longClick);
 
   button_back.setDoubleClickHandler(doubleClick);
-  //button_back.setTripleClickHandler(tripleClick);
+  // button_back.setTripleClickHandler(tripleClick);
 
   button_mode.begin(BUTTON_MODE);
   button_mode.setLongClickTime(15000);
   button_mode.setDoubleClickTime(400);
 
-  Serial.println(" Longpress Time: " + String(button_mode.getLongClickTime()) + "ms");
-  Serial.println(" DoubleClick Time: " + String(button_mode.getDoubleClickTime()) + "ms");
+  Serial.println(" Longpress Time: " + String(button_mode.getLongClickTime()) +
+                 "ms");
+  Serial.println(
+      " DoubleClick Time: " + String(button_mode.getDoubleClickTime()) + "ms");
 
-  //button_mode.setChangedHandler(changed);
-  //button_mode.setPressedHandler(pressed);
-  //button_mode.setReleasedHandler(released);
+  // button_mode.setChangedHandler(changed);
+  // button_mode.setPressedHandler(pressed);
+  // button_mode.setReleasedHandler(released);
 
-  //button_mode.setTapHandler(tap);
+  // button_mode.setTapHandler(tap);
   button_mode.setClickHandler(click);
-  //button_mode.setLongClickDetectedHandler(longClickDetected);
+  // button_mode.setLongClickDetectedHandler(longClickDetected);
   button_mode.setLongClickHandler(longClick);
 
   button_mode.setDoubleClickHandler(doubleClick);
-  //button_mode.setTripleClickHandler(tripleClick);
-
+  // button_mode.setTripleClickHandler(tripleClick);
 }
 
 void resetWifiSettingsAndReboot() {
@@ -478,11 +475,14 @@ void resetWifiSettingsAndReboot() {
 
 void mqttReconnect() {
   for (uint8_t attempt = 0; attempt < 3; ++attempt) {
-    if (mqttClient.connect(identifier, Config::username, Config::password, MQTT_TOPIC_AVAILABILITY, 1, true, AVAILABILITY_OFFLINE)) {
+    if (mqttClient.connect(identifier, Config::username, Config::password,
+                           MQTT_TOPIC_AVAILABILITY, 1, true,
+                           AVAILABILITY_OFFLINE)) {
       mqttClient.publish(MQTT_TOPIC_AVAILABILITY, AVAILABILITY_ONLINE, true);
       publishAutoConfig();
 
-      // Make sure to subscribe after polling the status so that we never execute commands with the default data
+      // Make sure to subscribe after polling the status so that we never
+      // execute commands with the default data
       mqttClient.subscribe(MQTT_TOPIC_COMMAND);
       mqttClient.subscribe(MQTT_TOPIC_LEDS_COMMAND);
       mqttClient.subscribe(MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND);
@@ -494,9 +494,7 @@ void mqttReconnect() {
   }
 }
 
-bool isMqttConnected() {
-  return mqttClient.connected();
-}
+bool isMqttConnected() { return mqttClient.connected(); }
 
 void publishState() {
   DynamicJsonDocument wifiJson(192);
@@ -509,12 +507,9 @@ void publishState() {
   wifiJson["rssi"] = WiFi.RSSI();
 
   stateJson["co2"] = co2;
-  if (Config::imperial_temp == true)
-  {
+  if (Config::imperial_temp == true) {
     stateJson["temperature"] = temp_imp;
-  }
-  else
-  {
+  } else {
     stateJson["temperature"] = temp;
   }
   stateJson["humidity"] = humi;
@@ -528,7 +523,6 @@ void publishState() {
 
   publishLightState();
   publishBuzzerState();
-
 }
 
 void publishLightState() {
@@ -551,7 +545,6 @@ void publishLightState() {
   serializeJson(stateJson, payload);
   mqttClient.publish(&MQTT_TOPIC_LEDS_STATE[0], &payload[0], true);
   stateJson.clear();
-
 }
 
 void publishBuzzerState() {
@@ -560,7 +553,7 @@ void publishBuzzerState() {
   mqttClient.publish(&MQTT_TOPIC_BUZZ_STATE[0], &payload[0], true);
 }
 
-void mqttCallback(char* topic, uint8_t* payload, unsigned int length) {
+void mqttCallback(char *topic, uint8_t *payload, unsigned int length) {
   String msg = "";
 
   Serial.print("Message arrived [");
@@ -574,48 +567,35 @@ void mqttCallback(char* topic, uint8_t* payload, unsigned int length) {
   }
   Serial.print(msg);
 
-  if (strcmp(topic, MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND) == 0)
-  {
+  if (strcmp(topic, MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND) == 0) {
     Light::brightness = msg.toInt();
     strip.setBrightness(Light::brightness);
   }
-  if (strcmp(topic, MQTT_TOPIC_LEDS_RGB_COMMAND) == 0)
-  {
-    if (sscanf(msg.c_str(), "%d,%d,%d", &Light::r, &Light::g, &Light::b) == 3)
-    {
-
+  if (strcmp(topic, MQTT_TOPIC_LEDS_RGB_COMMAND) == 0) {
+    if (sscanf(msg.c_str(), "%d,%d,%d", &Light::r, &Light::g, &Light::b) == 3) {
     }
   }
-  if (strcmp(topic, MQTT_TOPIC_LEDS_COMMAND) == 0)
-  {
+  if (strcmp(topic, MQTT_TOPIC_LEDS_COMMAND) == 0) {
     Light::state = msg;
-    if (msg == "OFF")
-    {
-      colorWipe(strip.Color( 0, 0, 0), 0);    // Blue
+    if (msg == "OFF") {
+      colorWipe(strip.Color(0, 0, 0), 0); // Blue
       strip.show();
-    }
-    else
-    {
-      colorWipe(strip.Color( Light::r, Light::g, Light::b), 0);    // Blue
+    } else {
+      colorWipe(strip.Color(Light::r, Light::g, Light::b), 0); // Blue
       strip.show();
     }
   }
-  if (strcmp(topic, MQTT_TOPIC_BUZZ_COMMAND) == 0)
-  {
+  if (strcmp(topic, MQTT_TOPIC_BUZZ_COMMAND) == 0) {
     Buzzer::state = msg;
-    if (msg == "ON")
-    {
+    if (msg == "ON") {
       Buzzer::on();
-    }
-    else
-    {
+    } else {
       Buzzer::off();
     }
   }
   publishLightState();
   publishBuzzerState();
   Serial.println();
-
 }
 
 void publishAutoConfig() {
@@ -641,11 +621,14 @@ void publishAutoConfig() {
   autoconfPayload["unique_id"] = identifier + String("_wifi");
   autoconfPayload["unit_of_measurement"] = "dBm";
   autoconfPayload["json_attributes_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["json_attributes_template"] = "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": \"{{value_json.wifi.ip}}\"}";
+  autoconfPayload["json_attributes_template"] =
+      "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": "
+      "\"{{value_json.wifi.ip}}\"}";
   autoconfPayload["icon"] = "mdi:wifi";
 
   serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[0], &mqttPayload[0], true);
+  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[0], &mqttPayload[0],
+                     true);
 
   autoconfPayload.clear();
 
@@ -668,12 +651,9 @@ void publishAutoConfig() {
   autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
   autoconfPayload["name"] = identifier + String(" Temperature");
   autoconfPayload["unit_of_measurement"] = "°C";
-  if (Config::imperial_temp == true)
-  {
+  if (Config::imperial_temp == true) {
     autoconfPayload["unit_of_measurement"] = "°F";
-  }
-  else
-  {
+  } else {
     autoconfPayload["unit_of_measurement"] = "°C";
   }
   autoconfPayload["value_template"] = "{{value_json.temperature}}";
@@ -735,10 +715,10 @@ void publishAutoConfig() {
   autoconfPayload["icon"] = "mdi:door";
 
   serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_REED_SENSOR[0], &mqttPayload[0], true);
+  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_REED_SENSOR[0], &mqttPayload[0],
+                     true);
 
   autoconfPayload.clear();
-
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -747,7 +727,8 @@ void publishAutoConfig() {
   autoconfPayload["command_topic"] = MQTT_TOPIC_LEDS_COMMAND;
 
   autoconfPayload["brightness_state_topic"] = MQTT_TOPIC_LEDS_BRIGHTNEESS_STATE;
-  autoconfPayload["brightness_command_topic"] = MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND;
+  autoconfPayload["brightness_command_topic"] =
+      MQTT_TOPIC_LEDS_BRIGHTNEESS_COMMAND;
   autoconfPayload["rgb_state_topic"] = MQTT_TOPIC_LEDS_RGB_STATE;
   autoconfPayload["rgb_command_topic"] = MQTT_TOPIC_LEDS_RGB_COMMAND;
 
@@ -763,7 +744,6 @@ void publishAutoConfig() {
   mqttClient.publish(&MQTT_TOPIC_LEDS_AUTOCONF[0], &mqttPayload[0], true);
 
   autoconfPayload.clear();
-
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -783,7 +763,6 @@ void publishAutoConfig() {
   mqttClient.publish(&MQTT_TOPIC_BUZZ_AUTOCONF[0], &mqttPayload[0], true);
 
   autoconfPayload.clear();
-
 }
 
 // Fill strip pixels one after another with a color. Strip is NOT cleared
@@ -793,16 +772,15 @@ void publishAutoConfig() {
 // and a delay time (in milliseconds) between pixels.
 void colorWipe(uint32_t color, int wait) {
   for (int i = 0; i < strip.numPixels(); i++) { // For each pixel in strip...
-    strip.setPixelColor(i, color);         //  Set pixel's color (in RAM)
-    strip.show();                          //  Update strip to match
-    delay(wait);                           //  Pause for a moment
+    strip.setPixelColor(i, color);              //  Set pixel's color (in RAM)
+    strip.show();                               //  Update strip to match
+    delay(wait);                                //  Pause for a moment
   }
 }
 
-void read_bmx280()
-{
+void read_bmx280() {
   temp = String((bmx280.readTemperature()));
-  temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+  temp_imp = (int)round(1.8 * temp.toFloat() + 32);
   temp_imp = String(temp_imp);
   Serial.print(F("Temperature: "));
   Serial.print(temp);
@@ -824,52 +802,41 @@ void read_bmx280()
   Serial.print(alt);
   Serial.println(" m");
   Serial.println();
-
 }
-void read_aht20()
-{
+void read_aht20() {
   float humidity, temperature;
   int ret = AHT.getSensor(&humidity, &temperature);
 
-  if (ret)    // GET DATA OK
+  if (ret) // GET DATA OK
   {
     Serial.print("humidity: ");
     humi = String((humidity * 100), 0);
     Serial.print(humi);
     Serial.print("%\t temperature: ");
     temp = String(temperature, 1);
-    temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
     temp_imp = String(temp_imp);
     Serial.println(temp);
-  }
-  else        // GET DATA FAIL
+  } else // GET DATA FAIL
   {
     Serial.println("GET DATA FROM AHT20 FAIL");
   }
-
 }
 
-void co2_ampel(int val)
-{
-  if (val > 1500)
-  {
-    colorWipe(strip.Color(  255, 0,   0), 0);    // red
-  }
-  else if (val > 1000)
-  {
-    colorWipe(strip.Color(  255, 200,   0), 0);    // yellow
-  }
-  else
-  {
-    colorWipe(strip.Color(  0, 255,   0), 0);    // Green
-
+void co2_ampel(int val) {
+  if (val > 1500) {
+    colorWipe(strip.Color(255, 0, 0), 0); // red
+  } else if (val > 1000) {
+    colorWipe(strip.Color(255, 200, 0), 0); // yellow
+  } else {
+    colorWipe(strip.Color(0, 255, 0), 0); // Green
   }
   strip.show();
 }
 
-void read_scd4x()
-{
-  if (mySensor.readMeasurement()) // readMeasurement will return true when fresh data is available
+void read_scd4x() {
+  if (mySensor.readMeasurement()) // readMeasurement will return true when fresh
+                                  // data is available
   {
     Serial.println();
     co2 = String(mySensor.getCO2());
@@ -884,98 +851,75 @@ void read_scd4x()
 
     Serial.println();
 
-    if (aht20_sensor == false && bmx_sensor == false)
-    {
+    if (aht20_sensor == false && bmx_sensor == false) {
       temp = String(mySensor.getTemperature(), 1);
       humi = String(mySensor.getHumidity(), 1);
 
-      temp_imp  = (int)round(1.8 * temp.toFloat() + 32);
+      temp_imp = (int)round(1.8 * temp.toFloat() + 32);
       temp_imp = String(temp_imp);
     }
 
     co2_ampel(co2.toInt());
-
   }
-
 }
 
-
-void read_pin_sensors()
-{
+void read_pin_sensors() {
   read_pir();
   read_reed_switch();
-
 }
 
-void read_pir()
-{
-  int val = digitalRead(PIR_PIN);   // read sensor value
+void read_pir() {
+  int val = digitalRead(PIR_PIN); // read sensor value
   String prev_state = Pir::state;
 
-  if (val == HIGH) {           // check if the sensor is HIGH
+  if (val == HIGH) { // check if the sensor is HIGH
     Pir::state = "detected";
-  }
-  else
-  {
+  } else {
     Pir::state = "clear";
   }
 
-  if (Pir::state != prev_state)
-  {
+  if (Pir::state != prev_state) {
     publishState();
   }
-
 }
 
-void read_reed_switch()
-{
-  int val = digitalRead(REED_PIN);   // read sensor value
+void read_reed_switch() {
+  int val = digitalRead(REED_PIN); // read sensor value
   String prev_state = ReedSwitch::state;
 
-  if (val == HIGH) {           // check if the sensor is HIGH
+  if (val == HIGH) { // check if the sensor is HIGH
     ReedSwitch::state = "open";
-  }
-  else
-  {
+  } else {
     ReedSwitch::state = "closed";
   }
 
-  if (ReedSwitch::state != prev_state)
-  {
+  if (ReedSwitch::state != prev_state) {
     publishState();
   }
-
 }
 
-
-void display_show(const String line1, const String line2, const String line3, const String line4, bool offline)
-{
-  if (oled)
-  {
+void display_show(const String line1, const String line2, const String line3,
+                  const String line4, bool offline) {
+  if (oled) {
     display.clearDisplay();
-
 
     display.setTextSize(1);
     display.setTextColor(WHITE);
     display.setCursor(32, 0);
     display.println(line1);
-    if (line2 != "")
-    {
+    if (line2 != "") {
       display.setCursor(32, 12);
       display.println(line2);
     }
-    if (line3 != "")
-    {
+    if (line3 != "") {
       display.setCursor(32, 24);
       display.println(line3);
     }
-    if (line4 != "")
-    {
+    if (line4 != "") {
       display.setCursor(32, 36);
       display.println(line4);
     }
-    if (offline == false)
-    {
+    if (offline == false) {
       display.setCursor(95, 0);
       display.println("^");
     }
@@ -983,95 +927,70 @@ void display_show(const String line1, const String line2, const String line3, co
   }
 }
 
-void update_display()
-{
+void update_display() {
 
-  if (oled && update_oled_display)
-  {
+  if (oled && update_oled_display) {
 
     String line1, line2, line3, line4;
 
-    if (co2 != "")
-    {
+    if (co2 != "") {
       line1 = "CO2: " + String(co2);
     }
 
-    if (temp != "")
-    {
-      if (Config::imperial_temp == true)
-      {
+    if (temp != "") {
+      if (Config::imperial_temp == true) {
         line2 = "T: " + (temp_imp) + (char)247 + "F";
-      }
-      else
-      {
+      } else {
         line2 = "T: " + (temp) + (char)247 + "C";
       }
     }
-    if (humi != "")
-    {
+    if (humi != "") {
       line3 = "RH: " + (humi) + "%";
     }
-    if (qfe != "")
-    {
+    if (qfe != "") {
       line4 = "P: " + qfe + "hPa";
     }
 
     display_show(line1, line2, line3, line4, Config::offline_mode);
-
   }
-
 }
 
-
-void read_sensors()
-{
-  if (bmx_sensor)
-  {
+void read_sensors() {
+  if (bmx_sensor) {
     read_bmx280();
   }
 
-  if (aht20_sensor)
-  {
+  if (aht20_sensor) {
     read_aht20();
   }
 
-
-
-  if (scd4x_sensor)
-  {
+  if (scd4x_sensor) {
     read_scd4x();
   }
-
-
 
   update_oled_display = true;
 
   update_display();
-
 }
 
-void i2c_scanner()
-{
-  //i2c scanner begin
+void i2c_scanner() {
+  // i2c scanner begin
   byte error, address;
   int nDevices;
 
   Serial.println("Scanning...");
 
   nDevices = 0;
-  for (address = 1; address < 127; address++ )
-  {
+  for (address = 1; address < 127; address++) {
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
     // a device did acknowledge to the address.
     Wire.beginTransmission(address);
     error = Wire.endTransmission();
-    if (error == 0)
-    {
+    if (error == 0) {
       Serial.print("I2C device found at address 0x");
       i2c_addresses = i2c_addresses + "0x";
-      if (address < 16)
-      {
+      if (address < 16) {
         Serial.print("0");
         i2c_addresses = i2c_addresses + "0";
       }
@@ -1081,44 +1000,37 @@ void i2c_scanner()
       Serial.println("  !");
 
       nDevices++;
-    }
-    else if (error == 4)
-    {
+    } else if (error == 4) {
       Serial.print("Unknown error at address 0x");
       if (address < 16)
         Serial.print("0");
       Serial.println(address, HEX);
     }
-
   }
   if (nDevices == 0)
     Serial.println("No I2C devices found\n");
   else
     Serial.println("done\n");
 
-  //i2c scanner end
+  // i2c scanner end
 }
 
 // find in string
-uint8_t strContains(const char* string, char* toFind)
-{
+uint8_t strContains(const char *string, char *toFind) {
   uint8_t slen = strlen(string);
   uint8_t tFlen = strlen(toFind);
   uint8_t found = 0;
 
-  if ( slen >= tFlen )
-  {
-    for (uint8_t s = 0, t = 0; s < slen; s++)
-    {
+  if (slen >= tFlen) {
+    for (uint8_t s = 0, t = 0; s < slen; s++) {
       do {
 
-        if ( string[s] == toFind[t] )
-        {
-          if ( ++found == tFlen ) return 1;
+        if (string[s] == toFind[t]) {
+          if (++found == tFlen)
+            return 1;
           s++;
           t++;
-        }
-        else {
+        } else {
           s -= found;
           found = 0;
           t = 0;
@@ -1127,27 +1039,24 @@ uint8_t strContains(const char* string, char* toFind)
       } while (found);
     }
     return 0;
-  }
-  else return -1;
+  } else
+    return -1;
 }
 
-void setup()
-{
+void setup() {
   strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
-  
+
   /*
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
-    delay(1); //Needed, at least in my tests WiFi doesn't power off without this for some reason
+    delay(1); //Needed, at least in my tests WiFi doesn't power off without this
+    for some reason
   */
 
   pinMode(TONE_PIN, OUTPUT);
 
-
-  pinMode(PIR_PIN, INPUT);    // initialize sensor as an input
-  pinMode(REED_PIN, INPUT_PULLUP);    // initialize sensor as an input
-
-
+  pinMode(PIR_PIN, INPUT);         // initialize sensor as an input
+  pinMode(REED_PIN, INPUT_PULLUP); // initialize sensor as an input
 
   Serial.begin(115200);
   Wire.begin(0, 2);
@@ -1155,76 +1064,63 @@ void setup()
   i2c_addresses = "";
   i2c_scanner();
 
-  if (strContains(i2c_addresses.c_str(), "0x3c") == 1)
-  {
+  if (strContains(i2c_addresses.c_str(), "0x3c") == 1) {
     oled = true;
   }
 
-  if (strContains(i2c_addresses.c_str(), "0x77") == 1)
-  {
+  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
     bmx280 = bmp280;
     bmx_sensor = true;
-  }
-  else if (strContains(i2c_addresses.c_str(), "0x76") == 1)
-  {
+  } else if (strContains(i2c_addresses.c_str(), "0x76") == 1) {
     bmx_sensor = true;
   }
 
-  if (strContains(i2c_addresses.c_str(), "0x38") == 1)
-  {
+  if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
     aht20_sensor = true;
   }
 
-  if (strContains(i2c_addresses.c_str(), "0x62") == 1)
-  {
+  if (strContains(i2c_addresses.c_str(), "0x62") == 1) {
     scd4x_sensor = true;
   }
 
-
-
-  if (oled)
-  {
+  if (oled) {
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
       Serial.println(F("SSD1306 allocation failed"));
-      for (;;); // Don't proceed, loop forever
+      for (;;)
+        ; // Don't proceed, loop forever
     }
     // Show initial display buffer contents on the screen --
     // the library initializes this with an Adafruit splash screen.
     display.display();
     display.setRotation(2);
     delay(2000); // Pause for 2 seconds
-
   }
 
-
   // bmx280 and bme680 have same address
-  if (bmx_sensor)
-  {
+  if (bmx_sensor) {
     // Initialize sensor
     while (!bmx280.begin()) {
       Serial.println(F("Error: Could not detect sensor"));
       bmx_sensor = false;
       break;
     }
-    if (bmx_sensor == true)
-    {
+    if (bmx_sensor == true) {
       // Print sensor type
       Serial.print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
-        case CHIP_ID_BMP280:
-          Serial.println(F("BMP280\n"));
+      case CHIP_ID_BMP280:
+        Serial.println(F("BMP280\n"));
 
-          break;
-        case CHIP_ID_BME280:
-          Serial.println(F("BME280\n"));
+        break;
+      case CHIP_ID_BME280:
+        Serial.println(F("BME280\n"));
 
-          break;
-        default:
-          Serial.println(F("Unknown\n"));
-          break;
+        break;
+      default:
+        Serial.println(F("Unknown\n"));
+        break;
       }
-
 
       // Set sampling - Recommended modes of operation
       //
@@ -1247,129 +1143,117 @@ void setup()
       //  - forced mode, t standby = 0.5 ms
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
-      bmx280.setSampling(BMX280_MODE_SLEEP,    // SLEEP, FORCED, NORMAL
-                         BMX280_SAMPLING_X16,   // Temp:  NONE, X1, X2, X4, X8, X16
-                         BMX280_SAMPLING_X16,   // Press: NONE, X1, X2, X4, X8, X16
-                         BMX280_SAMPLING_X16,   // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
-                         BMX280_FILTER_X16,     // OFF, X2, X4, X8, X16
-                         BMX280_STANDBY_MS_500);// 0_5, 10, 20, 62_5, 125, 250, 500, 1000
-
-
+      bmx280.setSampling(
+          BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
+          BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
+          BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
+          BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
+          BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
+          BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
     }
   }
 
-  if (scd4x_sensor)
-  {
-    //The SCD4x has data ready every five seconds
-    //mySensor.enableDebugging(); // Uncomment this line to get helpful debug messages on Serial
+  if (scd4x_sensor) {
+    // The SCD4x has data ready every five seconds
+    // mySensor.enableDebugging(); // Uncomment this line to get helpful debug
+    // messages on Serial
 
-    //.begin will start periodic measurements for us (see the later examples for details on how to override this)
-    if (mySensor.begin() == false)
-    {
-      Serial.println(F("Sensor not detected. Please check wiring. Freezing..."));
+    //.begin will start periodic measurements for us (see the later examples for
+    //details on how to override this)
+    if (mySensor.begin() == false) {
+      Serial.println(
+          F("Sensor not detected. Please check wiring. Freezing..."));
       while (1)
         ;
     }
   }
 
-
   setupButtons();
 
   // load the config
   Config::load();
-/*
-  int val = digitalRead(BUTTON_MODE);   // read the input pin
-  if (val == 0)
-  {
-    colorWipe(strip.Color(  255, 0,   255), 90);    // pink
-    strip.show();
-    Serial.println("WIFI toggled!");
-    Config::offline_mode = !Config::offline_mode;
-    Config::save();
-    if (oled == true)
+  /*
+    int val = digitalRead(BUTTON_MODE);   // read the input pin
+    if (val == 0)
     {
-      String line3 = "OFF";
+      colorWipe(strip.Color(  255, 0,   255), 90);    // pink
+      strip.show();
+      Serial.println("WIFI toggled!");
+      Config::offline_mode = !Config::offline_mode;
+      Config::save();
+      if (oled == true)
+      {
+        String line3 = "OFF";
 
-      if (Config::offline_mode)
-        line3 = "ON";
+        if (Config::offline_mode)
+          line3 = "ON";
 
-      display_show("Offline", "mode:", line3, "", true);
+        display_show("Offline", "mode:", line3, "", true);
+      }
     }
-  }
 
-  while (digitalRead(BUTTON_MODE) == 0)
-  {
-    delay(1);
-  }
-*/
+    while (digitalRead(BUTTON_MODE) == 0)
+    {
+      delay(1);
+    }
+  */
 
-  if (Config::offline_mode == false)
-  {
-    colorWipe(strip.Color(  0, 0,   255), 90);    // Blue
+  if (Config::offline_mode == false) {
+    colorWipe(strip.Color(0, 0, 255), 90); // Blue
     strip.show();
     setupHandle();
 
-  }
-  else
-  {
-    colorWipe(strip.Color(  0, 0,   0), 90);    // off
+  } else {
+    colorWipe(strip.Color(0, 0, 0), 90); // off
     strip.show();
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
-    delay(1); //Needed, at least in my tests WiFi doesn't power off without this for some reason
+    delay(1); // Needed, at least in my tests WiFi doesn't power off without
+              // this for some reason
   }
-  
 
-  ticker.add(0, 10033, [&](void*) {
-    read_sensors();
-  }, nullptr, true);
+  ticker.add(
+      0, 10033, [&](void *) { read_sensors(); }, nullptr, true);
 
-  ticker.add(1, 150, [&](void*) {
-    Buzzer::alarm();
-  }, nullptr, true);
+  ticker.add(
+      1, 150, [&](void *) { Buzzer::alarm(); }, nullptr, true);
 
-  ticker.add(2, 1000, [&](void*) {
-    read_pin_sensors();
-  }, nullptr, true);
+  ticker.add(
+      2, 1000, [&](void *) { read_pin_sensors(); }, nullptr, true);
 
   strip.setBrightness(Light::brightness);
-  colorWipe(strip.Color( Light::r, Light::g, Light::b), 100);    // Blue
+  colorWipe(strip.Color(Light::r, Light::g, Light::b), 100); // Blue
   strip.show();
 }
 
-void loop()
-{
+void loop() {
   ticker.update();
   yield();
   button_back.loop();
   yield();
   button_mode.loop();
   yield();
-  if (Config::offline_mode == false)
-  {
-    //ArduinoOTA.handle();
+  if (Config::offline_mode == false) {
+    // ArduinoOTA.handle();
     mqttClient.loop();
     yield();
     MDNS.update();
     yield();
     server.handleClient();
 
-
     const uint32_t currentMillis = millis();
     if (currentMillis - statusPublishPreviousMillis >= statusPublishInterval) {
       statusPublishPreviousMillis = currentMillis;
 
-
       printf("Publish state\n");
       publishState();
-
     }
 
-    if (!mqttClient.connected() && currentMillis - lastMqttConnectionAttempt >= mqttConnectionInterval) {
+    if (!mqttClient.connected() &&
+        currentMillis - lastMqttConnectionAttempt >= mqttConnectionInterval) {
       lastMqttConnectionAttempt = currentMillis;
       printf("Reconnect mqtt\n");
       mqttReconnect();
     }
   }
-
 }

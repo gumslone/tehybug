@@ -61,8 +61,7 @@ void load() {
   }
 }
 
-void reset()
-{
+void reset() {
   if (SPIFFS.begin()) {
 
     if (SPIFFS.exists("/config.json")) {

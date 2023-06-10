@@ -96,6 +96,8 @@ DallasTemperature ds18b20_sensors(&oneWire);
 
 bool ds18b20_sensor = false;
 
+bool adc_sensor = false;
+
 long lastSensorUpdate = 0;
 // end sensors
 
@@ -254,6 +256,7 @@ void SaveConfig() {
     json["dht_sensor"] = dht_sensor;
 
     json["ds18b20_sensor"] = ds18b20_sensor;
+    json["adc_sensor"] = adc_sensor;
 
     File configFile = SPIFFS.open("/config.json", "w");
     serializeJson(json, configFile);
@@ -358,6 +361,9 @@ void LoadConfig() {
         if (json.containsKey("ds18b20_sensor")) {
           ds18b20_sensor = json["ds18b20_sensor"];
         }
+        if (json.containsKey("adc_sensor")) {
+          adc_sensor = json["adc_sensor"];
+        }
         Log("LoadConfig", "Loaded");
       }
     }
@@ -457,6 +463,9 @@ void SetConfig(JsonObject &json) {
   }
   if (json.containsKey("ds18b20_sensor")) {
     ds18b20_sensor = json["ds18b20_sensor"];
+  }
+  if (json.containsKey("adc_sensor")) {
+    adc_sensor = json["adc_sensor"];
   }
 
   SaveConfigCallback();
@@ -821,29 +830,6 @@ float calibrate_qfe(float _v) {
   return _v;
 }
 
-void read_sensors() {
-  if (bmx_sensor) {
-    read_bmx280();
-  }
-  if (bme680_sensor) {
-    read_bme680();
-  }
-  if (max44009_sensor) {
-    read_max44009();
-  }
-  if (aht20_sensor) {
-    read_aht20();
-  }
-  if (dht_sensor) {
-    read_dht();
-  }
-  if (am2320_sensor) {
-    read_am2320();
-  }
-  if (ds18b20_sensor) {
-    read_ds18b20();
-  }
-}
 void read_bmx280() {
   temp = String(calibrate_temp(bmx280.readTemperature()));
   temp_imp = (int)round(1.8 * temp.toFloat() + 32);
@@ -1065,6 +1051,44 @@ void read_ds18b20(void) {
   }
 }
 
+void read_adc()
+{
+  uint8_t pin = 13;
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, HIGH); // on
+  delay(100);
+  // read the analog in value
+  int sensorValue = analogRead(0);
+  adc = String(sensorValue);
+  digitalWrite(pin, LOW); // off
+}
+
+void read_sensors() {
+  if (bmx_sensor) {
+    read_bmx280();
+  }
+  if (bme680_sensor) {
+    read_bme680();
+  }
+  if (max44009_sensor) {
+    read_max44009();
+  }
+  if (aht20_sensor) {
+    read_aht20();
+  }
+  if (dht_sensor) {
+    read_dht();
+  }
+  if (am2320_sensor) {
+    read_am2320();
+  }
+  if (ds18b20_sensor) {
+    read_ds18b20();
+  }
+  if (adc_sensor) {
+    read_adc();
+  }
+}
 // end of sensor
 void SendInfo(bool force) {
   String Info;

@@ -10,7 +10,6 @@
 #include <Adafruit_NeoPixel.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-#include <DNSServer.h>
 #include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>

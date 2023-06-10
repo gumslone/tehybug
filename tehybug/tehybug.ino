@@ -69,20 +69,17 @@ ErriezBMX280 bmx280 = ErriezBMX280(0x76);
 ErriezBMX280 bmp280 = ErriezBMX280(0x77);
 bool bmx_sensor = false; // in the setup the i2c scanner searches for the sensor
 
-bool bme680_sensor =
-    false; // in the setup the i2c scanner searches for the sensor
+bool bme680_sensor =  false; 
 
-Adafruit_BME680 bme680; // I2C
+Adafruit_BME680 bme680;
 
 Max44009 Max44009Lux(0x4A);
-bool max44009_sensor =
-    false; // in the setup the i2c scanner searches for the sensor
+bool max44009_sensor = false;
 
 AHT20 AHT;
-bool aht20_sensor =
-    false; // in the setup the i2c scanner searches for the sensor
+bool aht20_sensor = false;
 DHTesp dht;
-bool dht_sensor = false; // in the setup the i2c scanner searches for the sensor
+bool dht_sensor = false;
 
 AM2320_asukiaaa am2320;
 bool am2320_sensor = false;
@@ -107,11 +104,11 @@ long lastSensorUpdate = 0;
 
 // dns
 const byte DNS_PORT = 53;
-IPAddress apIP(192, 168, 1, 1);
+IPAddress apIP(192, 168, 4, 1);
 DNSServer dnsServer;
 char cmDNS[33];
 String escapedMac;
-//// HTTP Config
+// HTTP Config
 HTTPClient http;
 String httpGetURL = "";
 bool httpGetActive = false;
@@ -122,7 +119,7 @@ bool httpPostActive = false;
 int httpPostFrequency = 900;
 String httpPostJson = "";
 
-//// MQTT Config
+// MQTT Config
 bool mqttActive = false;
 bool mqttRetained = false;
 String mqttUser = "";
@@ -188,7 +185,6 @@ String OldSensor = ""; // old sensor info
 String websocketConnection[10];
 
 // Time
-
 int Year, Month, Day, Hour, Minute, Second;
 
 UUID uuid;
@@ -486,8 +482,8 @@ void HandleGetMainPage() {
   server.send(200, "text/html", mainPage);
 }
 
-#pragma region //////////////////////////// HTTP API
-///////////////////////////////
+#pragma region 
+/* HTTP API */
 void HandleNotFound() {
   if (server.method() == HTTP_OPTIONS) {
     server.sendHeader("Access-Control-Allow-Origin", "*");
@@ -506,7 +502,7 @@ void HandleSetConfig() {
   server.sendHeader("Connection", "close");
 
   if (!error) {
-    Log(("SetConfig"), ("Incomming Json length: " + String(measureJson(json))));
+    Log(("SetConfig"), ("Incoming Json length: " + String(measureJson(json))));
     // extract the data
     JsonObject object = json.as<JsonObject>();
     SetConfig(object);
@@ -546,7 +542,8 @@ void Handle_factoryreset() {
 
 #pragma endregion
 
-#pragma region //////////////////////////// MQTT ////////////////////////////
+#pragma region 
+/* MQTT */
 void callback(char *topic, byte *payload, unsigned int length) {
   if (payload[0] == '{') {
     payload[length] = '\0';
@@ -556,7 +553,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
     DynamicJsonDocument json(512);
     deserializeJson(json, payload);
 
-    Log("MQTT_callback", "Incomming Json length to topic " + String(topic) +
+    Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
                              ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
       client.publish((mqttMasterTopic + "matrixinfo").c_str(),
@@ -573,8 +570,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
 #pragma endregion
 
 #pragma region
-//////////////////////////// Websocket ////////////////////////////
-
+/* Websocket */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t length) {
 
@@ -604,7 +600,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
       deserializeJson(json, payload);
 
       Log("WebSocketEvent",
-          "Incomming Json length: " + String(measureJson(json)));
+          "Incoming Json length: " + String(measureJson(json)));
 
       if (websocketConnection[num] == "/setConfig") {
         // extract the data
@@ -1114,8 +1110,6 @@ void SendConfig() {
     for (int i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/settings" ||
-          websocketConnection[i] == "/settime" ||
-          websocketConnection[i] == "/setalarm" ||
           websocketConnection[i] == "/setsensor" ||
           websocketConnection[i] == "/setsystem") {
         String config = GetConfig();
@@ -1207,7 +1201,7 @@ void led_off() {
 
 void configModeCallback(WiFiManager *myWiFiManager) {
   led_on();
-  D_println("##########  Entered wifi config mode    ##################");
+  D_println("Entered wifi config mode");
   D_println(WiFi.softAPIP());
   D_println(myWiFiManager->getConfigPortalSSID());
 }
@@ -1251,17 +1245,15 @@ void setupMDSN() {
   escapedMac = WiFi.macAddress();
   escapedMac.replace(":", "");
   escapedMac.toLowerCase();
-  strcpy_P(cmDNS, PSTR("tehybug-"));
-  sprintf(cmDNS + 5, "%*s", 6, escapedMac.c_str() + 6);
-
+  strcpy_P(cmDNS, PSTR("tehybug"));
   // Set up mDNS responder:
   if (strlen(cmDNS) > 0) {
     // "end" must be called before "begin" is called a 2nd time
     // see https://github.com/esp8266/Arduino/issues/7213
     MDNS.end();
     MDNS.begin(cmDNS);
-
-    Serial.println(F("mDNS started"));
+    D_println(cmDNS);
+    D_println(F("mDNS started"));
     MDNS.addService("http", "tcp", 80);
     MDNS.addService("tehybug", "tcp", 80);
     MDNS.addServiceTxt("tehybug", "tcp", "mac", escapedMac.c_str());
@@ -1299,7 +1291,6 @@ void setupSensors() {
   }
 
   // sensors
-
   // bmx280 and bme680 have same address
   if (bmx_sensor) {
     // Initialize sensor

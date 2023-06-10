@@ -34,6 +34,18 @@
 
 #define DEBUG 0
 
+#if DEBUG
+#define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
+#define D_print(...) Serial.print(__VA_ARGS__)
+#define D_write(...) Serial.write(__VA_ARGS__)
+#define D_println(...) Serial.println(__VA_ARGS__)
+#else
+#define D_SerialBegin(...)
+#define D_print(...)
+#define D_write(...)
+#define D_println(...)
+#endif
+
 #ifndef PIXEL_ACTIVE
 #define PIXEL_ACTIVE 1
 #define PIXEL_COUNT 1 // Number of NeoPixels
@@ -752,11 +764,9 @@ void toggleConfigMode() {
   Serial.println(F("Config mode changed"));
   configModeActive = !configModeActive;
   if (configModeActive) {
-    if (DEBUG)
-      Serial.println(F("Config mode activated"));
+    D_println(F("Config mode activated"));
   } else {
-    if (DEBUG)
-      Serial.println(F("Config mode deactivated"));
+    D_println(F("Config mode deactivated"));
   }
   SaveConfigCallback();
   SaveConfig();
@@ -767,8 +777,7 @@ void toggleConfigMode() {
 }
 
 void startDeepSleep(int freq) {
-  if (DEBUG)
-    Serial.println("Going to deep sleep...");
+  D_println("Going to deep sleep...");
 
   ESP.deepSleep(freq * 1000000);
   yield();
@@ -781,8 +790,7 @@ void http_post(String post_json) {
                  "application/json"); // Specify content-type header
   post_json = replace_placeholders(httpPostJson);
   int httpCode = http.POST(post_json); // Send the request
-  if (DEBUG)
-    Serial.println(httpCode); // Print HTTP return code
+  D_println(httpCode);                 // Print HTTP return code
   if (httpCode == 200) {
     Log(F("http_post"), httpPostJson);
   }
@@ -800,8 +808,7 @@ void http_get(String url) {
   http.addHeader("Content-Type", "text/plain"); // Specify content-type header
 
   int httpCode = http.GET(); // Send the request
-  if (DEBUG)
-    Serial.println(httpCode); // Print HTTP return code
+  D_println(httpCode);       // Print HTTP return code
   if (httpCode == 200) {
     Log(F("http_get"), url);
   }
@@ -860,34 +867,26 @@ void read_bmx280() {
   temp = String(calibrate_temp(bmx280.readTemperature()));
   temp_imp = (int)round(1.8 * temp.toFloat() + 32);
   temp_imp = String(temp_imp);
-  if (DEBUG) {
-    Serial.print(F("Temperature: "));
-    Serial.print(temp);
-    Serial.println(" C");
-  }
+  D_print(F("Temperature: "));
+  D_print(temp);
+  D_println(" C");
   if (bmx280.getChipID() == CHIP_ID_BME280) {
     humi = String(calibrate_humi(bmx280.readHumidity()));
-    if (DEBUG) {
-      Serial.print(F("Humidity:    "));
-      Serial.print(humi);
-      Serial.println(" %");
-    }
+    D_print(F("Humidity:    "));
+    D_print(humi);
+    D_println(" %");
   }
 
   qfe = String(calibrate_qfe(bmx280.readPressure() / 100.0F));
-  if (DEBUG) {
-    Serial.print(F("Pressure:    "));
-    Serial.print(qfe);
-    Serial.println(" hPa");
-  }
+  D_print(F("Pressure:    "));
+  D_print(qfe);
+  D_println(" hPa");
 
   alt = String(bmx280.readAltitude(SEA_LEVEL_PRESSURE_HPA));
-  if (DEBUG) {
-    Serial.print(F("Altitude:    "));
-    Serial.print(alt);
-    Serial.println(" m");
-    Serial.println();
-  }
+  D_print(F("Altitude:    "));
+  D_print(alt);
+  D_println(" m");
+  D_println();
 }
 
 double RHtoAbsolute(float relHumidity, float tempC) {
@@ -915,39 +914,29 @@ void read_bme680() {
   temp = String(calibrate_temp(bme680.temperature));
   temp_imp = (int)round(1.8 * temp.toFloat() + 32);
   temp_imp = String(temp_imp);
-  if (DEBUG) {
-    Serial.print("Temperature = ");
-    Serial.print(temp);
-    Serial.println(" *C");
-  }
+  D_print("Temperature = ");
+  D_print(temp);
+  D_println(" *C");
 
   qfe = String(calibrate_qfe(bme680.pressure / 100.0));
-  if (DEBUG) {
-    Serial.print("Pressure = ");
-    Serial.print(qfe);
-    Serial.println(" hPa");
-  }
+  D_print("Pressure = ");
+  D_print(qfe);
+  D_println(" hPa");
 
   humi = String(calibrate_humi(bme680.humidity));
-  if (DEBUG) {
-    Serial.print("Humidity = ");
-    Serial.print(humi);
-    Serial.println(" %");
-  }
+  D_print("Humidity = ");
+  D_print(humi);
+  D_println(" %");
 
   air = String(bme680.gas_resistance / 1000.0);
-  if (DEBUG) {
-    Serial.print("Gas = ");
-    Serial.print(air);
-    Serial.println(" KOhms");
-  }
+  D_print("Gas = ");
+  D_print(air);
+  D_println(" KOhms");
 
   alt = String(bme680.readAltitude(SEA_LEVEL_PRESSURE_HPA));
-  if (DEBUG) {
-    Serial.print("Approx. Altitude = ");
-    Serial.print(alt);
-    Serial.println(" m");
-  }
+  D_print("Approx. Altitude = ");
+  D_print(alt);
+  D_println(" m");
 }
 
 void read_max44009() {
@@ -966,18 +955,16 @@ void read_max44009() {
     Serial.println(err);
   } else {
     lux = String(max440099lux);
-    if (DEBUG) {
-      Serial.print("lux:\t");
-      Serial.print(max440099lux);
-      Serial.print("\tCDR:\t");
-      Serial.print(CDR);
-      Serial.print("\tTIM:\t");
-      Serial.print(TIM);
-      Serial.print("\t");
-      Serial.print(integrationTime);
-      Serial.print(" ms");
-      Serial.println();
-    }
+    D_print("lux:\t");
+    D_print(max440099lux);
+    D_print("\tCDR:\t");
+    D_print(CDR);
+    D_print("\tTIM:\t");
+    D_print(TIM);
+    D_print("\t");
+    D_print(integrationTime);
+    D_print(" ms");
+    D_println();
   }
 }
 
@@ -989,18 +976,14 @@ void read_aht20() {
   {
 
     humi = String(calibrate_humi(humidity * 100));
-    if (DEBUG) {
-      Serial.print("humidity: ");
-      Serial.print(humi);
-    }
+    D_print("humidity: ");
+    D_print(humi);
 
     temp = String(calibrate_temp(temperature));
     temp_imp = (int)round(1.8 * temp.toFloat() + 32);
     temp_imp = String(temp_imp);
-    if (DEBUG) {
-      Serial.print("%\t temperature: ");
-      Serial.println(temp);
-    }
+    D_print("%\t temperature: ");
+    D_println(temp);
   } else // GET DATA FAIL
   {
     Serial.println("GET DATA FROM AHT20 FAIL");
@@ -1025,11 +1008,9 @@ void read_dht() {
   temp = String(calibrate_temp(temperature));
   temp_imp = (int)round(1.8 * temp.toFloat() + 32);
   temp_imp = String(temp_imp);
-  if (DEBUG) {
-    Serial.print(humi);
-    Serial.print("\t\t");
-    Serial.print(temp);
-  }
+  D_print(humi);
+  D_print("\t\t");
+  D_print(temp);
   /* Serial.print("\t\t");
     Serial.print(dht.toFahrenheit(temperature), 1);
     Serial.print("\t\t");
@@ -1062,11 +1043,10 @@ void read_am2320() {
   temp = String(calibrate_temp(temperature));
   temp_imp = (int)round(1.8 * temp.toFloat() + 32);
   temp_imp = String(temp_imp);
-  if (DEBUG) {
-    Serial.print(humi);
-    Serial.print("\t\t");
-    Serial.print(temp);
-  }
+  D_print(humi);
+  D_print("\t\t");
+  D_print(temp);
+
   //}
   /* Serial.print("\t\t");
     Serial.print(dht.toFahrenheit(temperature), 1);
@@ -1196,8 +1176,7 @@ void Log(String function, String message) {
   // IntFormat(day()) + "T" + IntFormat(hour()) + ":" + IntFormat(minute()) +
   // ":" + IntFormat(second());
   String timeStamp = "";
-  if (DEBUG)
-    Serial.println("[" + timeStamp + "] " + function + ": " + message);
+  D_println("[" + timeStamp + "] " + function + ": " + message);
   if (webSocket.connectedClients() > 0) {
     for (int i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
@@ -1250,9 +1229,7 @@ void serve_data() {
   }
 }
 void led_on() {
-  if (DEBUG) {
-    Serial.println("Led on");
-  }
+  D_println("Led on");
   digitalWrite(SIGNAL_LED_PIN, HIGH); // on
   if (PIXEL_ACTIVE) {
     pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
@@ -1262,9 +1239,7 @@ void led_on() {
   }
 }
 void led_off() {
-  if (DEBUG) {
-    Serial.println("Led off");
-  }
+  D_println("Led off");
   if (PIXEL_ACTIVE == 1) {
     pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
     pixel.setPixelColor(0, pixel.Color(0, 0, 0)); //  Set pixel's color (in RAM)
@@ -1276,16 +1251,13 @@ void led_off() {
 
 void configModeCallback(WiFiManager *myWiFiManager) {
   led_on();
-  if (DEBUG) {
-    Serial.println(
-        "##########  Entered wifi config mode    ##################");
-    Serial.println(WiFi.softAPIP());
-    Serial.println(myWiFiManager->getConfigPortalSSID());
-  }
+  D_println("##########  Entered wifi config mode    ##################");
+  D_println(WiFi.softAPIP());
+  D_println(myWiFiManager->getConfigPortalSSID());
 }
 void setupWifi() {
-  if (DEBUG)
-    Serial.println("Setup WIFI");
+
+  D_println("Setup WIFI");
   wifiManager.setDebugOutput(true);
   // Set config save notify callback
   wifiManager.setSaveConfigCallback(SaveConfigCallback);
@@ -1293,7 +1265,6 @@ void setupWifi() {
   wifiManager.setAPCallback(configModeCallback);
 
   // Config menu timeout 180 seconds.
-
   wifiManager.setConfigPortalTimeout(180);
 
   WiFi.hostname(identifier);
@@ -1307,8 +1278,7 @@ void setupWifi() {
     delay(5000);
   }
 
-  if (DEBUG)
-    Serial.println(F("Wifi connected...yeey :)"));
+  D_println(F("Wifi connected...yeey :)"));
 
   if (shouldSaveConfig) {
     SaveConfig();
@@ -1384,17 +1354,14 @@ void setupSensors() {
     }
     if (bmx_sensor) {
       // Print sensor type
-      if (DEBUG)
-        Serial.print(F("\nSensor type: "));
+      D_print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
       case CHIP_ID_BMP280:
-        if (DEBUG)
-          Serial.println(F("BMP280\n"));
+        D_println(F("BMP280\n"));
         bme680_sensor = false;
         break;
       case CHIP_ID_BME280:
-        if (DEBUG)
-          Serial.println(F("BME280\n"));
+        D_println(F("BME280\n"));
         bme680_sensor = false;
         break;
       default:
@@ -1433,8 +1400,7 @@ void setupSensors() {
     }
   }
   if (bme680_sensor) {
-    if (DEBUG)
-      Serial.println(F("BME680 test"));
+    D_println(F("BME680 test"));
 
     if (!bme680.begin()) {
       Serial.println("Could not find a valid BME680 sensor, check wiring!");
@@ -1449,16 +1415,13 @@ void setupSensors() {
     bme680.setGasHeater(320, 150); // 320*C for 150 ms
   }
   if (max44009_sensor) {
-    if (DEBUG) {
-      Serial.print("\nStart max44009_setAutomaticMode : ");
-      Serial.println(MAX44009_LIB_VERSION);
-    }
+    D_print("\nStart max44009_setAutomaticMode : ");
+    D_println(MAX44009_LIB_VERSION);
 
     Max44009Lux.setAutomaticMode();
   }
   if (aht20_sensor) {
-    if (DEBUG)
-      Serial.println("AHT20");
+    D_println("AHT20");
     AHT.begin();
   }
   if (dht_sensor) {
@@ -1509,10 +1472,8 @@ void setup() {
   Serial.begin(115200);
   while (!Serial)
     ;
-  if (DEBUG) {
-    Serial.println(F("key: "));
-    Serial.println(key);
-  }
+  D_println(F("key: "));
+  D_println(key);
   // Mounting FileSystem
   Serial.println(F("Mounting file system..."));
   if (SPIFFS.begin()) {
@@ -1526,8 +1487,7 @@ void setup() {
   setupMode();
 
   if (configModeActive) {
-    if (DEBUG)
-      Serial.println(F("Starting config mode"));
+    D_println(F("Starting config mode"));
     httpUpdater.setup(&server);
     server.on(F("/api/info"), HTTP_GET, HandleGetInfo);
     server.on(F("/api/config"), HTTP_POST, HandleSetConfig);
@@ -1541,8 +1501,7 @@ void setup() {
     webSocket.onEvent(webSocketEvent);
     Log(F("Setup"), F("Webserver started"));
   } else {
-    if (DEBUG)
-      Serial.println(F("Starting live mode"));
+    D_println(F("Starting live mode"));
   }
 
   if (configModeActive == false && mqttActive) {

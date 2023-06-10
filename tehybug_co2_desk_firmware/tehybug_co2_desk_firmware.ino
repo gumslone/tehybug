@@ -1112,7 +1112,7 @@ void setup() {
     // messages on Serial
 
     //.begin will start periodic measurements for us (see the later examples for
-    //details on how to override this)
+    // details on how to override this)
     if (mySensor.begin() == false) {
       Serial.println(
           F("Sensor not detected. Please check wiring. Freezing..."));

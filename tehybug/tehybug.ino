@@ -69,7 +69,7 @@ ErriezBMX280 bmx280 = ErriezBMX280(0x76);
 ErriezBMX280 bmp280 = ErriezBMX280(0x77);
 bool bmx_sensor = false; // in the setup the i2c scanner searches for the sensor
 
-bool bme680_sensor =  false; 
+bool bme680_sensor = false;
 
 Adafruit_BME680 bme680;
 
@@ -94,7 +94,18 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature ds18b20_sensors(&oneWire);
 
+// Data wire is plugged into port 13 on the Arduino
+#define SECOND_ONE_WIRE_BUS 13
+
+// Setup a oneWire instance to communicate with any OneWire devices (not just
+// Maxim/Dallas temperature ICs)
+OneWire secondOneWire(SECOND_ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature second_ds18b20_sensors(&secondOneWire);
+
 bool ds18b20_sensor = false;
+bool second_ds18b20_sensor = false;
 
 bool adc_sensor = false;
 
@@ -191,8 +202,8 @@ int Year, Month, Day, Hour, Minute, Second;
 
 UUID uuid;
 
-String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux,
-    uv, adc, tvoc, co2, eco2;
+String key, temp, temp_imp, temp2, temp2_imp, humi, dew, dew_imp, hi, hi_imp,
+    qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2, eco2;
 
 String i2c_addresses = "";
 
@@ -204,8 +215,13 @@ void SaveConfigCallback() { shouldSaveConfig = true; }
 String replace_placeholders(String text) {
   text.replace("%key%", key);
   text.replace("%temp%", temp);
+  text.replace("%temp2%", temp2);
   text.replace("%temp_imp%", temp_imp);
   text.replace("%humi%", humi);
+  text.replace("%dew%", dew);
+  text.replace("%dew_imp%", dew_imp);
+  text.replace("%hi%", hi);
+  text.replace("%hi_imp%", hi_imp);
   text.replace("%qfe%", qfe);
   text.replace("%qnh%", qnh);
   text.replace("%alt%", alt);
@@ -256,6 +272,7 @@ void SaveConfig() {
     json["dht_sensor"] = dht_sensor;
 
     json["ds18b20_sensor"] = ds18b20_sensor;
+    json["second_ds18b20_sensor"] = second_ds18b20_sensor;
     json["adc_sensor"] = adc_sensor;
 
     File configFile = SPIFFS.open("/config.json", "w");
@@ -361,6 +378,9 @@ void LoadConfig() {
         if (json.containsKey("ds18b20_sensor")) {
           ds18b20_sensor = json["ds18b20_sensor"];
         }
+        if (json.containsKey("second_ds18b20_sensor")) {
+          second_ds18b20_sensor = json["second_ds18b20_sensor"];
+        }
         if (json.containsKey("adc_sensor")) {
           adc_sensor = json["adc_sensor"];
         }
@@ -464,6 +484,9 @@ void SetConfig(JsonObject &json) {
   if (json.containsKey("ds18b20_sensor")) {
     ds18b20_sensor = json["ds18b20_sensor"];
   }
+  if (json.containsKey("second_ds18b20_sensor")) {
+    second_ds18b20_sensor = json["second_ds18b20_sensor"];
+  }
   if (json.containsKey("adc_sensor")) {
     adc_sensor = json["adc_sensor"];
   }
@@ -491,7 +514,7 @@ void HandleGetMainPage() {
   server.send(200, "text/html", mainPage);
 }
 
-#pragma region 
+#pragma region
 /* HTTP API */
 void HandleNotFound() {
   if (server.method() == HTTP_OPTIONS) {
@@ -551,7 +574,7 @@ void Handle_factoryreset() {
 
 #pragma endregion
 
-#pragma region 
+#pragma region
 /* MQTT */
 void callback(char *topic, byte *payload, unsigned int length) {
   if (payload[0] == '{') {
@@ -672,17 +695,26 @@ String GetInfo() {
 String GetSensor() {
   read_sensors();
   DynamicJsonDocument root(1024);
-
   root["temp"] = temp;
+  root["temp_imp"] = temp_imp;
+  root["temp2"] = temp2;
+  root["temp2_imp"] = temp2_imp;
   root["humi"] = humi;
   root["dew"] = dew;
+  root["dew_imp"] = dew_imp;
+  root["hi"] = hi;
+  root["hi_imp"] = hi_imp;
   root["qfe"] = qfe;
+  root["qfe_imp"] = qfe_imp;
+  root["qnh"] = qnh;
   root["alt"] = alt;
   root["air"] = air;
+  root["aiq"] = aiq;
   root["lux"] = lux;
   root["uv"] = uv;
   root["adc"] = adc;
   root["tvoc"] = tvoc;
+  root["co2"] = co2;
   root["eco2"] = eco2;
   String json;
   serializeJson(root, json);
@@ -829,7 +861,16 @@ float calibrate_qfe(float _v) {
   }
   return _v;
 }
-
+void generate_more_sensor_data() {
+  if (temp != "" && humi != "") {
+    hi = String(dht.computeHeatIndex(temp.toFloat(), humi.toFloat()));
+    hi_imp = (int)round(1.8 * hi.toFloat() + 32);
+    hi_imp = String(hi_imp);
+    dew = String(dht.computeDewPoint(temp.toFloat(), humi.toFloat()));
+    dew_imp = (int)round(1.8 * dew.toFloat() + 32);
+    dew_imp = String(dew_imp);
+  }
+}
 void read_bmx280() {
   temp = String(calibrate_temp(bmx280.readTemperature()));
   temp_imp = (int)round(1.8 * temp.toFloat() + 32);
@@ -842,6 +883,7 @@ void read_bmx280() {
     D_print(F("Humidity:    "));
     D_print(humi);
     D_println(" %");
+    generate_more_sensor_data();
   }
 
   qfe = String(calibrate_qfe(bmx280.readPressure() / 100.0F));
@@ -894,6 +936,8 @@ void read_bme680() {
   D_print("Humidity = ");
   D_print(humi);
   D_println(" %");
+
+  generate_more_sensor_data();
 
   air = String(bme680.gas_resistance / 1000.0);
   D_print("Gas = ");
@@ -951,6 +995,8 @@ void read_aht20() {
     temp_imp = String(temp_imp);
     D_print("%\t temperature: ");
     D_println(temp);
+
+    generate_more_sensor_data();
   } else // GET DATA FAIL
   {
     Serial.println("GET DATA FROM AHT20 FAIL");
@@ -978,6 +1024,9 @@ void read_dht() {
   D_print(humi);
   D_print("\t\t");
   D_print(temp);
+
+  generate_more_sensor_data();
+
   /* Serial.print("\t\t");
     Serial.print(dht.toFahrenheit(temperature), 1);
     Serial.print("\t\t");
@@ -1014,6 +1063,7 @@ void read_am2320() {
   D_print("\t\t");
   D_print(temp);
 
+  generate_more_sensor_data();
   //}
   /* Serial.print("\t\t");
     Serial.print(dht.toFahrenheit(temperature), 1);
@@ -1051,8 +1101,35 @@ void read_ds18b20(void) {
   }
 }
 
-void read_adc()
-{
+void read_second_ds18b20(void) {
+  pinMode(SECOND_ONE_WIRE_BUS, INPUT_PULLUP);
+  // Start up the library
+  second_ds18b20_sensors.begin();
+  // Setup a oneWire instance to communicate with any OneWire devices (not just
+  // Maxim/Dallas temperature ICs) call ds18b20_sensors.requestTemperatures() to
+  // issue a global temperature request to all devices on the bus
+  D_print("Requesting second port temperatures...");
+  second_ds18b20_sensors
+      .requestTemperatures(); // Send the command to get temperatures
+  D_println("DONE");
+  // After we got the temperatures, we can print them here.
+  // We use the function ByIndex, and as an example get the temperature from the
+  // first sensor only.
+  float tempC = second_ds18b20_sensors.getTempCByIndex(0);
+
+  // Check if reading was successful
+  if (tempC != DEVICE_DISCONNECTED_C) {
+    D_print("Temperature for the second port device 1 (index 0) is: ");
+    D_println(tempC);
+    temp2 = String(calibrate_temp(tempC));
+    temp2_imp = (int)round(1.8 * temp2.toFloat() + 32);
+    temp2_imp = String(temp2_imp);
+  } else {
+    Serial.println("Error: Could not read temperature data");
+  }
+}
+
+void read_adc() {
   uint8_t pin = 13;
   pinMode(pin, OUTPUT);
   digitalWrite(pin, HIGH); // on
@@ -1084,6 +1161,9 @@ void read_sensors() {
   }
   if (ds18b20_sensor) {
     read_ds18b20();
+  }
+  if (second_ds18b20_sensor) {
+    read_second_ds18b20();
   }
   if (adc_sensor) {
     read_adc();

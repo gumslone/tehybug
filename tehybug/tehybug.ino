@@ -79,7 +79,9 @@ bool max44009_sensor = false;
 AHT20 AHT;
 bool aht20_sensor = false;
 DHTesp dht;
+DHTesp dht2;
 bool dht_sensor = false;
+bool second_dht_sensor = false;
 
 AM2320_asukiaaa am2320;
 bool am2320_sensor = false;
@@ -202,8 +204,9 @@ int Year, Month, Day, Hour, Minute, Second;
 
 UUID uuid;
 
-String key, temp, temp_imp, temp2, temp2_imp, humi, dew, dew_imp, hi, hi_imp,
-    qfe, qfe_imp, qnh, alt, air, aiq, lux, uv, adc, tvoc, co2, eco2;
+String key, temp, temp_imp, humi, dew, dew_imp, hi, hi_imp, temp2, temp2_imp,
+    humi2, dew2, dew2_imp, hi2, hi2_imp, qfe, qfe_imp, qnh, alt, air, aiq, lux,
+    uv, adc, tvoc, co2, eco2;
 
 String i2c_addresses = "";
 
@@ -218,10 +221,15 @@ String replace_placeholders(String text) {
   text.replace("%temp2%", temp2);
   text.replace("%temp_imp%", temp_imp);
   text.replace("%humi%", humi);
+  text.replace("%hum2i%", humi2);
   text.replace("%dew%", dew);
   text.replace("%dew_imp%", dew_imp);
   text.replace("%hi%", hi);
   text.replace("%hi_imp%", hi_imp);
+  text.replace("%dew2%", dew2);
+  text.replace("%dew2_imp%", dew2_imp);
+  text.replace("%hi2%", hi2);
+  text.replace("%hi2_imp%", hi2_imp);
   text.replace("%qfe%", qfe);
   text.replace("%qnh%", qnh);
   text.replace("%alt%", alt);
@@ -270,6 +278,7 @@ void SaveConfig() {
 
     json["key"] = key;
     json["dht_sensor"] = dht_sensor;
+    json["second_dht_sensor"] = second_dht_sensor;
 
     json["ds18b20_sensor"] = ds18b20_sensor;
     json["second_ds18b20_sensor"] = second_ds18b20_sensor;
@@ -374,6 +383,9 @@ void LoadConfig() {
 
         if (json.containsKey("dht_sensor")) {
           dht_sensor = json["dht_sensor"];
+        }
+        if (json.containsKey("second_dht_sensor")) {
+          second_dht_sensor = json["second_dht_sensor"];
         }
         if (json.containsKey("ds18b20_sensor")) {
           ds18b20_sensor = json["ds18b20_sensor"];
@@ -480,6 +492,9 @@ void SetConfig(JsonObject &json) {
   }
   if (json.containsKey("dht_sensor")) {
     dht_sensor = json["dht_sensor"];
+  }
+  if (json.containsKey("second_dht_sensor")) {
+    second_dht_sensor = json["second_dht_sensor"];
   }
   if (json.containsKey("ds18b20_sensor")) {
     ds18b20_sensor = json["ds18b20_sensor"];
@@ -704,6 +719,11 @@ String GetSensor() {
   root["dew_imp"] = dew_imp;
   root["hi"] = hi;
   root["hi_imp"] = hi_imp;
+  root["humi2"] = humi;
+  root["dew2"] = dew;
+  root["dew2_imp"] = dew_imp;
+  root["hi2"] = hi;
+  root["hi2_imp"] = hi_imp;
   root["qfe"] = qfe;
   root["qfe_imp"] = qfe_imp;
   root["qnh"] = qnh;
@@ -1026,16 +1046,28 @@ void read_dht() {
   D_print(temp);
 
   generate_more_sensor_data();
-
-  /* Serial.print("\t\t");
-    Serial.print(dht.toFahrenheit(temperature), 1);
-    Serial.print("\t\t");
-    Serial.print(dht.computeHeatIndex(temperature, humidity, false), 1);
-    Serial.print("\t\t");
-    Serial.println(dht.computeHeatIndex(dht.toFahrenheit(temperature), humidity,
-    true), 1); delay(2000);*/
 }
+void read_second_dht() {
 
+  // delay(dht.getMinimumSamplingPeriod());
+  float humidity = dht2.getHumidity();
+  float temperature = dht2.getTemperature();
+  delay(dht2.getMinimumSamplingPeriod());
+  humidity = dht2.getHumidity();
+  temperature = dht2.getTemperature();
+
+  // Serial.print(dht.getStatusString());
+  // Serial.print("\t");
+  humi2 = String(calibrate_humi(humidity));
+  temp2 = String(calibrate_temp(temperature));
+  temp2_imp = (int)round(1.8 * temp2.toFloat() + 32);
+  temp2_imp = String(temp2_imp);
+  D_print(humi2);
+  D_print("\t\t");
+  D_print(temp2);
+
+  generate_more_sensor_data();
+}
 void read_am2320() {
   float humidity, temperature;
   Wire.begin(0, 2);
@@ -1050,7 +1082,6 @@ void read_am2320() {
     }
     yield();
   }
-  yield();
   // if (am2320.update() != 0)
   //{
   temperature = am2320.temperatureC;
@@ -1065,13 +1096,6 @@ void read_am2320() {
 
   generate_more_sensor_data();
   //}
-  /* Serial.print("\t\t");
-    Serial.print(dht.toFahrenheit(temperature), 1);
-    Serial.print("\t\t");
-    Serial.print(dht.computeHeatIndex(temperature, humidity, false), 1);
-    Serial.print("\t\t");
-    Serial.println(dht.computeHeatIndex(dht.toFahrenheit(temperature), humidity,
-    true), 1); delay(2000);*/
 }
 
 void read_ds18b20(void) {
@@ -1155,6 +1179,9 @@ void read_sensors() {
   }
   if (dht_sensor) {
     read_dht();
+  }
+  if (second_dht_sensor) {
+    read_second_dht();
   }
   if (am2320_sensor) {
     read_am2320();
@@ -1478,7 +1505,10 @@ void setupSensors() {
   if (dht_sensor) {
     dht.setup(2, DHTesp::DHT22); // Connect DHT sensor to GPIO 2
   }
-
+  if (second_dht_sensor) {
+    pinMode(13, INPUT_PULLUP);
+    dht2.setup(13, DHTesp::DHT22); // Connect DHT sensor to GPIO 13
+  }
   if (am2320_sensor) {
     am2320.setWire(&Wire);
   }

@@ -890,6 +890,14 @@ void generate_more_sensor_data() {
     dew_imp = (int)round(1.8 * dew.toFloat() + 32);
     dew_imp = String(dew_imp);
   }
+  if (temp2 != "" && humi2 != "") {
+    hi2 = String(dht.computeHeatIndex(temp2.toFloat(), humi2.toFloat()));
+    hi2_imp = (int)round(1.8 * hi2.toFloat() + 32);
+    hi2_imp = String(hi2_imp);
+    dew2 = String(dht.computeDewPoint(temp2.toFloat(), humi2.toFloat()));
+    dew2_imp = (int)round(1.8 * dew2.toFloat() + 32);
+    dew2_imp = String(dew2_imp);
+  }
 }
 void read_bmx280() {
   temp = String(calibrate_temp(bmx280.readTemperature()));

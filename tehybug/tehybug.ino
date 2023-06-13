@@ -884,6 +884,16 @@ float calibrate_qfe(float _v) {
   return _v;
 }
 void generate_more_sensor_data() {
+
+  if (temp != "") {
+    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
+    temp_imp = String(temp_imp);
+  }
+  if (temp2 != "") {
+    temp2_imp = (int)round(1.8 * temp2.toFloat() + 32);
+    temp2_imp = String(temp2_imp);
+  }
+
   if (temp != "" && humi != "") {
     hi = String(dht.computeHeatIndex(temp.toFloat(), humi.toFloat()));
     hi_imp = (int)round(1.8 * hi.toFloat() + 32);
@@ -892,6 +902,7 @@ void generate_more_sensor_data() {
     dew_imp = (int)round(1.8 * dew.toFloat() + 32);
     dew_imp = String(dew_imp);
   }
+
   if (temp2 != "" && humi2 != "") {
     hi2 = String(dht.computeHeatIndex(temp2.toFloat(), humi2.toFloat()));
     hi2_imp = (int)round(1.8 * hi2.toFloat() + 32);
@@ -903,8 +914,6 @@ void generate_more_sensor_data() {
 }
 void read_bmx280() {
   temp = String(calibrate_temp(bmx280.readTemperature()));
-  temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-  temp_imp = String(temp_imp);
   D_print(F("Temperature: "));
   D_print(temp);
   D_println(" C");
@@ -913,7 +922,6 @@ void read_bmx280() {
     D_print(F("Humidity:    "));
     D_print(humi);
     D_println(" %");
-    generate_more_sensor_data();
   }
 
   qfe = String(calibrate_qfe(bmx280.readPressure() / 100.0F));
@@ -991,14 +999,10 @@ void read_bme680() {
   D_println(output);
 
   temp = String(calibrate_temp(bme680.temperature));
-  temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-  temp_imp = String(temp_imp);
 
   qfe = String(calibrate_qfe(bme680.pressure / 100.0));
 
   humi = String(calibrate_humi(bme680.humidity));
-
-  generate_more_sensor_data();
 
   eco2 = String(bme680.co2Equivalent);
 
@@ -1044,18 +1048,13 @@ void read_aht20() {
 
   if (ret) // GET DATA OK
   {
-
     humi = String(calibrate_humi(humidity * 100));
     D_print("humidity: ");
     D_print(humi);
 
     temp = String(calibrate_temp(temperature));
-    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-    temp_imp = String(temp_imp);
     D_print("%\t temperature: ");
     D_println(temp);
-
-    generate_more_sensor_data();
   } else // GET DATA FAIL
   {
     Serial.println("GET DATA FROM AHT20 FAIL");
@@ -1078,13 +1077,9 @@ void read_dht() {
   // Serial.print("\t");
   humi = String(calibrate_humi(humidity));
   temp = String(calibrate_temp(temperature));
-  temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-  temp_imp = String(temp_imp);
   D_print(humi);
   D_print("\t\t");
   D_print(temp);
-
-  generate_more_sensor_data();
 }
 void read_second_dht() {
 
@@ -1099,13 +1094,9 @@ void read_second_dht() {
   // Serial.print("\t");
   humi2 = String(calibrate_humi(humidity));
   temp2 = String(calibrate_temp(temperature));
-  temp2_imp = (int)round(1.8 * temp2.toFloat() + 32);
-  temp2_imp = String(temp2_imp);
   D_print(humi2);
   D_print("\t\t");
   D_print(temp2);
-
-  generate_more_sensor_data();
 }
 void read_am2320() {
   float humidity, temperature;
@@ -1127,13 +1118,9 @@ void read_am2320() {
   humidity = am2320.humidity;
   humi = String(calibrate_humi(humidity));
   temp = String(calibrate_temp(temperature));
-  temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-  temp_imp = String(temp_imp);
   D_print(humi);
   D_print("\t\t");
   D_print(temp);
-
-  generate_more_sensor_data();
   //}
 }
 
@@ -1157,8 +1144,6 @@ void read_ds18b20(void) {
     D_print("Temperature for the device 1 (index 0) is: ");
     D_println(tempC);
     temp = String(calibrate_temp(tempC));
-    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-    temp_imp = String(temp_imp);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
@@ -1185,8 +1170,6 @@ void read_second_ds18b20(void) {
     D_print("Temperature for the second port device 1 (index 0) is: ");
     D_println(tempC);
     temp2 = String(calibrate_temp(tempC));
-    temp2_imp = (int)round(1.8 * temp2.toFloat() + 32);
-    temp2_imp = String(temp2_imp);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
@@ -1234,6 +1217,7 @@ void read_sensors() {
   if (adc_sensor) {
     read_adc();
   }
+  generate_more_sensor_data();
 }
 // end of sensor
 void SendInfo(bool force) {

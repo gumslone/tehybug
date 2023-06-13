@@ -1,8 +1,8 @@
 #include "AHT20.h"
-#include "Adafruit_BME680.h"
 #include "DHTesp.h"
 #include "Max44009.h"
 #include "UUID.h"
+#include "bsec.h"
 #include <AM2320_asukiaaa.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_Sensor.h>
@@ -71,7 +71,8 @@ bool bmx_sensor = false; // in the setup the i2c scanner searches for the sensor
 
 bool bme680_sensor = false;
 
-Adafruit_BME680 bme680;
+Bsec bme680;
+String output;
 
 Max44009 Max44009Lux(0x4A);
 bool max44009_sensor = false;
@@ -234,6 +235,7 @@ String replace_placeholders(String text) {
   text.replace("%qnh%", qnh);
   text.replace("%alt%", alt);
   text.replace("%air%", air);
+  text.replace("%aiq%", aiq);
   text.replace("%lux%", lux);
   text.replace("%uv%", uv);
   text.replace("%adc%", adc);
@@ -942,40 +944,69 @@ uint16_t doubleToFixedPoint(double number) {
   return value;
 }
 
+// Helper function definitions
+void checkIaqSensorStatus(void) {
+  if (bme680.status != BSEC_OK) {
+    if (bme680.status < BSEC_OK) {
+      output = "BSEC error code : " + String(bme680.status);
+      Serial.println(output);
+      for (;;)
+        delay(1); /* Halt in case of failure */
+    } else {
+      output = "BSEC warning code : " + String(bme680.status);
+      Serial.println(output);
+    }
+  }
+
+  if (bme680.bme680Status != BME680_OK) {
+    if (bme680.bme680Status < BME680_OK) {
+      output = "BME680 error code : " + String(bme680.bme680Status);
+      Serial.println(output);
+      for (;;)
+        delay(1); /* Halt in case of failure */
+    } else {
+      output = "BME680 warning code : " + String(bme680.bme680Status);
+      Serial.println(output);
+    }
+  }
+}
 void read_bme680() {
-  if (!bme680.performReading()) {
-    Serial.println("Failed to perform reading :(");
+
+  if (!bme680.run()) { // If no data is available
+    checkIaqSensorStatus();
     return;
   }
+
+  output = String(bme680.rawTemperature);
+  output += ", " + String(bme680.pressure);
+  output += ", " + String(bme680.rawHumidity);
+  output += ", " + String(bme680.gasResistance);
+  output += ", " + String(bme680.iaq);
+  output += ", " + String(bme680.iaqAccuracy);
+  output += ", " + String(bme680.temperature);
+  output += ", " + String(bme680.humidity);
+  output += ", " + String(bme680.staticIaq);
+  output += ", " + String(bme680.co2Equivalent);
+  output += ", " + String(bme680.breathVocEquivalent);
+  D_println(output);
 
   temp = String(calibrate_temp(bme680.temperature));
   temp_imp = (int)round(1.8 * temp.toFloat() + 32);
   temp_imp = String(temp_imp);
-  D_print("Temperature = ");
-  D_print(temp);
-  D_println(" *C");
 
   qfe = String(calibrate_qfe(bme680.pressure / 100.0));
-  D_print("Pressure = ");
-  D_print(qfe);
-  D_println(" hPa");
 
   humi = String(calibrate_humi(bme680.humidity));
-  D_print("Humidity = ");
-  D_print(humi);
-  D_println(" %");
 
   generate_more_sensor_data();
 
-  air = String(bme680.gas_resistance / 1000.0);
-  D_print("Gas = ");
-  D_print(air);
-  D_println(" KOhms");
+  eco2 = String(bme680.co2Equivalent);
 
-  alt = String(bme680.readAltitude(SEA_LEVEL_PRESSURE_HPA));
-  D_print("Approx. Altitude = ");
-  D_print(alt);
-  D_println(" m");
+  aiq = String(bme680.iaq);
+
+  air = String(bme680.gasResistance / 1000.0);
+
+  // alt = String(bme680.readAltitude(SEA_LEVEL_PRESSURE_HPA));
 }
 
 void read_max44009() {
@@ -1398,6 +1429,7 @@ void setupMDSN() {
     MDNS.addServiceTxt("tehybug", "tcp", "mac", escapedMac.c_str());
   }
 }
+// Helper function definitions
 
 void setupSensors() {
   if (dht_sensor == false && ds18b20_sensor == false) {
@@ -1488,17 +1520,35 @@ void setupSensors() {
   if (bme680_sensor) {
     D_println(F("BME680 test"));
 
-    if (!bme680.begin()) {
-      Serial.println("Could not find a valid BME680 sensor, check wiring!");
-      while (1)
-        ;
-    }
-    // Set up oversampling and filter initialization
-    bme680.setTemperatureOversampling(BME680_OS_8X);
-    bme680.setHumidityOversampling(BME680_OS_2X);
-    bme680.setPressureOversampling(BME680_OS_4X);
-    bme680.setIIRFilterSize(BME680_FILTER_SIZE_3);
-    bme680.setGasHeater(320, 150); // 320*C for 150 ms
+    bme680.begin(BME680_I2C_ADDR_SECONDARY, Wire);
+
+    output = "\nBSEC library version " + String(bme680.version.major) + "." +
+             String(bme680.version.minor) + "." +
+             String(bme680.version.major_bugfix) + "." +
+             String(bme680.version.minor_bugfix);
+    D_println(output);
+    checkIaqSensorStatus();
+    bsec_virtual_sensor_t sensorList[10] = {
+        BSEC_OUTPUT_RAW_TEMPERATURE,
+        BSEC_OUTPUT_RAW_PRESSURE,
+        BSEC_OUTPUT_RAW_HUMIDITY,
+        BSEC_OUTPUT_RAW_GAS,
+        BSEC_OUTPUT_IAQ,
+        BSEC_OUTPUT_STATIC_IAQ,
+        BSEC_OUTPUT_CO2_EQUIVALENT,
+        BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+    };
+
+    bme680.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
+    checkIaqSensorStatus();
+    // Print the header
+    output = "Timestamp [ms], raw temperature [°C], pressure [hPa], raw "
+             "relative humidity [%], gas [Ohm], IAQ, IAQ accuracy, temperature "
+             "[°C], relative humidity [%], Static IAQ, CO2 equivalent, breath "
+             "VOC equivalent";
+    D_println(output);
   }
   if (max44009_sensor) {
     D_print("\nStart max44009_setAutomaticMode : ");

@@ -112,7 +112,6 @@ bool second_ds18b20_sensor = false;
 
 bool adc_sensor = false;
 
-long lastSensorUpdate = 0;
 // end sensors
 
 // Button
@@ -216,19 +215,19 @@ void SaveConfigCallback() { shouldSaveConfig = true; }
 /////////////////////////////////////////////////////////////////////
 float calibrateTemp(float _v) {
   if (calibrationActive) {
-    _v = _v + calibrationTemp;
+    _v += calibrationTemp;
   }
   return _v;
 }
 float calibrateHumi(float _v) {
   if (calibrationActive) {
-    _v = _v + calibrationHumi;
+    _v += calibrationHumi;
   }
   return _v;
 }
 float calibrateQfe(float _v) {
   if (calibrationActive) {
-    _v = _v + calibrationQfe;
+    _v += calibrationQfe;
   }
   return _v;
 }
@@ -717,13 +716,13 @@ void MqttReconnect() {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
       connected =
-          client.connect(("gumboard_" + GetChipID()).c_str(), mqttUser.c_str(),
+          client.connect(("tehybug_" + GetChipID()).c_str(), mqttUser.c_str(),
                          mqttPassword.c_str(), "state", 0, true, "diconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
-      connected = client.connect(("gumboard_" + GetChipID()).c_str(), "state",
-                                 0, true, "disconnected");
+      connected = client.connect(("tehybug_" + GetChipID()).c_str(), "state", 0,
+                                 true, "disconnected");
     }
 
     // Attempt to connect
@@ -824,45 +823,29 @@ void read_bmx280() {
   addSensorData("alt", (float)bmx280.readAltitude(SEA_LEVEL_PRESSURE_HPA));
 }
 
-double RHtoAbsolute(float relHumidity, float tempC) {
-  double eSat = 6.11 * pow(10.0, (7.5 * tempC / (237.7 + tempC)));
-  double vaporPressure = (relHumidity * eSat) / 100; // millibars
-  double absHumidity =
-      1000 * vaporPressure * 100 /
-      ((tempC + 273) * 461.5); // Ideal gas law with unit conversions
-  return absHumidity;
-}
-
-uint16_t doubleToFixedPoint(double number) {
-  int power = 1 << 8;
-  double number2 = number * power;
-  uint16_t value = floor(number2 + 0.5);
-  return value;
-}
-
 // Helper function definitions
 void checkIaqSensorStatus(void) {
   if (bme680.status != BSEC_OK) {
     if (bme680.status < BSEC_OK) {
       output = "BSEC error code : " + String(bme680.status);
-      Serial.println(output);
+      D_println(output);
       for (;;)
         delay(1); /* Halt in case of failure */
     } else {
       output = "BSEC warning code : " + String(bme680.status);
-      Serial.println(output);
+      D_println(output);
     }
   }
 
   if (bme680.bme680Status != BME680_OK) {
     if (bme680.bme680Status < BME680_OK) {
       output = "BME680 error code : " + String(bme680.bme680Status);
-      Serial.println(output);
+      D_println(output);
       for (;;)
         delay(1); /* Halt in case of failure */
     } else {
       output = "BME680 warning code : " + String(bme680.bme680Status);
-      Serial.println(output);
+      D_println(output);
     }
   }
 }
@@ -1299,7 +1282,7 @@ void setupSensors() {
   if (bmx_sensor) {
     // Initialize sensor
     while (!bmx280.begin()) {
-      Serial.println(F("Error: Could not detect sensor"));
+      D_println(F("Error: Could not detect sensor"));
       bmx_sensor = false;
       break;
     }

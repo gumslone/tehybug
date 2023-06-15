@@ -205,9 +205,7 @@ int Year, Month, Day, Hour, Minute, Second;
 
 UUID uuid;
 
-String key, temp, temp_imp, humi, dew, dew_imp, hi, hi_imp, temp2, temp2_imp,
-    humi2, dew2, dew2_imp, hi2, hi2_imp, qfe, qfe_imp, qnh, alt, air, aiq, lux,
-    uv, adc, tvoc, co2, eco2;
+DynamicJsonDocument sensorData(1024);
 
 String i2c_addresses = "";
 
@@ -216,31 +214,80 @@ TickerScheduler ticker(5);
 void SaveConfigCallback() { shouldSaveConfig = true; }
 
 /////////////////////////////////////////////////////////////////////
+float calibrateTemp(float _v) {
+  if (calibrationActive) {
+    _v = _v + calibrationTemp;
+  }
+  return _v;
+}
+float calibrateHumi(float _v) {
+  if (calibrationActive) {
+    _v = _v + calibrationHumi;
+  }
+  return _v;
+}
+float calibrateQfe(float _v) {
+  if (calibrationActive) {
+    _v = _v + calibrationQfe;
+  }
+  return _v;
+}
+void addTempHumi(String key_temp, float temp, String key_humi, float humi) {
+
+  addSensorData(key_temp, temp);
+  addSensorData(key_humi, humi);
+}
+
+void additionalSensorData(String key, float value) {
+
+  if (key == "temp" || key == "temp2") {
+    addSensorData(key + "_imp", (float)temp2Imp(value));
+  }
+  // humi should be always set after temp so the following calculation will work
+  else if (key == "humi") {
+    float hi = dht.computeHeatIndex(sensorData["temp"].as<float>(),
+                                    sensorData[key].as<float>());
+    addSensorData("hi", (float)hi);
+    addSensorData("hi_imp", (float)temp2Imp(hi));
+
+    float dew = dht.computeDewPoint(sensorData["temp"].as<float>(),
+                                    sensorData[key].as<float>());
+    addSensorData("dew", (float)dew);
+    addSensorData("dew_imp", (float)temp2Imp(dew));
+  } else if (key == "humi2") {
+    float hi = dht.computeHeatIndex(sensorData["temp2"].as<float>(),
+                                    sensorData[key].as<float>());
+    addSensorData("hi2", (float)hi);
+    addSensorData("hi2_imp", (float)temp2Imp(hi));
+
+    float dew = dht.computeDewPoint(sensorData["temp2"].as<float>(),
+                                    sensorData[key].as<float>());
+    addSensorData("dew2", (float)dew);
+    addSensorData("dew2_imp", (float)temp2Imp(dew));
+  }
+}
+void addSensorData(String key, float value) {
+  if (key == "temp" || key == "temp2") {
+    value = calibrateTemp(value);
+  }
+  if (key == "humi" || key == "humi2") {
+    value = calibrateHumi(value);
+  }
+  if (key == "qfe") {
+    value = calibrateQfe(value);
+  }
+
+  sensorData[key] = String(value, 1);
+  // calculate imperial temperature also heat index and the dew point
+  additionalSensorData(key, value);
+}
 String replace_placeholders(String text) {
-  text.replace("%key%", key);
-  text.replace("%temp%", temp);
-  text.replace("%temp2%", temp2);
-  text.replace("%temp_imp%", temp_imp);
-  text.replace("%humi%", humi);
-  text.replace("%hum2i%", humi2);
-  text.replace("%dew%", dew);
-  text.replace("%dew_imp%", dew_imp);
-  text.replace("%hi%", hi);
-  text.replace("%hi_imp%", hi_imp);
-  text.replace("%dew2%", dew2);
-  text.replace("%dew2_imp%", dew2_imp);
-  text.replace("%hi2%", hi2);
-  text.replace("%hi2_imp%", hi2_imp);
-  text.replace("%qfe%", qfe);
-  text.replace("%qnh%", qnh);
-  text.replace("%alt%", alt);
-  text.replace("%air%", air);
-  text.replace("%aiq%", aiq);
-  text.replace("%lux%", lux);
-  text.replace("%uv%", uv);
-  text.replace("%adc%", adc);
-  text.replace("%tvoc%", tvoc);
-  text.replace("%eco2%", eco2);
+  JsonObject root = sensorData.as<JsonObject>();
+  for (JsonPair keyValue : root) {
+    String k = keyValue.key().c_str();
+    String v = keyValue.value();
+    text.replace("%" + k + "%", v);
+  }
   return text;
 }
 
@@ -286,7 +333,7 @@ void SaveConfig() {
 
     json["sleepModeActive"] = sleepModeActive;
 
-    json["key"] = key;
+    json["key"] = sensorData["key"];
     json["dht_sensor"] = dht_sensor;
     json["second_dht_sensor"] = second_dht_sensor;
 
@@ -302,9 +349,16 @@ void SaveConfig() {
   }
 }
 
-void setConfigParameters(JsonObject &json)
-{
-    if (json.containsKey("mqttActive")) {
+void setConfigParameters(JsonObject &json) {
+
+  D_println("Config:");
+  for (JsonPair kv : json) {
+    D_print(kv.key().c_str());
+    D_print(" = ");
+    D_println(kv.value().as<String>());
+  }
+  D_println();
+  if (json.containsKey("mqttActive")) {
     mqttActive = json["mqttActive"];
   }
   if (json.containsKey("mqttRetained")) {
@@ -394,7 +448,6 @@ void setConfigParameters(JsonObject &json)
   }
 }
 
-
 void LoadConfig() {
   if (SPIFFS.exists("/config.json")) {
     // file exists, reading and loading
@@ -407,11 +460,25 @@ void LoadConfig() {
       auto error = deserializeJson(json, configFile);
 
       if (!error) {
-        JsonObject obj = json.to<JsonObject>();
+        JsonObject documentRoot = json.as<JsonObject>();
+        setConfigParameters(documentRoot);
 
-        setConfigParameters(obj);
-       
         Log("LoadConfig", "Loaded");
+      } else {
+        switch (error.code()) {
+        case DeserializationError::Ok:
+          D_println(F("Deserialization succeeded"));
+          break;
+        case DeserializationError::InvalidInput:
+          D_println(F("Invalid input!"));
+          break;
+        case DeserializationError::NoMemory:
+          D_println(F("Not enough memory"));
+          break;
+        default:
+          D_println(F("Deserialization failed"));
+          break;
+        }
       }
     }
   } else {
@@ -460,7 +527,7 @@ void HandleNotFound() {
 void Handle_wifisetup() { WifiSetup(); }
 
 void HandleSetConfig() {
-  DynamicJsonDocument json(512);
+  DynamicJsonDocument json(1024);
   auto error = deserializeJson(json, server.arg("plain"));
   server.sendHeader("Connection", "close");
 
@@ -615,7 +682,7 @@ String GetInfo() {
   root["chipID"] = ESP.getChipId();
   root["cpuFreqMHz"] = ESP.getCpuFreqMHz();
   root["sleepModeActive"] = sleepModeActive;
-  root["key"] = key;
+  root["key"] = sensorData["key"];
 
   String json;
   serializeJson(root, json);
@@ -625,36 +692,8 @@ String GetInfo() {
 
 String GetSensor() {
   read_sensors();
-  DynamicJsonDocument root(1024);
-  root["temp"] = temp;
-  root["temp_imp"] = temp_imp;
-  root["temp2"] = temp2;
-  root["temp2_imp"] = temp2_imp;
-  root["humi"] = humi;
-  root["dew"] = dew;
-  root["dew_imp"] = dew_imp;
-  root["hi"] = hi;
-  root["hi_imp"] = hi_imp;
-  root["humi2"] = humi;
-  root["dew2"] = dew;
-  root["dew2_imp"] = dew_imp;
-  root["hi2"] = hi;
-  root["hi2_imp"] = hi_imp;
-  root["qfe"] = qfe;
-  root["qfe_imp"] = qfe_imp;
-  root["qnh"] = qnh;
-  root["alt"] = alt;
-  root["air"] = air;
-  root["aiq"] = aiq;
-  root["lux"] = lux;
-  root["uv"] = uv;
-  root["adc"] = adc;
-  root["tvoc"] = tvoc;
-  root["co2"] = co2;
-  root["eco2"] = eco2;
   String json;
-  serializeJson(root, json);
-
+  serializeJson(sensorData, json);
   return json;
 }
 
@@ -771,75 +810,18 @@ void http_get(String url) {
 }
 // SENSOR
 
-float calibrate_temp(float _v) {
-  if (calibrationActive) {
-    _v = _v + calibrationTemp;
-  }
-  return _v;
-}
-float calibrate_humi(float _v) {
-  if (calibrationActive) {
-    _v = _v + calibrationHumi;
-  }
-  return _v;
-}
-float calibrate_qfe(float _v) {
-  if (calibrationActive) {
-    _v = _v + calibrationQfe;
-  }
-  return _v;
-}
-void generate_more_sensor_data() {
-
-  if (temp != "") {
-    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-    temp_imp = String(temp_imp);
-  }
-  if (temp2 != "") {
-    temp2_imp = (int)round(1.8 * temp2.toFloat() + 32);
-    temp2_imp = String(temp2_imp);
-  }
-
-  if (temp != "" && humi != "") {
-    hi = String(dht.computeHeatIndex(temp.toFloat(), humi.toFloat()));
-    hi_imp = (int)round(1.8 * hi.toFloat() + 32);
-    hi_imp = String(hi_imp);
-    dew = String(dht.computeDewPoint(temp.toFloat(), humi.toFloat()));
-    dew_imp = (int)round(1.8 * dew.toFloat() + 32);
-    dew_imp = String(dew_imp);
-  }
-
-  if (temp2 != "" && humi2 != "") {
-    hi2 = String(dht.computeHeatIndex(temp2.toFloat(), humi2.toFloat()));
-    hi2_imp = (int)round(1.8 * hi2.toFloat() + 32);
-    hi2_imp = String(hi2_imp);
-    dew2 = String(dht.computeDewPoint(temp2.toFloat(), humi2.toFloat()));
-    dew2_imp = (int)round(1.8 * dew2.toFloat() + 32);
-    dew2_imp = String(dew2_imp);
-  }
-}
 void read_bmx280() {
-  temp = String(calibrate_temp(bmx280.readTemperature()));
-  D_print(F("Temperature: "));
-  D_print(temp);
-  D_println(" C");
+
   if (bmx280.getChipID() == CHIP_ID_BME280) {
-    humi = String(calibrate_humi(bmx280.readHumidity()));
-    D_print(F("Humidity:    "));
-    D_print(humi);
-    D_println(" %");
+    addTempHumi("temp", (float)bmx280.readTemperature(), "humi",
+                (float)bmx280.readHumidity());
+  } else {
+    addSensorData("temp", (float)bmx280.readTemperature());
   }
 
-  qfe = String(calibrate_qfe(bmx280.readPressure() / 100.0F));
-  D_print(F("Pressure:    "));
-  D_print(qfe);
-  D_println(" hPa");
+  addSensorData("qfe", (float)(bmx280.readPressure() / 100.0F));
 
-  alt = String(bmx280.readAltitude(SEA_LEVEL_PRESSURE_HPA));
-  D_print(F("Altitude:    "));
-  D_print(alt);
-  D_println(" m");
-  D_println();
+  addSensorData("alt", (float)bmx280.readAltitude(SEA_LEVEL_PRESSURE_HPA));
 }
 
 double RHtoAbsolute(float relHumidity, float tempC) {
@@ -904,19 +886,13 @@ void read_bme680() {
   output += ", " + String(bme680.breathVocEquivalent);
   D_println(output);
 
-  temp = String(calibrate_temp(bme680.temperature));
+  addSensorData("qfe", (float)(bme680.pressure / 100.0F));
+  addSensorData("eco2", (float)bme680.co2Equivalent);
+  addSensorData("iaq", (float)bme680.iaq);
+  addSensorData("air", (float)(bme680.gasResistance / 1000.0F));
 
-  qfe = String(calibrate_qfe(bme680.pressure / 100.0));
-
-  humi = String(calibrate_humi(bme680.humidity));
-
-  eco2 = String(bme680.co2Equivalent);
-
-  aiq = String(bme680.iaq);
-
-  air = String(bme680.gasResistance / 1000.0);
-
-  // alt = String(bme680.readAltitude(SEA_LEVEL_PRESSURE_HPA));
+  addTempHumi("temp", (float)bme680.temperature, "humi",
+              (float)bme680.humidity);
 }
 
 void read_max44009() {
@@ -931,10 +907,10 @@ void read_max44009() {
   int integrationTime = Max44009Lux.getIntegrationTime();
 
   if (err != 0) {
-    Serial.print("Error:\t");
-    Serial.println(err);
+    D_print("Error:\t");
+    D_println(err);
   } else {
-    lux = String(max440099lux);
+    addSensorData("lux", (float)max440099lux);
     D_print("lux:\t");
     D_print(max440099lux);
     D_print("\tCDR:\t");
@@ -954,13 +930,7 @@ void read_aht20() {
 
   if (ret) // GET DATA OK
   {
-    humi = String(calibrate_humi(humidity * 100));
-    D_print("humidity: ");
-    D_print(humi);
-
-    temp = String(calibrate_temp(temperature));
-    D_print("%\t temperature: ");
-    D_println(temp);
+    addTempHumi("temp", (float)temperature, "humi", (float)(humidity * 100.0F));
   } else // GET DATA FAIL
   {
     Serial.println("GET DATA FROM AHT20 FAIL");
@@ -978,14 +948,7 @@ void read_dht() {
   delay(dht.getMinimumSamplingPeriod());
   humidity = dht.getHumidity();
   temperature = dht.getTemperature();
-
-  // Serial.print(dht.getStatusString());
-  // Serial.print("\t");
-  humi = String(calibrate_humi(humidity));
-  temp = String(calibrate_temp(temperature));
-  D_print(humi);
-  D_print("\t\t");
-  D_print(temp);
+  addTempHumi("temp", (float)temperature, "humi", (float)humidity);
 }
 void read_second_dht() {
 
@@ -995,14 +958,7 @@ void read_second_dht() {
   delay(dht2.getMinimumSamplingPeriod());
   humidity = dht2.getHumidity();
   temperature = dht2.getTemperature();
-
-  // Serial.print(dht.getStatusString());
-  // Serial.print("\t");
-  humi2 = String(calibrate_humi(humidity));
-  temp2 = String(calibrate_temp(temperature));
-  D_print(humi2);
-  D_print("\t\t");
-  D_print(temp2);
+  addTempHumi("temp2", (float)temperature, "humi2", (float)humidity);
 }
 void read_am2320() {
   float humidity, temperature;
@@ -1010,7 +966,7 @@ void read_am2320() {
   byte count = 0;
 
   while (am2320.update() != 0) {
-    Serial.println("Error: Cannot update sensor values.");
+    Serial.println("Error: Cannot update the am2320 sensor values.");
     break;
     count++;
     if (count > 100) {
@@ -1018,16 +974,10 @@ void read_am2320() {
     }
     yield();
   }
-  // if (am2320.update() != 0)
-  //{
+
   temperature = am2320.temperatureC;
   humidity = am2320.humidity;
-  humi = String(calibrate_humi(humidity));
-  temp = String(calibrate_temp(temperature));
-  D_print(humi);
-  D_print("\t\t");
-  D_print(temp);
-  //}
+  addTempHumi("temp", (float)temperature, "humi", (float)(humidity));
 }
 
 void read_ds18b20(void) {
@@ -1049,7 +999,7 @@ void read_ds18b20(void) {
   if (tempC != DEVICE_DISCONNECTED_C) {
     D_print("Temperature for the device 1 (index 0) is: ");
     D_println(tempC);
-    temp = String(calibrate_temp(tempC));
+    addSensorData("temp", (float)tempC);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
@@ -1075,7 +1025,7 @@ void read_second_ds18b20(void) {
   if (tempC != DEVICE_DISCONNECTED_C) {
     D_print("Temperature for the second port device 1 (index 0) is: ");
     D_println(tempC);
-    temp2 = String(calibrate_temp(tempC));
+    addSensorData("temp2", (float)tempC);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
@@ -1088,7 +1038,7 @@ void read_adc() {
   delay(100);
   // read the analog in value
   int sensorValue = analogRead(0);
-  adc = String(sensorValue);
+  addSensorData("adc", (float)sensorValue);
   digitalWrite(pin, LOW); // off
 }
 
@@ -1123,7 +1073,6 @@ void read_sensors() {
   if (adc_sensor) {
     read_adc();
   }
-  generate_more_sensor_data();
 }
 // end of sensor
 void SendInfo(bool force) {
@@ -1201,12 +1150,6 @@ void Log(String function, String message) {
 
 /////////////////////////////////////////////////////////////////////
 void serve_data() {
-  // force config when no mode selected
-  if (httpGetActive == false && httpPostActive == false &&
-      mqttActive == false) {
-    configModeActive = true;
-  }
-
   if (httpGetActive) {
     http_get(httpGetURL);
     delay(1000);
@@ -1494,7 +1437,7 @@ void setupMode() {
 void setup() {
   uuid.seed(ESP.getChipId());
   uuid.generate();
-  key = String(uuid.toCharArray());
+  sensorData["key"] = String(uuid.toCharArray());
 
   pinMode(SIGNAL_LED_PIN, OUTPUT);
 
@@ -1504,14 +1447,21 @@ void setup() {
   while (!Serial)
     ;
   D_println(F("key: "));
-  D_println(key);
+  D_println(sensorData["key"].as<String>());
   // Mounting FileSystem
-  Serial.println(F("Mounting file system..."));
+  D_println(F("Mounting file system..."));
   if (SPIFFS.begin()) {
-    Serial.println(F("Mounted file system."));
+    D_println(F("Mounted file system."));
     LoadConfig();
   } else {
-    Serial.println(F("Failed to mount FS"));
+    D_println(F("Failed to mount FS"));
+  }
+
+  // force config when no mode selected
+  if (httpGetActive == false && httpPostActive == false &&
+      mqttActive == false) {
+    configModeActive = true;
+    D_println("Data serving mode not selected");
   }
 
   setupWifi();

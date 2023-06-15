@@ -193,3 +193,5 @@ String i2c_scanner() {
   return i2c_addresses;
   // i2c scanner end
 }
+
+float temp2Imp(float value) { return round(1.8 * value + 32); }

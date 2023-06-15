@@ -127,7 +127,14 @@ String join(int *arr, String separator, int len) {
   }
   return out;
 }
+// time
 
+int year() { return 0; }
+int month() { return 0; }
+int day() { return 0; }
+int hour() { return 0; }
+int minute() { return 0; }
+int second() { return 0; }
 //================================================================================
 // Begin calcdayofweek( D, M, Y)
 //================================================================================

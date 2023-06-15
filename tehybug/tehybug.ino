@@ -243,6 +243,14 @@ String replace_placeholders(String text) {
   text.replace("%eco2%", eco2);
   return text;
 }
+
+void createDateElements(const char *str) {
+  sscanf(str, "%d-%d-%dT%d:%d", &Year, &Month, &Day, &Hour, &Minute);
+}
+void createWeekdaysElements(const char *str, int *arr) {
+  sscanf(str, "%d,%d,%d,%d,%d,%d,%d", &arr[0], &arr[1], &arr[2], &arr[3],
+         &arr[4], &arr[5], &arr[6]);
+}
 /////
 
 void SaveConfig() {
@@ -294,130 +302,9 @@ void SaveConfig() {
   }
 }
 
-void LoadConfig() {
-  if (SPIFFS.exists("/config.json")) {
-    // file exists, reading and loading
-    File configFile = SPIFFS.open("/config.json", "r");
-
-    if (configFile) {
-      Serial.println("opened config file");
-
-      DynamicJsonDocument json(1024);
-      auto error = deserializeJson(json, configFile);
-
-      if (!error) {
-
-        if (json.containsKey("mqttActive")) {
-          mqttActive = json["mqttActive"];
-        }
-        if (json.containsKey("mqttRetained")) {
-          mqttRetained = json["mqttRetained"];
-        }
-        if (json.containsKey("mqttUser")) {
-          mqttUser = json["mqttUser"].as<String>();
-        }
-
-        if (json.containsKey("mqttPassword")) {
-          mqttPassword = json["mqttPassword"].as<String>();
-        }
-
-        if (json.containsKey("mqttServer")) {
-          mqttServer = json["mqttServer"].as<String>();
-        }
-
-        if (json.containsKey("mqttMasterTopic")) {
-          mqttMasterTopic = json["mqttMasterTopic"].as<String>();
-        }
-        if (json.containsKey("mqttMessage")) {
-          mqttMessage = json["mqttMessage"].as<String>();
-        }
-
-        if (json.containsKey("mqttPort")) {
-          mqttPort = json["mqttPort"];
-        }
-        if (json.containsKey("mqttFrequency")) {
-          mqttFrequency = json["mqttFrequency"];
-        }
-
-        // http
-        if (json.containsKey("httpGetURL")) {
-          httpGetURL = json["httpGetURL"].as<String>();
-        }
-        if (json.containsKey("httpGetActive")) {
-          httpGetActive = json["httpGetActive"];
-        }
-        if (json.containsKey("httpGetFrequency")) {
-          httpGetFrequency = json["httpGetFrequency"];
-        }
-
-        if (json.containsKey("httpPostURL")) {
-          httpPostURL = json["httpPostURL"].as<String>();
-        }
-        if (json.containsKey("httpPostActive")) {
-          httpPostActive = json["httpPostActive"];
-        }
-        if (json.containsKey("httpPostFrequency")) {
-          httpPostFrequency = json["httpPostFrequency"];
-        }
-        if (json.containsKey("httpPostJson")) {
-          httpPostJson = json["httpPostJson"].as<String>();
-        }
-
-        if (json.containsKey("configModeActive")) {
-          configModeActive = json["configModeActive"];
-        }
-
-        if (json.containsKey("calibrationActive")) {
-          calibrationActive = json["calibrationActive"];
-        }
-        if (json.containsKey("calibrationTemp")) {
-          calibrationTemp = json["calibrationTemp"];
-        }
-        if (json.containsKey("calibrationHumi")) {
-          calibrationHumi = json["calibrationHumi"];
-        }
-        if (json.containsKey("calibrationQfe")) {
-          calibrationQfe = json["calibrationQfe"];
-        }
-        if (json.containsKey("sleepModeActive")) {
-          sleepModeActive = json["sleepModeActive"];
-        }
-
-        if (json.containsKey("dht_sensor")) {
-          dht_sensor = json["dht_sensor"];
-        }
-        if (json.containsKey("second_dht_sensor")) {
-          second_dht_sensor = json["second_dht_sensor"];
-        }
-        if (json.containsKey("ds18b20_sensor")) {
-          ds18b20_sensor = json["ds18b20_sensor"];
-        }
-        if (json.containsKey("second_ds18b20_sensor")) {
-          second_ds18b20_sensor = json["second_ds18b20_sensor"];
-        }
-        if (json.containsKey("adc_sensor")) {
-          adc_sensor = json["adc_sensor"];
-        }
-        Log("LoadConfig", "Loaded");
-      }
-    }
-  } else {
-    Log("LoadConfig", "No Configfile, init new file");
-    SaveConfigCallback();
-    SaveConfig();
-  }
-}
-
-void createDateElements(const char *str) {
-  sscanf(str, "%d-%d-%dT%d:%d", &Year, &Month, &Day, &Hour, &Minute);
-}
-void createWeekdaysElements(const char *str, int *arr) {
-  sscanf(str, "%d,%d,%d,%d,%d,%d,%d", &arr[0], &arr[1], &arr[2], &arr[3],
-         &arr[4], &arr[5], &arr[6]);
-}
-void SetConfig(JsonObject &json) {
-
-  if (json.containsKey("mqttActive")) {
+void setConfigParameters(JsonObject &json)
+{
+    if (json.containsKey("mqttActive")) {
     mqttActive = json["mqttActive"];
   }
   if (json.containsKey("mqttRetained")) {
@@ -475,7 +362,6 @@ void SetConfig(JsonObject &json) {
   if (json.containsKey("configModeActive")) {
     configModeActive = json["configModeActive"];
   }
-
   if (json.containsKey("calibrationActive")) {
     calibrationActive = json["calibrationActive"];
   }
@@ -488,7 +374,6 @@ void SetConfig(JsonObject &json) {
   if (json.containsKey("calibrationQfe")) {
     calibrationQfe = json["calibrationQfe"];
   }
-
   if (json.containsKey("sleepModeActive")) {
     sleepModeActive = json["sleepModeActive"];
   }
@@ -507,7 +392,36 @@ void SetConfig(JsonObject &json) {
   if (json.containsKey("adc_sensor")) {
     adc_sensor = json["adc_sensor"];
   }
+}
 
+
+void LoadConfig() {
+  if (SPIFFS.exists("/config.json")) {
+    // file exists, reading and loading
+    File configFile = SPIFFS.open("/config.json", "r");
+
+    if (configFile) {
+      Log("LoadConfig", "opened config file");
+
+      DynamicJsonDocument json(1024);
+      auto error = deserializeJson(json, configFile);
+
+      if (!error) {
+        JsonObject obj = json.to<JsonObject>();
+
+        setConfigParameters(obj);
+       
+        Log("LoadConfig", "Loaded");
+      }
+    }
+  } else {
+    Log("LoadConfig", "No configfile found, create a new file");
+    SaveConfigCallback();
+    SaveConfig();
+  }
+}
+void SetConfig(JsonObject &json) {
+  setConfigParameters(json);
   SaveConfigCallback();
   SaveConfig();
 
@@ -791,14 +705,6 @@ void MqttReconnect() {
         F("No connection to MQTT-Server, MQTT temporarily deactivated!"));
   }
 }
-// time
-
-int year() { return 0; }
-int month() { return 0; }
-int day() { return 0; }
-int hour() { return 0; }
-int minute() { return 0; }
-int second() { return 0; }
 /////////////////////////////////////////////////////////////////////
 
 // BUTTON
@@ -1297,7 +1203,7 @@ void Log(String function, String message) {
 void serve_data() {
   // force config when no mode selected
   if (httpGetActive == false && httpPostActive == false &&
-      httpPostActive == false) {
+      mqttActive == false) {
     configModeActive = true;
   }
 

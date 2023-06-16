@@ -871,6 +871,7 @@ void read_bme680() {
 
   addSensorData("qfe", (float)(bme680.pressure / 100.0F));
   addSensorData("eco2", (float)bme680.co2Equivalent);
+  addSensorData("bvoc", (float)bme680.breathVocEquivalent);
   addSensorData("iaq", (float)bme680.iaq);
   addSensorData("air", (float)(bme680.gasResistance / 1000.0F));
 
@@ -1059,6 +1060,9 @@ void read_sensors() {
 }
 // end of sensor
 void SendInfo(bool force) {
+  if (force) {
+    OldInfo = "";
+  }
   String Info;
   if ((webSocket.connectedClients() > 0)) {
     Info = GetInfo();
@@ -1088,7 +1092,8 @@ void SendSensor(bool force) {
   if (webSocket.connectedClients() > 0 && OldSensor != Sensor) {
     for (uint i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
-      if (websocketConnection[i] == "/main") {
+      if (websocketConnection[i] == "/main" ||
+          websocketConnection[i] == "/settings") {
         webSocket.sendTXT(i, Sensor);
       }
     }

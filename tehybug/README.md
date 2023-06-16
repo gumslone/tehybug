@@ -17,6 +17,7 @@ This firmware is compatible with tehybug universal boards (without display) like
 * AHT20
 * MAX44009
 * DS18B20
+* 
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
@@ -26,6 +27,9 @@ Replace /dev/cu.usbserial-1410 with your usb2serial port.
 
 ```esptool.py --port=/dev/cu.usbserial-1410  write_flash 0x00000 desired_tehybug_firmware.bin```
 
+## Pinmapping
+  
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
 
 ## Upload new firmware via web interface
 

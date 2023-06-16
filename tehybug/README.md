@@ -17,7 +17,22 @@ This firmware is compatible with tehybug universal boards (without display) like
 * AHT20
 * MAX44009
 * DS18B20
-* 
+
+## Port B (green) supported sensors:
+* BME680
+* BME280/BMP280
+* DHT21/DHT22/AM2032 (in dht simulation mode)
+* AHT20
+* MAX44009
+* DS18B20
+* other i2c and one wire sensors (requires code modification)
+
+## Port A (black) supported sensors:
+* DHT21/DHT22/AM2032 (in dht simulation mode)
+* DS18B20
+* ADC soil moisture sensor
+* other ADC and one wire sensors (requires code modification)
+
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
@@ -34,7 +49,6 @@ Replace /dev/cu.usbserial-1410 with your usb2serial port.
 ## Upload new firmware via web interface
 
 To update the firmware from OTA WebInterface open http://tehybug.local/update in your browser, if this doesnt work, try to find out its IP from your router admin menu or use any local network ip scanner app for your mobile phone to get the device ip and then open http://<ip_address<ip address>>/update with your browser.
-
 
 Demo web configuration page: https://tehybug.com/tehybug/v1/html/demo.html
 

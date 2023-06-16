@@ -9,14 +9,6 @@ This firmware is compatible with tehybug universal boards (without display) like
 * Gumboard 
 * or other tehybug boards with have audio jack connector for the sensors
 
-## Supported sensors:
-* BME680
-* BME280/BMP280
-* DHT21/DHT22/AM2032 (in dht simulation mode)
-* AHT20
-* MAX44009
-* DS18B20
-
 ## Port B (green) supported sensors:
 * BME680
 * BME280/BMP280

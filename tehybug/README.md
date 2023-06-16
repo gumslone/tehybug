@@ -26,6 +26,11 @@ This firmware is compatible with tehybug universal boards (without display) like
 * MAX44009
 * DS18B20
 * other i2c and one wire sensors (requires code modification)
+  
+### Pinmapping
+  
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
+
 
 ## Port A (black) supported sensors:
 * DHT21/DHT22/AM2032 (in dht simulation mode)
@@ -41,10 +46,6 @@ Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash bi
 Replace /dev/cu.usbserial-1410 with your usb2serial port.
 
 ```esptool.py --port=/dev/cu.usbserial-1410  write_flash 0x00000 desired_tehybug_firmware.bin```
-
-## Pinmapping
-  
-<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
 
 ## Upload new firmware via web interface
 

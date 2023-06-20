@@ -87,7 +87,7 @@ bool bmx_sensor = false; // in the setup the i2c scanner searches for the sensor
 
 AHT20 AHT;
 bool aht20_sensor =
-    false; // in the setup the i2c scanner searches for the sensor
+  false; // in the setup the i2c scanner searches for the sensor
 
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
@@ -101,7 +101,7 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
 String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux,
-    uv, adc, tvoc, co2;
+       uv, adc, tvoc, co2;
 
 String i2c_addresses = "";
 
@@ -134,7 +134,7 @@ WiFiManagerParameter custom_mqtt_pass("pass", "MQTT password", Config::password,
 
 uint32_t lastMqttConnectionAttempt = 0;
 const uint16_t mqttConnectionInterval =
-    60000; // 1 minute = 60 seconds = 60000 milliseconds
+  60000; // 1 minute = 60 seconds = 60000 milliseconds
 
 uint32_t statusPublishPreviousMillis = 0;
 const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
@@ -155,7 +155,9 @@ char MQTT_TOPIC_AUTOCONF_SENSOR[128];
 
 bool shouldSaveConfig = false;
 
-void saveConfigCallback() { shouldSaveConfig = true; }
+void saveConfigCallback() {
+  shouldSaveConfig = true;
+}
 
 String getSensor() {
 
@@ -259,8 +261,12 @@ void setupHandle() {
 }
 
 void setupOTA() {
-  ArduinoOTA.onStart([]() { Serial.println("Start"); });
-  ArduinoOTA.onEnd([]() { Serial.println("\nEnd"); });
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
   });
@@ -333,12 +339,16 @@ void setupMDSN() {
 }
 // BUTTON
 //  Attach callback.
-void pressed(Button2 &btn) { Serial.println("pressed"); }
+void pressed(Button2 &btn) {
+  Serial.println("pressed");
+}
 void released(Button2 &btn) {
   Serial.print("released: ");
   Serial.println(btn.wasPressedFor());
 }
-void changed(Button2 &btn) { Serial.println("changed"); }
+void changed(Button2 &btn) {
+  Serial.println("changed");
+}
 void click(Button2 &btn) {
   Serial.println("click\n");
   Serial.println(btn.getPin());
@@ -365,7 +375,9 @@ void doubleClick(Button2 &btn) {
   Serial.println("\n");
 }
 
-void tripleClick(Button2 &btn) { Serial.println("triple click\n"); }
+void tripleClick(Button2 &btn) {
+  Serial.println("triple click\n");
+}
 
 void setupButtons() {
   pinMode(BUTTON_LEFT, INPUT_PULLUP);
@@ -381,7 +393,7 @@ void setupButtons() {
   Serial.println(" Longpress Time: " + String(button_left.getLongClickTime()) +
                  "ms");
   Serial.println(
-      " DoubleClick Time: " + String(button_left.getDoubleClickTime()) + "ms");
+    " DoubleClick Time: " + String(button_left.getDoubleClickTime()) + "ms");
 
   // button_left.setChangedHandler(changed);
   // button_left.setPressedHandler(pressed);
@@ -402,7 +414,7 @@ void setupButtons() {
   Serial.println(" Longpress Time: " + String(button_right.getLongClickTime()) +
                  "ms");
   Serial.println(
-      " DoubleClick Time: " + String(button_right.getDoubleClickTime()) + "ms");
+    " DoubleClick Time: " + String(button_right.getDoubleClickTime()) + "ms");
 
   // button_right.setChangedHandler(changed);
   // button_right.setPressedHandler(pressed);
@@ -423,7 +435,7 @@ void setupButtons() {
   Serial.println(" Longpress Time: " + String(button_mode.getLongClickTime()) +
                  "ms");
   Serial.println(
-      " DoubleClick Time: " + String(button_mode.getDoubleClickTime()) + "ms");
+    " DoubleClick Time: " + String(button_mode.getDoubleClickTime()) + "ms");
 
   // button_mode.setChangedHandler(changed);
   // button_mode.setPressedHandler(pressed);
@@ -462,7 +474,9 @@ void mqttReconnect() {
   }
 }
 
-bool isMqttConnected() { return mqttClient.connected(); }
+bool isMqttConnected() {
+  return mqttClient.connected();
+}
 
 void publishState() {
   DynamicJsonDocument wifiJson(192);
@@ -514,8 +528,8 @@ void publishAutoConfig() {
   autoconfPayload["unit_of_measurement"] = "dBm";
   autoconfPayload["json_attributes_topic"] = MQTT_TOPIC_STATE;
   autoconfPayload["json_attributes_template"] =
-      "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": "
-      "\"{{value_json.wifi.ip}}\"}";
+    "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": "
+    "\"{{value_json.wifi.ip}}\"}";
   autoconfPayload["icon"] = "mdi:wifi";
 
   serializeJson(autoconfPayload, mqttPayload);
@@ -656,7 +670,7 @@ void co2_ampel(int val) {
 
 void read_scd4x() {
   if (mySensor.readMeasurement()) // readMeasurement will return true when fresh
-                                  // data is available
+    // data is available
   {
     Serial.println();
     co2 = String(mySensor.getCO2());
@@ -673,11 +687,11 @@ void read_scd4x() {
 
     if (aht20_sensor == false && bmx_sensor == false) {
       float calib_temp = (Config::offline_mode)
-                             ? Calibration::scd4x_offline_temp
-                             : Calibration::scd4x_online_temp;
+                         ? Calibration::scd4x_offline_temp
+                         : Calibration::scd4x_online_temp;
       float calib_humi = (Config::offline_mode)
-                             ? Calibration::scd4x_offline_humi
-                             : Calibration::scd4x_online_humi;
+                         ? Calibration::scd4x_offline_humi
+                         : Calibration::scd4x_online_humi;
 
       temp = String((mySensor.getTemperature() + calib_temp), 1);
       humi = String((mySensor.getHumidity() + calib_humi), 0);
@@ -690,7 +704,145 @@ void read_scd4x() {
   }
 }
 
-void calibrate_sensor() {}
+// calculate CRC according to datasheet section 5.17
+uint8_t CalcCrc(uint8_t data[2]) {
+  uint8_t crc = 0xFF;
+  for(int i = 0; i < 2; i++) {
+    crc ^= data[i];
+    for(uint8_t bit = 8; bit > 0; --bit) {
+      if(crc & 0x80) {
+        crc = (crc << 1) ^ 0x31u;
+      } else {
+        crc = (crc << 1);
+      }
+    }
+  }
+  return crc;
+}
+
+void calibrate_scd4x() {
+  if (scd4x_sensor) {
+    ticker.disable(0);
+    display_show("Calibration started", "Put sensor", "outside and",
+                 "wait for 15 minutes","","",true);
+
+    float co2, temperature, humidity;
+    uint16_t calibration;
+    uint8_t data[12], counter, repetition;
+    uint8_t ret;
+
+    // init I2C
+    Wire.begin(0, 2);
+
+    // wait until sensors are ready, > 1000 ms according to datasheet
+    delay(1000);
+
+    // start scd measurement in periodic mode, will update every 5 s
+    Wire.beginTransmission(0x62);
+    Wire.write(0x21);
+    Wire.write(0xb1);
+    Wire.endTransmission();
+
+    // wait for first measurement to be finished
+    delay(2000);
+
+    Serial.println("# CO2 values before recalibration");
+
+    // measure 5 times
+    for (repetition = 0; repetition < 5; repetition++) {
+      // read measurement data: 2 bytes co2, 1 byte CRC,
+      // 2 bytes T, 1 byte CRC, 2 bytes RH, 1 byte CRC,
+      // 2 bytes sensor status, 1 byte CRC
+      // stop reading after 12 bytes (not used)
+      // other data like  ASC not included
+      Wire.requestFrom(0x62, 12);
+      counter = 0;
+      while (Wire.available()) {
+        data[counter++] = Wire.read();
+      }
+
+      // floating point conversion according to datasheet
+      co2 = (float)((uint16_t)data[0] << 8 | data[1]);
+      // convert T in degC
+      temperature = -45 + 175 * (float)((uint16_t)data[3] << 8 | data[4]) / 65536;
+      // convert RH in %
+      humidity = 100 * (float)((uint16_t)data[6] << 8 | data[7]) / 65536;
+
+      delay(2000);
+    }
+
+    // wait for another 5 minutes to equilibrate sensor to ambient
+    Serial.println("# Waiting 5 minutes for equilibration");
+    delay(5 * 60 * 1000);
+
+    // stop scd measurement
+    Wire.beginTransmission(0x62);
+    Wire.write(0x3f);
+    Wire.write(0x86);
+    ret = Wire.endTransmission();
+    Serial.println(ret);
+
+    // wait for sensor
+    delay(20);
+
+    // assuming an external reference shows 650 ppm
+    calibration = 400;
+
+    // prepare buffer with data for calibration
+    // calculate CRC for each 2 bytes of data
+    data[0] = (calibration & 0xff00) >> 8;
+    data[1] = calibration & 0x00ff;
+    data[2] = CalcCrc(data);
+
+    // send command for perform_forced_recalibration
+    Wire.beginTransmission(0x62);
+    Wire.write(0x36);
+    Wire.write(0x2F);
+    // append data for calibration
+    // 2 bytes calibraion, CRC
+    Wire.write(data[0]);
+    Wire.write(data[1]);
+    Wire.write(data[2]);
+    ret = Wire.endTransmission();
+    Serial.println(ret);
+
+    delay(400);
+
+    // read data: 2 bytes correction, 1 byte CRC
+    Wire.requestFrom(0x62, 3);
+    counter = 0;
+    while (Wire.available()) {
+      data[counter++] = Wire.read();
+    }
+
+    if (CalcCrc(data) != data[2])
+      Serial.println("# ERROR: recalibration CRC return value");
+
+    calibration = ((uint16_t)data[0] << 8 | data[1]);
+
+    Serial.print("# Value after recalibration\n# ");
+    Serial.println(calibration - 32768);
+
+    // output format
+    Serial.println("CO2(ppm)\tTemperature(degC)\tRelativeHumidity(percent)");
+
+    // start scd measurement again in periodic mode, will update every 2 s
+    Wire.beginTransmission(0x62);
+    Wire.write(0x21);
+    Wire.write(0xb1);
+    Wire.endTransmission();
+
+    // wait for first measurement to be finished (> 5 s)
+    display_show("Calibration finished", "", "",
+                 "","","",true);
+    delay(10000);
+    ticker.enable(0);
+  }
+}
+
+void calibrate_sensor() {
+  calibrate_scd4x();
+}
 
 void display_show(const String line1, const String line2, const String line3,
                   const String line4, const String line5, const String line6,
@@ -1061,17 +1213,17 @@ void setup() {
       // Print sensor type
       Serial.print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
-      case CHIP_ID_BMP280:
-        Serial.println(F("BMP280\n"));
+        case CHIP_ID_BMP280:
+          Serial.println(F("BMP280\n"));
 
-        break;
-      case CHIP_ID_BME280:
-        Serial.println(F("BME280\n"));
+          break;
+        case CHIP_ID_BME280:
+          Serial.println(F("BME280\n"));
 
-        break;
-      default:
-        Serial.println(F("Unknown\n"));
-        break;
+          break;
+        default:
+          Serial.println(F("Unknown\n"));
+          break;
       }
 
       // Set sampling - Recommended modes of operation
@@ -1096,12 +1248,12 @@ void setup() {
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
       bmx280.setSampling(
-          BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
-          BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
-          BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
-          BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
-          BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
-          BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
+        BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
+        BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
+        BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
+        BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
+        BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
+        BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
     }
   }
 
@@ -1114,7 +1266,7 @@ void setup() {
     // details on how to override this)
     if (mySensor.begin() == false) {
       Serial.println(
-          F("Sensor not detected. Please check wiring. Freezing..."));
+        F("Sensor not detected. Please check wiring. Freezing..."));
       while (1)
         ;
     }
@@ -1157,11 +1309,13 @@ void setup() {
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
     delay(1); // Needed, at least in my tests WiFi doesn't power off without
-              // this for some reason
+    // this for some reason
   }
 
   ticker.add(
-      0, 10033, [&](void *) { read_sensors(); }, nullptr, true);
+  0, 10033, [&](void *) {
+    read_sensors();
+  }, nullptr, true);
 }
 
 void loop() {

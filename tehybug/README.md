@@ -2,21 +2,12 @@ This is a different TeHyBug firmware fully written in C/C++, (previous was parti
 
 This firmware supports easy OTA Updates.
 
-It has a limited sensor support compared to the Lua firmware.
-I.e. it doesnt support AM2032 Sensor in i2c mode also there are some issues with ds18b20.
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/2022-06-10T21_41_23.878Z-IMG_3707.jpg?raw=true" width="500">
 
 This firmware is compatible with tehybug universal boards (without display) like:
 * TeHyBug 18650 Universal v1 (esp-01 based) and v2 (esp-m based)
 * Gumboard 
 * or other tehybug boards with have audio jack connector for the sensors
-
-## Supported sensors:
-* BME680
-* BME280/BMP280
-* DHT21/DHT22/AM2032 (in dht simulation mode)
-* AHT20
-* MAX44009
-* DS18B20
 
 ## Port B (green) supported sensors:
 * BME680

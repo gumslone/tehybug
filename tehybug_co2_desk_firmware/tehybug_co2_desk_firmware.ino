@@ -1285,11 +1285,13 @@ void setup() {
     Config::offline_mode = !Config::offline_mode;
     Config::save();
     if (epaper == true) {
-      String line3 = "OFF, WIFI enabled!";
+      String line3 = "OFF";
+      String line4 = "WIFI enabled!";
       if (Config::offline_mode) {
-        line3 = "ON, WIFI disabled!";
+        line3 = "ON";
+        line4 = " WIFI disabled!";
       }
-      display_show("Offline", "mode:", line3, "", "", "", true);
+      display_show("Offline", "mode:", line3, line4, "", "", true);
     }
   }
 

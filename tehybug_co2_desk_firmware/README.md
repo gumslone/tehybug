@@ -37,6 +37,14 @@ For the update page you will have to provide a username and a password:
 Username: TeHyBug
   
 Password: FreshAirMakesSense
+
+## Calibration
+SCD40 and SCD41 come precalibrated and usually dont need require any calibration but in some unsommon caases you can forrce the sensorr calibration. 
+1. Put your device outdoors to a fresh air.
+2. Hold the IO_4 Button for 15 Seconds.
+3. Release the button.
+4. There will be a screen message that the calibration has started.
+5. Wait for 15 minutes until the calibration is finished and the led will become green.
  
 ## Buttons
 <img src="https://raw.githubusercontent.com/gumslone/tehybug/master/tehybug_co2_desk_firmware/images/desk%20tehybug%20co2%20buttons.drawio.png" width=500>
@@ -57,6 +65,7 @@ Password: FreshAirMakesSense
 
 ### IO_4 Button
 
+- hold for 15 seconds to force calibration
 
 ## Pinmapping
   

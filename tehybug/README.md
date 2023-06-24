@@ -20,14 +20,18 @@ This firmware is compatible with tehybug universal boards (without display) like
   
 ### Pinmapping
   
-<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/3.5mm_jack_plug_4i.svg_mapping.jpg?raw=true" width="300">
-
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/tehybug_port_b_pinmapping.png?raw=true" width="300">
 
 ## Port A (black) supported sensors:
 * DHT21/DHT22/AM2032 (in dht simulation mode)
 * DS18B20
 * ADC soil moisture sensor
 * other ADC and one wire sensors (requires code modification)
+
+### Pinmapping Port A
+  
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/tehybug_port_a_pinmapping.png?raw=true" width="300">
+
 
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.

@@ -8,6 +8,7 @@ This firmware is compatible with tehybug universal boards (without display) like
 * TeHyBug 18650 Universal v1 (esp-01 based) and v2 (esp-m based)
 * Gumboard 
 * or other tehybug boards with have audio jack connector for the sensors
+* It is also compatible with any other ESP8266/ESP8285 dev boards like wemos, lolin, nodemcu etc. See the pin mapping images. Only the indicator led will not work and the power saving mode with deep sleep will probably not work either.
 
 ## Port B (green) supported sensors:
 * BME680

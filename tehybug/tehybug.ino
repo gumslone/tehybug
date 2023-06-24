@@ -156,7 +156,7 @@ char data[80];
 #define COMPILE_YEAR                                                           \
   ((((__DATE__[7] - '0') * 10 + (__DATE__[8] - '0')) * 10 +                    \
     (__DATE__[9] - '0')) *                                                     \
-       10 +                                                                    \
+   10 +                                                                    \
    (__DATE__[10] - '0'))
 #define COMPILE_SHORTYEAR (((__DATE__[9] - '0')) * 10 + (__DATE__[10] - '0'))
 #define COMPILE_MONTH                                                          \
@@ -169,7 +169,7 @@ char data[80];
     : __DATE__[2] == 'p' ? 8                                                   \
     : __DATE__[2] == 't' ? 9                                                   \
     : __DATE__[2] == 'v' ? 10                                                  \
-                         : 11) +                                               \
+    : 11) +                                               \
    1)
 #define COMPILE_DAY                                                            \
   ((__DATE__[4] == ' ' ? 0 : __DATE__[4] - '0') * 10 + (__DATE__[5] - '0'))
@@ -210,7 +210,9 @@ String i2c_addresses = "";
 
 TickerScheduler ticker(5);
 
-void SaveConfigCallback() { shouldSaveConfig = true; }
+void SaveConfigCallback() {
+  shouldSaveConfig = true;
+}
 
 /////////////////////////////////////////////////////////////////////
 float calibrateTemp(float _v) {
@@ -465,18 +467,18 @@ void LoadConfig() {
         Log("LoadConfig", "Loaded");
       } else {
         switch (error.code()) {
-        case DeserializationError::Ok:
-          D_println(F("Deserialization succeeded"));
-          break;
-        case DeserializationError::InvalidInput:
-          D_println(F("Invalid input!"));
-          break;
-        case DeserializationError::NoMemory:
-          D_println(F("Not enough memory"));
-          break;
-        default:
-          D_println(F("Deserialization failed"));
-          break;
+          case DeserializationError::Ok:
+            D_println(F("Deserialization succeeded"));
+            break;
+          case DeserializationError::InvalidInput:
+            D_println(F("Invalid input!"));
+            break;
+          case DeserializationError::NoMemory:
+            D_println(F("Not enough memory"));
+            break;
+          default:
+            D_println(F("Deserialization failed"));
+            break;
         }
       }
     }
@@ -523,7 +525,9 @@ void HandleNotFound() {
   server.send(302, "text/plain", "");
 }
 
-void Handle_wifisetup() { WifiSetup(); }
+void Handle_wifisetup() {
+  WifiSetup();
+}
 
 void HandleSetConfig() {
   DynamicJsonDocument json(1024);
@@ -583,7 +587,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
     deserializeJson(json, payload);
 
     Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
-                             ": " + String(measureJson(json)));
+        ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
       client.publish((mqttMasterTopic + "matrixinfo").c_str(),
                      GetInfo().c_str());
@@ -604,43 +608,43 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t length) {
 
   switch (type) {
-  case WStype_DISCONNECTED: {
-    Log("WebSocketEvent", "[" + String(num) + "] Disconnected!");
-    websocketConnection[num] = "";
-    break;
-  }
-  case WStype_CONNECTED: {
-    websocketConnection[num] = String((char *)payload);
-    IPAddress ip = webSocket.remoteIP(num);
-    Log("WebSocketEvent", "[" + String(num) + "] Connected from " +
-                              ip.toString() +
-                              " url: " + websocketConnection[num]);
-
-    // send message to client
-    SendInfo(true);
-    SendSensor(true);
-    SendConfig();
-    break;
-  }
-  case WStype_TEXT: {
-    if (((char *)payload)[0] == '{') {
-      DynamicJsonDocument json(512);
-
-      deserializeJson(json, payload);
-
-      Log("WebSocketEvent",
-          "Incoming Json length: " + String(measureJson(json)));
-
-      if (websocketConnection[num] == "/setConfig") {
-        // extract the data
-        JsonObject object = json.as<JsonObject>();
-        SetConfig(object);
-        // delay(500);
-        // ESP.restart();
+    case WStype_DISCONNECTED: {
+        Log("WebSocketEvent", "[" + String(num) + "] Disconnected!");
+        websocketConnection[num] = "";
+        break;
       }
-    }
-    break;
-  }
+    case WStype_CONNECTED: {
+        websocketConnection[num] = String((char *)payload);
+        IPAddress ip = webSocket.remoteIP(num);
+        Log("WebSocketEvent", "[" + String(num) + "] Connected from " +
+            ip.toString() +
+            " url: " + websocketConnection[num]);
+
+        // send message to client
+        SendInfo(true);
+        SendSensor(true);
+        SendConfig();
+        break;
+      }
+    case WStype_TEXT: {
+        if (((char *)payload)[0] == '{') {
+          DynamicJsonDocument json(512);
+
+          deserializeJson(json, payload);
+
+          Log("WebSocketEvent",
+              "Incoming Json length: " + String(measureJson(json)));
+
+          if (websocketConnection[num] == "/setConfig") {
+            // extract the data
+            JsonObject object = json.as<JsonObject>();
+            SetConfig(object);
+            // delay(500);
+            // ESP.restart();
+          }
+        }
+        break;
+      }
   }
 }
 #pragma endregion
@@ -716,8 +720,8 @@ void MqttReconnect() {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
       connected =
-          client.connect(("tehybug_" + GetChipID()).c_str(), mqttUser.c_str(),
-                         mqttPassword.c_str(), "state", 0, true, "diconnected");
+        client.connect(("tehybug_" + GetChipID()).c_str(), mqttUser.c_str(),
+                       mqttPassword.c_str(), "state", 0, true, "diconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
@@ -814,7 +818,11 @@ void read_bmx280() {
   if (bmx280.getChipID() == CHIP_ID_BME280) {
     addTempHumi("temp", (float)bmx280.readTemperature(), "humi",
                 (float)bmx280.readHumidity());
-  } else {
+  } else if (aht20_sensor) {
+    addSensorData("temp2", (float)bmx280.readTemperature());
+  }
+  else
+  {
     addSensorData("temp", (float)bmx280.readTemperature());
   }
 
@@ -998,7 +1006,7 @@ void read_second_ds18b20(void) {
   // issue a global temperature request to all devices on the bus
   D_print("Requesting second port temperatures...");
   second_ds18b20_sensors
-      .requestTemperatures(); // Send the command to get temperatures
+  .requestTemperatures(); // Send the command to get temperatures
   D_println("DONE");
   // After we got the temperatures, we can print them here.
   // We use the function ByIndex, and as an example get the temperature from the
@@ -1072,6 +1080,7 @@ void SendInfo(bool force) {
     for (int i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
+          websocketConnection[i] == "/firststart" ||
           websocketConnection[i] == "/api/info") {
         webSocket.sendTXT(i, Info);
       }
@@ -1118,10 +1127,6 @@ void SendConfig() {
 
 /////////////////////////////////////////////////////////////////////
 void Log(String function, String message) {
-
-  // String timeStamp = IntFormat(year()) + "-" + IntFormat(month()) + "-" +
-  // IntFormat(day()) + "T" + IntFormat(hour()) + ":" + IntFormat(minute()) +
-  // ":" + IntFormat(second());
   String timeStamp = "";
   D_println("[" + timeStamp + "] " + function + ": " + message);
   if (webSocket.connectedClients() > 0) {
@@ -1129,8 +1134,8 @@ void Log(String function, String message) {
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main") {
         webSocket.sendTXT(i, "{\"log\":{\"timeStamp\":\"" + timeStamp +
-                                 "\",\"function\":\"" + function +
-                                 "\",\"message\":\"" + message + "\"}}");
+                          "\",\"function\":\"" + function +
+                          "\",\"message\":\"" + message + "\"}}");
       }
     }
   }
@@ -1295,17 +1300,17 @@ void setupSensors() {
       // Print sensor type
       D_print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
-      case CHIP_ID_BMP280:
-        D_println(F("BMP280\n"));
-        bme680_sensor = false;
-        break;
-      case CHIP_ID_BME280:
-        D_println(F("BME280\n"));
-        bme680_sensor = false;
-        break;
-      default:
-        Serial.println(F("Unknown\n"));
-        break;
+        case CHIP_ID_BMP280:
+          D_println(F("BMP280\n"));
+          bme680_sensor = false;
+          break;
+        case CHIP_ID_BME280:
+          D_println(F("BME280\n"));
+          bme680_sensor = false;
+          break;
+        default:
+          Serial.println(F("Unknown\n"));
+          break;
       }
 
       // Set sampling - Recommended modes of operation
@@ -1330,12 +1335,12 @@ void setupSensors() {
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
       bmx280.setSampling(
-          BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
-          BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
-          BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
-          BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
-          BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
-          BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
+        BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
+        BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
+        BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
+        BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
+        BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
+        BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
     }
   }
   if (bme680_sensor) {
@@ -1350,16 +1355,16 @@ void setupSensors() {
     D_println(output);
     checkIaqSensorStatus();
     bsec_virtual_sensor_t sensorList[10] = {
-        BSEC_OUTPUT_RAW_TEMPERATURE,
-        BSEC_OUTPUT_RAW_PRESSURE,
-        BSEC_OUTPUT_RAW_HUMIDITY,
-        BSEC_OUTPUT_RAW_GAS,
-        BSEC_OUTPUT_IAQ,
-        BSEC_OUTPUT_STATIC_IAQ,
-        BSEC_OUTPUT_CO2_EQUIVALENT,
-        BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
-        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
-        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+      BSEC_OUTPUT_RAW_TEMPERATURE,
+      BSEC_OUTPUT_RAW_PRESSURE,
+      BSEC_OUTPUT_RAW_HUMIDITY,
+      BSEC_OUTPUT_RAW_GAS,
+      BSEC_OUTPUT_IAQ,
+      BSEC_OUTPUT_STATIC_IAQ,
+      BSEC_OUTPUT_CO2_EQUIVALENT,
+      BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
     };
 
     bme680.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
@@ -1480,11 +1485,12 @@ void setup() {
     Log(F("Setup"), F("MQTT started"));
   }
 
-  delay(1000);
   setupSensors();
   if (configModeActive == false) {
     ticker.add(
-        0, 10033, [&](void *) { read_sensors(); }, nullptr, true);
+    0, 10033, [&](void *) {
+      read_sensors();
+    }, nullptr, true);
   }
 }
 

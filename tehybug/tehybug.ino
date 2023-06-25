@@ -50,7 +50,7 @@
 
 Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #endif
-// pin 4 HIGH to turn on the pixel
+// set pin 4 HIGH to turn on the pixel
 #define SIGNAL_LED_PIN 4
 
 char identifier[24];
@@ -225,7 +225,6 @@ float calibrateValue(String _n, float _v) {
 }
 
 void addTempHumi(String key_temp, float temp, String key_humi, float humi) {
-
   addSensorData(key_temp, temp);
   addSensorData(key_humi, humi);
 }
@@ -939,7 +938,7 @@ void read_second_dht() {
 void read_am2320() {
   float humidity, temperature;
   Wire.begin(0, 2);
-  byte count = 0;
+  uint8_t count = 0;
 
   while (am2320.update() != 0) {
     Serial.println("Error: Cannot update the am2320 sensor values.");
@@ -1061,7 +1060,7 @@ void SendInfo(bool force) {
   }
 
   if (webSocket.connectedClients() > 0 && OldInfo != Info) {
-    for (int i = 0;
+    for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
           websocketConnection[i] == "/firststart" ||
@@ -1083,7 +1082,7 @@ void SendSensor(bool force) {
     Sensor = GetSensor();
   }
   if (webSocket.connectedClients() > 0 && OldSensor != Sensor) {
-    for (uint i = 0;
+    for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
           websocketConnection[i] == "/settings") {
@@ -1097,7 +1096,7 @@ void SendSensor(bool force) {
 
 void SendConfig() {
   if (webSocket.connectedClients() > 0) {
-    for (int i = 0;
+    for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/settings" ||
           websocketConnection[i] == "/setsensor" ||
@@ -1114,7 +1113,7 @@ void Log(String function, String message) {
   String timeStamp = "";
   D_println("[" + timeStamp + "] " + function + ": " + message);
   if (webSocket.connectedClients() > 0) {
-    for (int i = 0;
+    for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main") {
         webSocket.sendTXT(i, "{\"log\":{\"timeStamp\":\"" + timeStamp +
@@ -1421,7 +1420,9 @@ void setup() {
 
   Serial.begin(115200);
   while (!Serial)
-    ;
+  {
+    delay(10);
+  }
   D_println(F("key: "));
   D_println(sensorData["key"].as<String>());
   // Mounting FileSystem
@@ -1473,7 +1474,7 @@ void setup() {
   // setup tickers for non-deep-sleep mode
   if (!configModeActive && !sleepModeActive) {
 
-    int ticker_num = 0;
+    uint8_t ticker_num = 0;
     if (httpGetActive)
     {
       ticker.add(

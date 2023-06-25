@@ -19,7 +19,7 @@ This firmware is compatible with tehybug universal boards (without display) like
 * DS18B20
 * other i2c and one wire sensors (requires code modification)
   
-### Pinmapping
+### Pinmapping Port B
   
 <img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/tehybug_port_b_pinmapping.png?raw=true" width="300">
 

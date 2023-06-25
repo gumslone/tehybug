@@ -215,24 +215,15 @@ void SaveConfigCallback() {
 }
 
 /////////////////////////////////////////////////////////////////////
-float calibrateTemp(float _v) {
+float calibrateValue(String _n, float _v) {
   if (calibrationActive) {
-    _v += calibrationTemp;
+    if (_n == "temp") _v += calibrationTemp;
+    else if (_n == "humi") _v += calibrationHumi;
+    else if (_n == "qfe") _v += calibrationQfe;
   }
   return _v;
 }
-float calibrateHumi(float _v) {
-  if (calibrationActive) {
-    _v += calibrationHumi;
-  }
-  return _v;
-}
-float calibrateQfe(float _v) {
-  if (calibrationActive) {
-    _v += calibrationQfe;
-  }
-  return _v;
-}
+
 void addTempHumi(String key_temp, float temp, String key_humi, float humi) {
 
   addSensorData(key_temp, temp);
@@ -245,37 +236,31 @@ void additionalSensorData(String key, float value) {
     addSensorData(key + "_imp", (float)temp2Imp(value));
   }
   // humi should be always set after temp so the following calculation will work
-  else if (key == "humi") {
-    float hi = dht.computeHeatIndex(sensorData["temp"].as<float>(),
-                                    sensorData[key].as<float>());
-    addSensorData("hi", (float)hi);
-    addSensorData("hi_imp", (float)temp2Imp(hi));
+  else if (key == "humi" || key == "hum2") {
 
-    float dew = dht.computeDewPoint(sensorData["temp"].as<float>(),
-                                    sensorData[key].as<float>());
-    addSensorData("dew", (float)dew);
-    addSensorData("dew_imp", (float)temp2Imp(dew));
-  } else if (key == "humi2") {
-    float hi = dht.computeHeatIndex(sensorData["temp2"].as<float>(),
-                                    sensorData[key].as<float>());
-    addSensorData("hi2", (float)hi);
-    addSensorData("hi2_imp", (float)temp2Imp(hi));
+    String num = String(atoi(key.c_str()));
 
-    float dew = dht.computeDewPoint(sensorData["temp2"].as<float>(),
-                                    sensorData[key].as<float>());
-    addSensorData("dew2", (float)dew);
-    addSensorData("dew2_imp", (float)temp2Imp(dew));
+    float hi = dht.computeHeatIndex(sensorData["temp" + num].as<float>(),
+                                    sensorData[key + num].as<float>());
+    addSensorData("hi" + num, (float)hi);
+    addSensorData("hi_imp" + num, (float)temp2Imp(hi));
+
+    float dew = dht.computeDewPoint(sensorData["temp" + num].as<float>(),
+                                    sensorData[key + num].as<float>());
+    addSensorData("dew" + num, (float)dew);
+    addSensorData("dew_imp" + num, (float)temp2Imp(dew));
   }
 }
 void addSensorData(String key, float value) {
+
   if (key == "temp" || key == "temp2") {
-    value = calibrateTemp(value);
+    value = calibrateValue("temp", value);
   }
-  if (key == "humi" || key == "humi2") {
-    value = calibrateHumi(value);
+  else if (key == "humi" || key == "humi2") {
+    value = calibrateValue("humi", value);
   }
-  if (key == "qfe") {
-    value = calibrateQfe(value);
+  else if (key == "qfe") {
+    value = calibrateValue("qfe", value);
   }
 
   sensorData[key] = String(value, 1);
@@ -764,7 +749,7 @@ void toggleConfigMode() {
   SaveConfig();
   yield();
   if (configModeActive == false) {
-    // ESP.restart();
+    //ESP.restart();
   }
 }
 
@@ -776,15 +761,15 @@ void startDeepSleep(int freq) {
 }
 // HTTP REQUESTS
 
-void http_post(String post_json) {
+void http_post() {
   http.begin(httpPostURL); // Specify request destination
   http.addHeader("Content-Type",
                  "application/json"); // Specify content-type header
-  post_json = replace_placeholders(httpPostJson);
+  String post_json = replace_placeholders(httpPostJson);
   int httpCode = http.POST(post_json); // Send the request
   D_println(httpCode);                 // Print HTTP return code
   if (httpCode == 200) {
-    Log(F("http_post"), httpPostJson);
+    Log(F("http_post"), post_json);
   }
   if (httpCode > 0) { // Check the returning code
     // String payload = http.getString();                  //Get the response
@@ -793,9 +778,8 @@ void http_post(String post_json) {
 
   http.end(); // Close connection
 }
-void http_get(String url) {
-  // String temp, humi, dew, qfe, qnh, alt, air, aiq, lux, uv, adc, tvoc, eco2;
-  url = replace_placeholders(url);
+void http_get() {
+  String url = replace_placeholders(httpGetURL);
   http.begin(url);                              // Specify request destination
   http.addHeader("Content-Type", "text/plain"); // Specify content-type header
 
@@ -1144,24 +1128,23 @@ void Log(String function, String message) {
 /////////////////////////////////////////////////////////////////////
 void serve_data() {
   if (httpGetActive) {
-    http_get(httpGetURL);
+    http_get();
     delay(1000);
     if (sleepModeActive) {
       startDeepSleep(httpGetFrequency);
-    } else {
-      delay(mqttFrequency * 1000);
-    }
+    }/* else {
+      delay(httpGetFrequency * 1000);
+    }*/
   }
 
   if (httpPostActive) {
-    http_post(httpPostJson);
+    http_post();
     delay(1000);
-
     if (sleepModeActive) {
       startDeepSleep(httpPostFrequency);
-    } else {
-      delay(mqttFrequency * 1000);
-    }
+    }/* else {
+      delay(httpPostFrequency * 1000);
+    }*/
   }
 
   if (mqttActive) {
@@ -1169,9 +1152,9 @@ void serve_data() {
     delay(1000);
     if (sleepModeActive) {
       startDeepSleep(mqttFrequency);
-    } else {
+    }/* else {
       delay(mqttFrequency * 1000);
-    }
+    }*/
   }
 }
 void led_on() {
@@ -1486,23 +1469,60 @@ void setup() {
   }
 
   setupSensors();
-  if (configModeActive == false) {
-    ticker.add(
-    0, 10033, [&](void *) {
-      read_sensors();
-    }, nullptr, true);
+
+  // setup tickers for non-deep-sleep mode
+  if (!configModeActive && !sleepModeActive) {
+
+    int ticker_num = 0;
+    if (httpGetActive)
+    {
+      ticker.add(
+      ticker_num, httpGetFrequency * 1000, [&](void *) {
+        read_sensors();
+        yield();
+        http_get();
+      }, nullptr, true);
+      ticker_num++;
+    }
+
+    if (httpPostActive)
+    {
+      ticker.add(
+      ticker_num, httpPostFrequency * 1000, [&](void *) {
+        read_sensors();
+        yield();
+        http_post();
+      }, nullptr, true);
+      ticker_num++;
+    }
+
+    if (mqttActive)
+    {
+      ticker.add(
+      ticker_num, mqttFrequency * 1000, [&](void *) {
+        read_sensors();
+        yield();
+        MqttSendData();
+      }, nullptr, true);
+      ticker_num++;
+    }
+
   }
 }
 
 void loop() {
+  // config mode
   if (configModeActive) {
     server.handleClient();
     yield();
     webSocket.loop();
-  } else {
+  }
+  // deep sleep mode
+  else if (sleepModeActive) {
     read_sensors();
     yield();
     serve_data();
   }
+  // update ticker for the non-deep-sleep mode
   ticker.update();
 }

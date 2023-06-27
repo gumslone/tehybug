@@ -1,6 +1,6 @@
 const char mainPage[] PROGMEM = R"=====(
 <!doctype html>
-<html lang="en">
+<html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -9,7 +9,7 @@ const char mainPage[] PROGMEM = R"=====(
     <title>TeHyBug</title>
 </head>
 <body>
-<div id="page">Loading page content....</div>
+<div id="page">Loading...</div>
 </body>
 </html>
 )=====";

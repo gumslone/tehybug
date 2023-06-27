@@ -1216,6 +1216,8 @@ void setupWifi() {
   Serial.println("Setup " + WiFi.localIP().toString());
   Serial.println("Setup " + WiFi.gatewayIP().toString());
   Serial.println("Setup " + WiFi.subnetMask().toString());
+
+  setupMDSN();
 }
 
 void setupMDSN() {
@@ -1514,6 +1516,7 @@ void setup() {
 void loop() {
   // config mode
   if (configModeActive) {
+    MDNS.update();
     server.handleClient();
     yield();
     webSocket.loop();

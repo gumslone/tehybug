@@ -750,7 +750,7 @@ void MqttSendData() {
 void MqttReconnect() {
   // Loop until we're reconnected
   while (!client.connected() &&
-         serveData.mqtt.retryCounter < serveData.mqtt.retryCounter) {
+         serveData.mqtt.retryCounter < serveData.mqtt.maxRetries) {
     bool connected = false;
     if (serveData.mqtt.user != NULL && serveData.mqtt.user.length() > 0 &&
         serveData.mqtt.password != NULL &&

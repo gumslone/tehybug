@@ -39,9 +39,10 @@
 #define D_println(...)
 #endif
 
-// gumboard Stuff
+// tehybug stuff
 #include "Tools.h"
 #include "Webinterface.h"
+#include "tehybug.h"
 
 #ifndef PIXEL_ACTIVE
 #define PIXEL_ACTIVE 1
@@ -56,12 +57,6 @@ Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 char identifier[24];
 
 // sensors
-struct Calibration {
-  bool active{false};
-  float temp{0};
-  float humi{0};
-  float qfe{0};
-};
 Calibration calibration{};
 // Adjust sea level for altitude calculation
 #define SEA_LEVEL_PRESSURE_HPA 1026.25
@@ -101,18 +96,6 @@ OneWire secondOneWire(SECOND_ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature second_ds18b20_sensors(&secondOneWire);
 
-struct Sensor {
-  bool bmx{false};
-  bool bme680{false};
-  bool max44009{false};
-  bool aht20{false};
-  bool dht{false};
-  bool dht_2{false};
-  bool am2320{false};
-  bool ds18b20{false};
-  bool ds18b20_2{false};
-  bool adc{false};
-};
 Sensor sensor{};
 // end sensors
 
@@ -128,30 +111,8 @@ String escapedMac;
 // HTTP Config
 HTTPClient http1;
 HTTPClient http2;
-String httpGetURL = "";
-bool httpGetActive = false;
-int httpGetFrequency = 900;
 
-String httpPostURL = "";
-bool httpPostActive = false;
-int httpPostFrequency = 900;
-String httpPostJson = "";
-
-// MQTT Config
-bool mqttActive = false;
-bool mqttRetained = false;
-String mqttUser = "";
-String mqttPassword = "";
-String mqttServer = "0.0.0.0";
-String mqttMasterTopic = "/tehybug";
-String mqttMessage = "";
-int mqttPort = 1883;
-int mqttFrequency = 900;
-int mqttRetryCounter = 0;
-int mqttMaxRetries = 99;
-long mqttLastReconnectAttempt = 0;
-long mqttReconnectWait = 10000; // wait 10 seconds and try to reconnect again
-char data[80];
+DataServ serveData{};
 
 #define COMPILE_HOUR (((__TIME__[0] - '0') * 10) + (__TIME__[1] - '0'))
 #define COMPILE_MINUTE (((__TIME__[3] - '0') * 10) + (__TIME__[4] - '0'))
@@ -211,19 +172,7 @@ DynamicJsonDocument sensorData(1024);
 
 String i2c_addresses = "";
 
-struct Scenario {
-  bool active = false;
-  String type{};
-  String url{};
-  String data{};
-  String condition{};
-  float value{};
-  String message{};
-};
-
-Scenario scenario1{};
-Scenario scenario2{};
-Scenario scenario3{};
+Scenarios scenarios{};
 
 TickerScheduler ticker(5);
 
@@ -306,24 +255,24 @@ void SaveConfig() {
   if (shouldSaveConfig) {
     DynamicJsonDocument json(4096);
 
-    json["mqttActive"] = mqttActive;
-    json["mqttRetained"] = mqttRetained;
-    json["mqttUser"] = mqttUser;
-    json["mqttPassword"] = mqttPassword;
-    json["mqttServer"] = mqttServer;
-    json["mqttMasterTopic"] = mqttMasterTopic;
-    json["mqttMessage"] = mqttMessage;
-    json["mqttPort"] = mqttPort;
-    json["mqttFrequency"] = mqttFrequency;
+    json["mqttActive"] = serveData.mqtt.active;
+    json["mqttRetained"] = serveData.mqtt.retained;
+    json["mqttUser"] = serveData.mqtt.user;
+    json["mqttPassword"] = serveData.mqtt.password;
+    json["mqttServer"] = serveData.mqtt.server;
+    json["mqttMasterTopic"] = serveData.mqtt.topic;
+    json["mqttMessage"] = serveData.mqtt.message;
+    json["mqttPort"] = serveData.mqtt.port;
+    json["mqttFrequency"] = serveData.mqtt.frequency;
 
-    json["httpGetURL"] = httpGetURL;
-    json["httpGetActive"] = httpGetActive;
-    json["httpGetFrequency"] = httpGetFrequency;
+    json["httpGetURL"] = serveData.get.url;
+    json["httpGetActive"] = serveData.get.active;
+    json["httpGetFrequency"] = serveData.get.frequency;
 
-    json["httpPostURL"] = httpPostURL;
-    json["httpPostActive"] = httpPostActive;
-    json["httpPostFrequency"] = httpPostFrequency;
-    json["httpPostJson"] = httpPostJson;
+    json["httpPostURL"] = serveData.post.url;
+    json["httpPostActive"] = serveData.post.active;
+    json["httpPostFrequency"] = serveData.post.frequency;
+    json["httpPostJson"] = serveData.post.message;
 
     json["calibrationActive"] = calibration.active;
     json["calibrationTemp"] = calibration.temp;
@@ -342,29 +291,29 @@ void SaveConfig() {
     json["second_ds18b20_sensor"] = sensor.ds18b20_2;
     json["adc_sensor"] = sensor.adc;
 
-    json["scenario1_active"] = scenario1.active;
-    json["scenario1_type"] = scenario1.type;
-    json["scenario1_url"] = scenario1.url;
-    json["scenario1_data"] = scenario1.data;
-    json["scenario1_condition"] = scenario1.condition;
-    json["scenario1_value"] = scenario1.value;
-    json["scenario1_message"] = scenario1.message;
+    json["scenario1_active"] = scenarios.scenario1.active;
+    json["scenario1_type"] = scenarios.scenario1.type;
+    json["scenario1_url"] = scenarios.scenario1.url;
+    json["scenario1_data"] = scenarios.scenario1.data;
+    json["scenario1_condition"] = scenarios.scenario1.condition;
+    json["scenario1_value"] = scenarios.scenario1.value;
+    json["scenario1_message"] = scenarios.scenario1.message;
 
-    json["scenario2_active"] = scenario2.active;
-    json["scenario2_type"] = scenario2.type;
-    json["scenario2_url"] = scenario2.url;
-    json["scenario2_data"] = scenario2.data;
-    json["scenario2_condition"] = scenario2.condition;
-    json["scenario2_value"] = scenario2.value;
-    json["scenario2_message"] = scenario2.message;
+    json["scenario2_active"] = scenarios.scenario2.active;
+    json["scenario2_type"] = scenarios.scenario2.type;
+    json["scenario2_url"] = scenarios.scenario2.url;
+    json["scenario2_data"] = scenarios.scenario2.data;
+    json["scenario2_condition"] = scenarios.scenario2.condition;
+    json["scenario2_value"] = scenarios.scenario2.value;
+    json["scenario2_message"] = scenarios.scenario2.message;
 
-    json["scenario3_active"] = scenario3.active;
-    json["scenario3_type"] = scenario3.type;
-    json["scenario3_url"] = scenario3.url;
-    json["scenario3_data"] = scenario3.data;
-    json["scenario3_condition"] = scenario3.condition;
-    json["scenario3_value"] = scenario3.value;
-    json["scenario3_message"] = scenario3.message;
+    json["scenario3_active"] = scenarios.scenario3.active;
+    json["scenario3_type"] = scenarios.scenario3.type;
+    json["scenario3_url"] = scenarios.scenario3.url;
+    json["scenario3_data"] = scenarios.scenario3.data;
+    json["scenario3_condition"] = scenarios.scenario3.condition;
+    json["scenario3_value"] = scenarios.scenario3.value;
+    json["scenario3_message"] = scenarios.scenario3.message;
 
     File configFile = SPIFFS.open("/config.json", "w");
     serializeJson(json, configFile);
@@ -384,58 +333,58 @@ void setConfigParameters(JsonObject &json) {
   }
   D_println();
   if (json.containsKey("mqttActive")) {
-    mqttActive = json["mqttActive"];
+    serveData.mqtt.active = json["mqttActive"];
   }
   if (json.containsKey("mqttRetained")) {
-    mqttRetained = json["mqttRetained"];
+    serveData.mqtt.retained = json["mqttRetained"];
   }
   if (json.containsKey("mqttUser")) {
-    mqttUser = json["mqttUser"].as<String>();
+    serveData.mqtt.user = json["mqttUser"].as<String>();
   }
 
   if (json.containsKey("mqttPassword")) {
-    mqttPassword = json["mqttPassword"].as<String>();
+    serveData.mqtt.password = json["mqttPassword"].as<String>();
   }
 
   if (json.containsKey("mqttServer")) {
-    mqttServer = json["mqttServer"].as<String>();
+    serveData.mqtt.server = json["mqttServer"].as<String>();
   }
 
   if (json.containsKey("mqttMasterTopic")) {
-    mqttMasterTopic = json["mqttMasterTopic"].as<String>();
+    serveData.mqtt.topic = json["mqttMasterTopic"].as<String>();
   }
   if (json.containsKey("mqttMessage")) {
-    mqttMessage = json["mqttMessage"].as<String>();
+    serveData.mqtt.message = json["mqttMessage"].as<String>();
   }
   if (json.containsKey("mqttPort")) {
-    mqttPort = json["mqttPort"];
+    serveData.mqtt.port = json["mqttPort"];
   }
   if (json.containsKey("mqttFrequency")) {
-    mqttFrequency = json["mqttFrequency"];
+    serveData.mqtt.frequency = json["mqttFrequency"];
   }
 
   // http
   if (json.containsKey("httpGetURL")) {
-    httpGetURL = json["httpGetURL"].as<String>();
+    serveData.get.url = json["httpGetURL"].as<String>();
   }
   if (json.containsKey("httpGetActive")) {
-    httpGetActive = json["httpGetActive"];
+    serveData.get.active = json["httpGetActive"];
   }
   if (json.containsKey("httpGetFrequency")) {
-    httpGetFrequency = json["httpGetFrequency"];
+    serveData.get.frequency = json["httpGetFrequency"];
   }
 
   if (json.containsKey("httpPostURL")) {
-    httpPostURL = json["httpPostURL"].as<String>();
+    serveData.post.url = json["httpPostURL"].as<String>();
   }
   if (json.containsKey("httpPostActive")) {
-    httpPostActive = json["httpPostActive"];
+    serveData.post.active = json["httpPostActive"];
   }
   if (json.containsKey("httpPostFrequency")) {
-    httpPostFrequency = json["httpPostFrequency"];
+    serveData.post.frequency = json["httpPostFrequency"];
   }
   if (json.containsKey("httpPostJson")) {
-    httpPostJson = json["httpPostJson"].as<String>();
+    serveData.post.message = json["httpPostJson"].as<String>();
   }
 
   if (json.containsKey("configModeActive")) {
@@ -474,69 +423,69 @@ void setConfigParameters(JsonObject &json) {
 
   // scenarios
   if (json.containsKey("scenario1_active")) {
-    scenario1.active = json["scenario1_active"].as<bool>();
+    scenarios.scenario1.active = json["scenario1_active"].as<bool>();
   }
   if (json.containsKey("scenario1_type")) {
-    scenario1.type = json["scenario1_type"].as<String>();
+    scenarios.scenario1.type = json["scenario1_type"].as<String>();
   }
   if (json.containsKey("scenario1_url")) {
-    scenario1.url = json["scenario1_url"].as<String>();
+    scenarios.scenario1.url = json["scenario1_url"].as<String>();
   }
   if (json.containsKey("scenario1_data")) {
-    scenario1.data = json["scenario1_data"].as<String>();
+    scenarios.scenario1.data = json["scenario1_data"].as<String>();
   }
   if (json.containsKey("scenario1_condition")) {
-    scenario1.condition = json["scenario1_condition"].as<String>();
+    scenarios.scenario1.condition = json["scenario1_condition"].as<String>();
   }
   if (json.containsKey("scenario1_value")) {
-    scenario1.value = json["scenario1_value"].as<float>();
+    scenarios.scenario1.value = json["scenario1_value"].as<float>();
   }
   if (json.containsKey("scenario1_message")) {
-    scenario1.message = json["scenario1_message"].as<String>();
+    scenarios.scenario1.message = json["scenario1_message"].as<String>();
   }
 
   if (json.containsKey("scenario2_active")) {
-    scenario2.active = json["scenario2_active"].as<bool>();
+    scenarios.scenario2.active = json["scenario2_active"].as<bool>();
   }
   if (json.containsKey("scenario2_type")) {
-    scenario2.type = json["scenario2_type"].as<String>();
+    scenarios.scenario2.type = json["scenario2_type"].as<String>();
   }
   if (json.containsKey("scenario2_url")) {
-    scenario2.url = json["scenario2_url"].as<String>();
+    scenarios.scenario2.url = json["scenario2_url"].as<String>();
   }
   if (json.containsKey("scenario2_data")) {
-    scenario2.data = json["scenario2_data"].as<String>();
+    scenarios.scenario2.data = json["scenario2_data"].as<String>();
   }
   if (json.containsKey("scenario2_condition")) {
-    scenario2.condition = json["scenario2_condition"].as<String>();
+    scenarios.scenario2.condition = json["scenario2_condition"].as<String>();
   }
   if (json.containsKey("scenario2_value")) {
-    scenario2.value = json["scenario2_value"].as<float>();
+    scenarios.scenario2.value = json["scenario2_value"].as<float>();
   }
   if (json.containsKey("scenario2_message")) {
-    scenario2.message = json["scenario2_message"].as<String>();
+    scenarios.scenario2.message = json["scenario2_message"].as<String>();
   }
 
   if (json.containsKey("scenario3_active")) {
-    scenario3.active = json["scenario3_active"].as<bool>();
+    scenarios.scenario3.active = json["scenario3_active"].as<bool>();
   }
   if (json.containsKey("scenario3_type")) {
-    scenario3.type = json["scenario3_type"].as<String>();
+    scenarios.scenario3.type = json["scenario3_type"].as<String>();
   }
   if (json.containsKey("scenario3_url")) {
-    scenario3.url = json["scenario3_url"].as<String>();
+    scenarios.scenario3.url = json["scenario3_url"].as<String>();
   }
   if (json.containsKey("scenario3_data")) {
-    scenario3.data = json["scenario3_data"].as<String>();
+    scenarios.scenario3.data = json["scenario3_data"].as<String>();
   }
   if (json.containsKey("scenario3_condition")) {
-    scenario3.condition = json["scenario3_condition"].as<String>();
+    scenarios.scenario3.condition = json["scenario3_condition"].as<String>();
   }
   if (json.containsKey("scenario3_value")) {
-    scenario3.value = json["scenario3_value"].as<float>();
+    scenarios.scenario3.value = json["scenario3_value"].as<float>();
   }
   if (json.containsKey("scenario3_message")) {
-    scenario3.message = json["scenario3_message"].as<String>();
+    scenarios.scenario3.message = json["scenario3_message"].as<String>();
   }
 }
 
@@ -669,7 +618,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
   if (payload[0] == '{') {
     payload[length] = '\0';
     String channel = String(topic);
-    channel.replace(mqttMasterTopic, "");
+    channel.replace(serveData.mqtt.topic, "");
 
     DynamicJsonDocument json(512);
     deserializeJson(json, payload);
@@ -677,10 +626,11 @@ void callback(char *topic, byte *payload, unsigned int length) {
     Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
                              ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
-      client.publish((mqttMasterTopic + "matrixinfo").c_str(),
+      client.publish((serveData.mqtt.topic + "info").c_str(),
                      GetInfo().c_str());
     } else if (channel.equals("getConfig")) {
-      client.publish((mqttMasterTopic + "config").c_str(), GetConfig().c_str());
+      client.publish((serveData.mqtt.topic + "config").c_str(),
+                     GetConfig().c_str());
     } else if (channel.equals("setConfig")) {
       // extract the data
       JsonObject object = json.as<JsonObject>();
@@ -788,9 +738,10 @@ String GetSensor() {
 /////////////////////////////////////////////////////////////////////
 void MqttSendData() {
   if (client.connected()) {
-    String payload = replace_placeholders(mqttMessage);
-    payload.toCharArray(data, (payload.length() + 1));
-    client.publish((mqttMasterTopic).c_str(), data, mqttRetained);
+    String payload = replace_placeholders(serveData.mqtt.message);
+    payload.toCharArray(serveData.data, (payload.length() + 1));
+    client.publish((serveData.mqtt.topic).c_str(), serveData.data,
+                   serveData.mqtt.retained);
     Log(F("MqttSendData"), payload);
   } else
     MqttReconnect();
@@ -798,15 +749,17 @@ void MqttSendData() {
 
 void MqttReconnect() {
   // Loop until we're reconnected
-  while (!client.connected() && mqttRetryCounter < mqttMaxRetries) {
+  while (!client.connected() &&
+         serveData.mqtt.retryCounter < serveData.mqtt.retryCounter) {
     bool connected = false;
-    if (mqttUser != NULL && mqttUser.length() > 0 && mqttPassword != NULL &&
-        mqttPassword.length() > 0) {
+    if (serveData.mqtt.user != NULL && serveData.mqtt.user.length() > 0 &&
+        serveData.mqtt.password != NULL &&
+        serveData.mqtt.password.length() > 0) {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
-      connected =
-          client.connect(("tehybug_" + GetChipID()).c_str(), mqttUser.c_str(),
-                         mqttPassword.c_str(), "state", 0, true, "diconnected");
+      connected = client.connect(
+          ("tehybug_" + GetChipID()).c_str(), serveData.mqtt.user.c_str(),
+          serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
@@ -817,17 +770,17 @@ void MqttReconnect() {
     // Attempt to connect
     if (connected) {
       Log(F("MqttReconnect"), F("MQTT connected!"));
-      mqttRetryCounter = 0;
+      serveData.mqtt.retryCounter = 0;
       // ... and publish
       MqttSendData();
     } else {
       Log(F("MqttReconnect"), F("MQTT not connected!"));
       Log(F("MqttReconnect"), F("Wait 5 seconds before retrying...."));
-      mqttRetryCounter++;
+      serveData.mqtt.retryCounter++;
     }
   }
 
-  if (mqttRetryCounter >= mqttMaxRetries) {
+  if (serveData.mqtt.retryCounter >= serveData.mqtt.maxRetries) {
     Log(F("MqttReconnect"),
         F("No connection to MQTT-Server, MQTT temporarily deactivated!"));
   }
@@ -880,7 +833,9 @@ void http_post_custom(HTTPClient &http, String url, String post_json) {
 
   http.end(); // Close connection
 }
-void http_post() { http_post_custom(http1, httpPostURL, httpPostJson); }
+void http_post() {
+  http_post_custom(http1, serveData.post.url, serveData.post.message);
+}
 void http_get_custom(HTTPClient &http, String url) {
   D_print("HTTP GET: ");
   D_println(url);
@@ -902,7 +857,7 @@ void http_get_custom(HTTPClient &http, String url) {
 
   http.end(); // Close connection
 }
-void http_get() { http_get_custom(http1, httpGetURL); }
+void http_get() { http_get_custom(http1, serveData.get.url); }
 // SENSOR
 
 void read_bmx280() {
@@ -1209,31 +1164,31 @@ void Log(String function, String message) {
 
 /////////////////////////////////////////////////////////////////////
 void serve_data() {
-  if (httpGetActive) {
+  if (serveData.get.active) {
     http_get();
     delay(1000);
     if (sleepModeActive) {
-      startDeepSleep(httpGetFrequency);
+      startDeepSleep(serveData.get.frequency);
     } /* else {
        delay(httpGetFrequency * 1000);
      }*/
   }
 
-  if (httpPostActive) {
+  if (serveData.post.active) {
     http_post();
     delay(1000);
     if (sleepModeActive) {
-      startDeepSleep(httpPostFrequency);
+      startDeepSleep(serveData.post.frequency);
     } /* else {
        delay(httpPostFrequency * 1000);
      }*/
   }
 
-  if (mqttActive) {
+  if (serveData.mqtt.active) {
     MqttSendData();
     delay(1000);
     if (sleepModeActive) {
-      startDeepSleep(mqttFrequency);
+      startDeepSleep(serveData.mqtt.frequency);
     } /* else {
        delay(mqttFrequency * 1000);
      }*/
@@ -1270,9 +1225,9 @@ void check_scenario(Scenario &s) {
 }
 
 void serve_scenario() {
-  check_scenario(scenario1);
-  check_scenario(scenario2);
-  check_scenario(scenario3);
+  check_scenario(scenarios.scenario1);
+  check_scenario(scenarios.scenario2);
+  check_scenario(scenarios.scenario3);
 }
 
 void led_on() {
@@ -1557,8 +1512,8 @@ void setup() {
   }
 
   // force config when no mode selected
-  if (httpGetActive == false && httpPostActive == false &&
-      mqttActive == false) {
+  if (serveData.get.active == false && serveData.post.active == false &&
+      serveData.mqtt.active == false) {
     configModeActive = true;
     D_println("Data serving mode not selected");
   }
@@ -1584,8 +1539,8 @@ void setup() {
     D_println(F("Starting live mode"));
   }
 
-  if (configModeActive == false && mqttActive) {
-    client.setServer(mqttServer.c_str(), mqttPort);
+  if (configModeActive == false && serveData.mqtt.active) {
+    client.setServer(serveData.mqtt.server.c_str(), serveData.mqtt.port);
     client.setCallback(callback);
     client.setBufferSize(4000);
     Log(F("Setup"), F("MQTT started"));
@@ -1597,9 +1552,9 @@ void setup() {
   if (!configModeActive && !sleepModeActive) {
 
     uint8_t ticker_num = 0;
-    if (httpGetActive) {
+    if (serveData.get.active) {
       ticker.add(
-          ticker_num, httpGetFrequency * 1000,
+          ticker_num, serveData.get.frequency * 1000,
           [&](void *) {
             read_sensors();
             yield();
@@ -1609,9 +1564,9 @@ void setup() {
       ticker_num++;
     }
 
-    if (httpPostActive) {
+    if (serveData.post.active) {
       ticker.add(
-          ticker_num, httpPostFrequency * 1000,
+          ticker_num, serveData.post.frequency * 1000,
           [&](void *) {
             read_sensors();
             yield();
@@ -1621,9 +1576,9 @@ void setup() {
       ticker_num++;
     }
 
-    if (mqttActive) {
+    if (serveData.mqtt.active) {
       ticker.add(
-          ticker_num, mqttFrequency * 1000,
+          ticker_num, serveData.mqtt.frequency * 1000,
           [&](void *) {
             read_sensors();
             yield();

@@ -1019,29 +1019,21 @@ void read_aht20() {
   }
 }
 
-void read_dht() {
-  pinMode(0, OUTPUT);   // sets the digital pin 0 as output
-  digitalWrite(0, LOW); // sets the digital pin 0 on
-
-  // delay(dht.getMinimumSamplingPeriod());
-
+void read_dht_custom(DHTesp &dht, const String &&temp, const String &&humi) {
   float humidity = dht.getHumidity();
   float temperature = dht.getTemperature();
   delay(dht.getMinimumSamplingPeriod());
   humidity = dht.getHumidity();
   temperature = dht.getTemperature();
-  addTempHumi("temp", (float)temperature, "humi", (float)humidity);
+  addTempHumi(temp, (float)temperature, humi, (float)humidity);
 }
-void read_second_dht() {
 
-  // delay(dht.getMinimumSamplingPeriod());
-  float humidity = dht2.getHumidity();
-  float temperature = dht2.getTemperature();
-  delay(dht2.getMinimumSamplingPeriod());
-  humidity = dht2.getHumidity();
-  temperature = dht2.getTemperature();
-  addTempHumi("temp2", (float)temperature, "humi2", (float)humidity);
+void read_dht() {
+  pinMode(0, OUTPUT);   // sets the digital pin 0 as output
+  digitalWrite(0, LOW); // sets the digital pin 0 on
+  read_dht_custom(dht, "temp", "humi");
 }
+void read_second_dht() { read_dht_custom(dht2, "temp2", "humi2"); }
 void read_am2320() {
   float humidity, temperature;
   Wire.begin(0, 2);
@@ -1062,55 +1054,38 @@ void read_am2320() {
   addTempHumi("temp", (float)temperature, "humi", (float)(humidity));
 }
 
-void read_ds18b20(void) {
-  pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
+void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
   // Start up the library
-  ds18b20_sensors.begin();
+  ds18b20.begin();
   // Setup a oneWire instance to communicate with any OneWire devices (not just
   // Maxim/Dallas temperature ICs) call ds18b20_sensors.requestTemperatures() to
   // issue a global temperature request to all devices on the bus
   D_print("Requesting temperatures...");
-  ds18b20_sensors.requestTemperatures(); // Send the command to get temperatures
+  ds18b20.requestTemperatures(); // Send the command to get temperatures
   D_println("DONE");
   // After we got the temperatures, we can print them here.
   // We use the function ByIndex, and as an example get the temperature from the
   // first sensor only.
-  float tempC = ds18b20_sensors.getTempCByIndex(0);
+  float tempC = ds18b20.getTempCByIndex(0);
 
   // Check if reading was successful
   if (tempC != DEVICE_DISCONNECTED_C) {
     D_print("Temperature for the device 1 (index 0) is: ");
     D_println(tempC);
-    addSensorData("temp", (float)tempC);
+    addSensorData(temp, (float)tempC);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
 }
 
+void read_ds18b20(void) {
+  pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
+  read_ds18b20_custom(ds18b20_sensors, "temp");
+}
+
 void read_second_ds18b20(void) {
   pinMode(SECOND_ONE_WIRE_BUS, INPUT_PULLUP);
-  // Start up the library
-  second_ds18b20_sensors.begin();
-  // Setup a oneWire instance to communicate with any OneWire devices (not just
-  // Maxim/Dallas temperature ICs) call ds18b20_sensors.requestTemperatures() to
-  // issue a global temperature request to all devices on the bus
-  D_print("Requesting second port temperatures...");
-  second_ds18b20_sensors
-      .requestTemperatures(); // Send the command to get temperatures
-  D_println("DONE");
-  // After we got the temperatures, we can print them here.
-  // We use the function ByIndex, and as an example get the temperature from the
-  // first sensor only.
-  float tempC = second_ds18b20_sensors.getTempCByIndex(0);
-
-  // Check if reading was successful
-  if (tempC != DEVICE_DISCONNECTED_C) {
-    D_print("Temperature for the second port device 1 (index 0) is: ");
-    D_println(tempC);
-    addSensorData("temp2", (float)tempC);
-  } else {
-    Serial.println("Error: Could not read temperature data");
-  }
+  read_ds18b20_custom(second_ds18b20_sensors, "temp2");
 }
 
 void read_adc() {

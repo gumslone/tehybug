@@ -56,36 +56,30 @@ Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 char identifier[24];
 
 // sensors
-float calibrationTemp = 0;
-float calibrationHumi = 0;
-float calibrationQfe = 0;
-bool calibrationActive = false;
-
+struct Calibration {
+  bool active{false};
+  float temp{0};
+  float humi{0};
+  float qfe{0};
+};
+Calibration calibration{};
 // Adjust sea level for altitude calculation
 #define SEA_LEVEL_PRESSURE_HPA 1026.25
 
 // Create BMX280 object I2C address 0x76 or 0x77
 ErriezBMX280 bmx280 = ErriezBMX280(0x76);
 ErriezBMX280 bmp280 = ErriezBMX280(0x77);
-bool bmx_sensor = false; // in the setup the i2c scanner searches for the sensor
-
-bool bme680_sensor = false;
 
 Bsec bme680;
 String output;
 
 Max44009 Max44009Lux(0x4A);
-bool max44009_sensor = false;
 
 AHT20 AHT;
-bool aht20_sensor = false;
 DHTesp dht;
 DHTesp dht2;
-bool dht_sensor = false;
-bool second_dht_sensor = false;
 
 AM2320_asukiaaa am2320;
-bool am2320_sensor = false;
 
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 2
@@ -107,11 +101,19 @@ OneWire secondOneWire(SECOND_ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature second_ds18b20_sensors(&secondOneWire);
 
-bool ds18b20_sensor = false;
-bool second_ds18b20_sensor = false;
-
-bool adc_sensor = false;
-
+struct Sensor {
+  bool bmx{false};
+  bool bme680{false};
+  bool max44009{false};
+  bool aht20{false};
+  bool dht{false};
+  bool dht_2{false};
+  bool am2320{false};
+  bool ds18b20{false};
+  bool ds18b20_2{false};
+  bool adc{false};
+};
+Sensor sensor{};
 // end sensors
 
 // Button
@@ -229,13 +231,13 @@ void SaveConfigCallback() { shouldSaveConfig = true; }
 
 /////////////////////////////////////////////////////////////////////
 float calibrateValue(String _n, float _v) {
-  if (calibrationActive) {
+  if (calibration.active) {
     if (_n == "temp")
-      _v += calibrationTemp;
+      _v += calibration.temp;
     else if (_n == "humi")
-      _v += calibrationHumi;
+      _v += calibration.humi;
     else if (_n == "qfe")
-      _v += calibrationQfe;
+      _v += calibration.qfe;
   }
   return _v;
 }
@@ -323,24 +325,22 @@ void SaveConfig() {
     json["httpPostFrequency"] = httpPostFrequency;
     json["httpPostJson"] = httpPostJson;
 
-    json["calibrationActive"] = calibrationActive;
-    json["calibrationTemp"] = calibrationTemp;
-    json["calibrationHumi"] = calibrationHumi;
-    json["calibrationQfe"] = calibrationQfe;
+    json["calibrationActive"] = calibration.active;
+    json["calibrationTemp"] = calibration.temp;
+    json["calibrationHumi"] = calibration.humi;
+    json["calibrationQfe"] = calibration.qfe;
 
     json["configModeActive"] = configModeActive;
 
     json["sleepModeActive"] = sleepModeActive;
 
     json["key"] = sensorData["key"];
-    json["dht_sensor"] = dht_sensor;
-    json["second_dht_sensor"] = second_dht_sensor;
+    json["dht_sensor"] = sensor.dht;
+    json["second_dht_sensor"] = sensor.dht_2;
 
-    json["ds18b20_sensor"] = ds18b20_sensor;
-    json["second_ds18b20_sensor"] = second_ds18b20_sensor;
-    json["adc_sensor"] = adc_sensor;
-
-    json["adc_sensor"] = adc_sensor;
+    json["ds18b20_sensor"] = sensor.ds18b20;
+    json["second_ds18b20_sensor"] = sensor.ds18b20_2;
+    json["adc_sensor"] = sensor.adc;
 
     json["scenario1_active"] = scenario1.active;
     json["scenario1_type"] = scenario1.type;
@@ -442,34 +442,34 @@ void setConfigParameters(JsonObject &json) {
     configModeActive = json["configModeActive"];
   }
   if (json.containsKey("calibrationActive")) {
-    calibrationActive = json["calibrationActive"];
+    calibration.active = json["calibrationActive"];
   }
   if (json.containsKey("calibrationTemp")) {
-    calibrationTemp = json["calibrationTemp"];
+    calibration.temp = json["calibrationTemp"];
   }
   if (json.containsKey("calibrationHumi")) {
-    calibrationHumi = json["calibrationHumi"];
+    calibration.humi = json["calibrationHumi"];
   }
   if (json.containsKey("calibrationQfe")) {
-    calibrationQfe = json["calibrationQfe"];
+    calibration.qfe = json["calibrationQfe"];
   }
   if (json.containsKey("sleepModeActive")) {
     sleepModeActive = json["sleepModeActive"];
   }
   if (json.containsKey("dht_sensor")) {
-    dht_sensor = json["dht_sensor"];
+    sensor.dht = json["dht_sensor"];
   }
   if (json.containsKey("second_dht_sensor")) {
-    second_dht_sensor = json["second_dht_sensor"];
+    sensor.dht_2 = json["second_dht_sensor"];
   }
   if (json.containsKey("ds18b20_sensor")) {
-    ds18b20_sensor = json["ds18b20_sensor"];
+    sensor.ds18b20 = json["ds18b20_sensor"];
   }
   if (json.containsKey("second_ds18b20_sensor")) {
-    second_ds18b20_sensor = json["second_ds18b20_sensor"];
+    sensor.ds18b20_2 = json["second_ds18b20_sensor"];
   }
   if (json.containsKey("adc_sensor")) {
-    adc_sensor = json["adc_sensor"];
+    sensor.adc = json["adc_sensor"];
   }
 
   // scenarios
@@ -910,7 +910,7 @@ void read_bmx280() {
   if (bmx280.getChipID() == CHIP_ID_BME280) {
     addTempHumi("temp", (float)bmx280.readTemperature(), "humi",
                 (float)bmx280.readHumidity());
-  } else if (aht20_sensor) {
+  } else if (sensor.aht20) {
     addSensorData("temp2", (float)bmx280.readTemperature());
   } else {
     addSensorData("temp", (float)bmx280.readTemperature());
@@ -1125,34 +1125,34 @@ void read_adc() {
 }
 
 void read_sensors() {
-  if (bmx_sensor) {
+  if (sensor.bmx) {
     read_bmx280();
   }
-  if (bme680_sensor) {
+  if (sensor.bme680) {
     read_bme680();
   }
-  if (max44009_sensor) {
+  if (sensor.max44009) {
     read_max44009();
   }
-  if (aht20_sensor) {
+  if (sensor.aht20) {
     read_aht20();
   }
-  if (dht_sensor) {
+  if (sensor.dht) {
     read_dht();
   }
-  if (second_dht_sensor) {
+  if (sensor.dht_2) {
     read_second_dht();
   }
-  if (am2320_sensor) {
+  if (sensor.am2320) {
     read_am2320();
   }
-  if (ds18b20_sensor) {
+  if (sensor.ds18b20) {
     read_ds18b20();
   }
-  if (second_ds18b20_sensor) {
+  if (sensor.ds18b20_2) {
     read_second_ds18b20();
   }
-  if (adc_sensor) {
+  if (sensor.adc) {
     read_adc();
   }
 }
@@ -1267,21 +1267,21 @@ void serve_data() {
 
 void check_scenario(Scenario &s) {
   float val = 0;
-  bool condtionMet = false;
+  bool conditionMet = false;
   if (s.active) {
 
     if (sensorData.containsKey(s.data)) {
       val = sensorData[s.data];
     }
     if (s.condition == "lt" && val < s.value) {
-      condtionMet = true;
+      conditionMet = true;
     } else if (s.condition == "gt" && val > s.value) {
-      condtionMet = true;
+      conditionMet = true;
     } else if (s.condition == "eq" && val == s.value) {
-      condtionMet = true;
+      conditionMet = true;
     }
 
-    if (condtionMet) {
+    if (conditionMet) {
       D_println("condition met");
       D_println(s.url);
       if (s.type == "post") {
@@ -1388,7 +1388,7 @@ void setupMDSN() {
 // Helper function definitions
 
 void setupSensors() {
-  if (dht_sensor == false && ds18b20_sensor == false) {
+  if (sensor.dht == false && sensor.ds18b20 == false) {
     Wire.begin(0, 2);
     // Wire.setClock(400000);
     i2c_addresses = i2c_scanner();
@@ -1397,46 +1397,46 @@ void setupSensors() {
 
   if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
     bmx280 = bmp280;
-    bmx_sensor = true;
+    sensor.bmx = true;
   } else if (strContains(i2c_addresses.c_str(), "0x76") == 1) {
-    bmx_sensor = true;
+    sensor.bmx = true;
   }
   if (strContains(i2c_addresses.c_str(), "0x5c") == 1) {
-    am2320_sensor = true;
+    sensor.am2320 = true;
   }
   if (strContains(i2c_addresses.c_str(), "0x58") == 1) {
     // sgp30
   }
   if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
-    bme680_sensor = true;
+    sensor.bme680 = true;
   }
   if (strContains(i2c_addresses.c_str(), "0x4a") == 1) {
-    max44009_sensor = true;
+    sensor.max44009 = true;
   }
   if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
-    aht20_sensor = true;
+    sensor.aht20 = true;
   }
 
   // sensors
   // bmx280 and bme680 have same address
-  if (bmx_sensor) {
+  if (sensor.bmx) {
     // Initialize sensor
     while (!bmx280.begin()) {
       D_println(F("Error: Could not detect sensor"));
-      bmx_sensor = false;
+      sensor.bmx = false;
       break;
     }
-    if (bmx_sensor) {
+    if (sensor.bmx) {
       // Print sensor type
       D_print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
       case CHIP_ID_BMP280:
         D_println(F("BMP280\n"));
-        bme680_sensor = false;
+        sensor.bme680 = false;
         break;
       case CHIP_ID_BME280:
         D_println(F("BME280\n"));
-        bme680_sensor = false;
+        sensor.bme680 = false;
         break;
       default:
         Serial.println(F("Unknown\n"));
@@ -1473,7 +1473,7 @@ void setupSensors() {
           BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
     }
   }
-  if (bme680_sensor) {
+  if (sensor.bme680) {
     D_println(F("BME680 test"));
 
     bme680.begin(BME680_I2C_ADDR_SECONDARY, Wire);
@@ -1506,28 +1506,28 @@ void setupSensors() {
              "VOC equivalent";
     D_println(output);
   }
-  if (max44009_sensor) {
+  if (sensor.max44009) {
     D_print("\nStart max44009_setAutomaticMode : ");
     D_println(MAX44009_LIB_VERSION);
 
     Max44009Lux.setAutomaticMode();
   }
-  if (aht20_sensor) {
+  if (sensor.aht20) {
     D_println("AHT20");
     AHT.begin();
   }
-  if (dht_sensor) {
+  if (sensor.dht) {
     dht.setup(2, DHTesp::DHT22); // Connect DHT sensor to GPIO 2
   }
-  if (second_dht_sensor) {
+  if (sensor.dht_2) {
     pinMode(13, INPUT_PULLUP);
     dht2.setup(13, DHTesp::DHT22); // Connect DHT sensor to GPIO 13
   }
-  if (am2320_sensor) {
+  if (sensor.am2320) {
     am2320.setWire(&Wire);
   }
 
-  if (ds18b20_sensor) {
+  if (sensor.ds18b20) {
     pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
   }
 }

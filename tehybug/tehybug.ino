@@ -56,9 +56,9 @@ Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 char identifier[24];
 
 // sensors
-int calibrationTemp = 0;
-int calibrationHumi = 0;
-int calibrationQfe = 0;
+float calibrationTemp = 0;
+float calibrationHumi = 0;
+float calibrationQfe = 0;
 bool calibrationActive = false;
 
 // Adjust sea level for altitude calculation
@@ -124,7 +124,8 @@ DNSServer dnsServer;
 char cmDNS[33];
 String escapedMac;
 // HTTP Config
-HTTPClient http;
+HTTPClient http1;
+HTTPClient http2;
 String httpGetURL = "";
 bool httpGetActive = false;
 int httpGetFrequency = 900;
@@ -156,7 +157,7 @@ char data[80];
 #define COMPILE_YEAR                                                           \
   ((((__DATE__[7] - '0') * 10 + (__DATE__[8] - '0')) * 10 +                    \
     (__DATE__[9] - '0')) *                                                     \
-   10 +                                                                    \
+       10 +                                                                    \
    (__DATE__[10] - '0'))
 #define COMPILE_SHORTYEAR (((__DATE__[9] - '0')) * 10 + (__DATE__[10] - '0'))
 #define COMPILE_MONTH                                                          \
@@ -169,7 +170,7 @@ char data[80];
     : __DATE__[2] == 'p' ? 8                                                   \
     : __DATE__[2] == 't' ? 9                                                   \
     : __DATE__[2] == 'v' ? 10                                                  \
-    : 11) +                                               \
+                         : 11) +                                               \
    1)
 #define COMPILE_DAY                                                            \
   ((__DATE__[4] == ' ' ? 0 : __DATE__[4] - '0') * 10 + (__DATE__[5] - '0'))
@@ -208,18 +209,33 @@ DynamicJsonDocument sensorData(1024);
 
 String i2c_addresses = "";
 
+struct Scenario {
+  bool active = false;
+  String type{};
+  String url{};
+  String data{};
+  String condition{};
+  float value{};
+  String message{};
+};
+
+Scenario scenario1{};
+Scenario scenario2{};
+Scenario scenario3{};
+
 TickerScheduler ticker(5);
 
-void SaveConfigCallback() {
-  shouldSaveConfig = true;
-}
+void SaveConfigCallback() { shouldSaveConfig = true; }
 
 /////////////////////////////////////////////////////////////////////
 float calibrateValue(String _n, float _v) {
   if (calibrationActive) {
-    if (_n == "temp") _v += calibrationTemp;
-    else if (_n == "humi") _v += calibrationHumi;
-    else if (_n == "qfe") _v += calibrationQfe;
+    if (_n == "temp")
+      _v += calibrationTemp;
+    else if (_n == "humi")
+      _v += calibrationHumi;
+    else if (_n == "qfe")
+      _v += calibrationQfe;
   }
   return _v;
 }
@@ -254,11 +270,9 @@ void addSensorData(String key, float value) {
 
   if (key == "temp" || key == "temp2") {
     value = calibrateValue("temp", value);
-  }
-  else if (key == "humi" || key == "humi2") {
+  } else if (key == "humi" || key == "humi2") {
     value = calibrateValue("humi", value);
-  }
-  else if (key == "qfe") {
+  } else if (key == "qfe") {
     value = calibrateValue("qfe", value);
   }
 
@@ -288,7 +302,7 @@ void createWeekdaysElements(const char *str, int *arr) {
 void SaveConfig() {
   // save the custom parameters to FS
   if (shouldSaveConfig) {
-    DynamicJsonDocument json(1024);
+    DynamicJsonDocument json(4096);
 
     json["mqttActive"] = mqttActive;
     json["mqttRetained"] = mqttRetained;
@@ -325,6 +339,32 @@ void SaveConfig() {
     json["ds18b20_sensor"] = ds18b20_sensor;
     json["second_ds18b20_sensor"] = second_ds18b20_sensor;
     json["adc_sensor"] = adc_sensor;
+
+    json["adc_sensor"] = adc_sensor;
+
+    json["scenario1_active"] = scenario1.active;
+    json["scenario1_type"] = scenario1.type;
+    json["scenario1_url"] = scenario1.url;
+    json["scenario1_data"] = scenario1.data;
+    json["scenario1_condition"] = scenario1.condition;
+    json["scenario1_value"] = scenario1.value;
+    json["scenario1_message"] = scenario1.message;
+
+    json["scenario2_active"] = scenario2.active;
+    json["scenario2_type"] = scenario2.type;
+    json["scenario2_url"] = scenario2.url;
+    json["scenario2_data"] = scenario2.data;
+    json["scenario2_condition"] = scenario2.condition;
+    json["scenario2_value"] = scenario2.value;
+    json["scenario2_message"] = scenario2.message;
+
+    json["scenario3_active"] = scenario3.active;
+    json["scenario3_type"] = scenario3.type;
+    json["scenario3_url"] = scenario3.url;
+    json["scenario3_data"] = scenario3.data;
+    json["scenario3_condition"] = scenario3.condition;
+    json["scenario3_value"] = scenario3.value;
+    json["scenario3_message"] = scenario3.message;
 
     File configFile = SPIFFS.open("/config.json", "w");
     serializeJson(json, configFile);
@@ -431,6 +471,73 @@ void setConfigParameters(JsonObject &json) {
   if (json.containsKey("adc_sensor")) {
     adc_sensor = json["adc_sensor"];
   }
+
+  // scenarios
+  if (json.containsKey("scenario1_active")) {
+    scenario1.active = json["scenario1_active"].as<bool>();
+  }
+  if (json.containsKey("scenario1_type")) {
+    scenario1.type = json["scenario1_type"].as<String>();
+  }
+  if (json.containsKey("scenario1_url")) {
+    scenario1.url = json["scenario1_url"].as<String>();
+  }
+  if (json.containsKey("scenario1_data")) {
+    scenario1.data = json["scenario1_data"].as<String>();
+  }
+  if (json.containsKey("scenario1_condition")) {
+    scenario1.condition = json["scenario1_condition"].as<String>();
+  }
+  if (json.containsKey("scenario1_value")) {
+    scenario1.value = json["scenario1_value"].as<float>();
+  }
+  if (json.containsKey("scenario1_message")) {
+    scenario1.message = json["scenario1_message"].as<String>();
+  }
+
+  if (json.containsKey("scenario2_active")) {
+    scenario2.active = json["scenario2_active"].as<bool>();
+  }
+  if (json.containsKey("scenario2_type")) {
+    scenario2.type = json["scenario2_type"].as<String>();
+  }
+  if (json.containsKey("scenario2_url")) {
+    scenario2.url = json["scenario2_url"].as<String>();
+  }
+  if (json.containsKey("scenario2_data")) {
+    scenario2.data = json["scenario2_data"].as<String>();
+  }
+  if (json.containsKey("scenario2_condition")) {
+    scenario2.condition = json["scenario2_condition"].as<String>();
+  }
+  if (json.containsKey("scenario2_value")) {
+    scenario2.value = json["scenario2_value"].as<float>();
+  }
+  if (json.containsKey("scenario2_message")) {
+    scenario2.message = json["scenario2_message"].as<String>();
+  }
+
+  if (json.containsKey("scenario3_active")) {
+    scenario3.active = json["scenario3_active"].as<bool>();
+  }
+  if (json.containsKey("scenario3_type")) {
+    scenario3.type = json["scenario3_type"].as<String>();
+  }
+  if (json.containsKey("scenario3_url")) {
+    scenario3.url = json["scenario3_url"].as<String>();
+  }
+  if (json.containsKey("scenario3_data")) {
+    scenario3.data = json["scenario3_data"].as<String>();
+  }
+  if (json.containsKey("scenario3_condition")) {
+    scenario3.condition = json["scenario3_condition"].as<String>();
+  }
+  if (json.containsKey("scenario3_value")) {
+    scenario3.value = json["scenario3_value"].as<float>();
+  }
+  if (json.containsKey("scenario3_message")) {
+    scenario3.message = json["scenario3_message"].as<String>();
+  }
 }
 
 void LoadConfig() {
@@ -441,7 +548,7 @@ void LoadConfig() {
     if (configFile) {
       Log("LoadConfig", "opened config file");
 
-      DynamicJsonDocument json(1024);
+      DynamicJsonDocument json(4096);
       auto error = deserializeJson(json, configFile);
 
       if (!error) {
@@ -451,18 +558,18 @@ void LoadConfig() {
         Log("LoadConfig", "Loaded");
       } else {
         switch (error.code()) {
-          case DeserializationError::Ok:
-            D_println(F("Deserialization succeeded"));
-            break;
-          case DeserializationError::InvalidInput:
-            D_println(F("Invalid input!"));
-            break;
-          case DeserializationError::NoMemory:
-            D_println(F("Not enough memory"));
-            break;
-          default:
-            D_println(F("Deserialization failed"));
-            break;
+        case DeserializationError::Ok:
+          D_println(F("Deserialization succeeded"));
+          break;
+        case DeserializationError::InvalidInput:
+          D_println(F("Invalid input!"));
+          break;
+        case DeserializationError::NoMemory:
+          D_println(F("Not enough memory"));
+          break;
+        default:
+          D_println(F("Deserialization failed"));
+          break;
         }
       }
     }
@@ -472,6 +579,7 @@ void LoadConfig() {
     SaveConfig();
   }
 }
+
 void SetConfig(JsonObject &json) {
   setConfigParameters(json);
   SaveConfigCallback();
@@ -493,7 +601,6 @@ void WifiSetup() {
 
 void HandleGetMainPage() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
-
   server.send(200, "text/html", mainPage);
 }
 
@@ -504,14 +611,11 @@ void HandleNotFound() {
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(204);
   }
-
   server.sendHeader("Location", "/update", true);
   server.send(302, "text/plain", "");
 }
 
-void Handle_wifisetup() {
-  WifiSetup();
-}
+void Handle_wifisetup() { WifiSetup(); }
 
 void HandleSetConfig() {
   DynamicJsonDocument json(1024);
@@ -571,7 +675,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
     deserializeJson(json, payload);
 
     Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
-        ": " + String(measureJson(json)));
+                             ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
       client.publish((mqttMasterTopic + "matrixinfo").c_str(),
                      GetInfo().c_str());
@@ -592,43 +696,40 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t length) {
 
   switch (type) {
-    case WStype_DISCONNECTED: {
-        Log("WebSocketEvent", "[" + String(num) + "] Disconnected!");
-        websocketConnection[num] = "";
-        break;
+  case WStype_DISCONNECTED: {
+    Log("WebSocketEvent", "[" + String(num) + "] Disconnected!");
+    websocketConnection[num] = "";
+    break;
+  }
+  case WStype_CONNECTED: {
+    websocketConnection[num] = String((char *)payload);
+    IPAddress ip = webSocket.remoteIP(num);
+    Log("WebSocketEvent", "[" + String(num) + "] Connected from " +
+                              ip.toString() +
+                              " url: " + websocketConnection[num]);
+
+    // send message to client
+    SendInfo(true);
+    SendSensor(true);
+    SendConfig();
+    break;
+  }
+  case WStype_TEXT: {
+    if (((char *)payload)[0] == '{') {
+      DynamicJsonDocument json(1024);
+      deserializeJson(json, payload);
+      Log("WebSocketEvent",
+          "Incoming Json length: " + String(measureJson(json)));
+      if (websocketConnection[num] == "/setConfig") {
+        // extract the data
+        JsonObject object = json.as<JsonObject>();
+        SetConfig(object);
+        // delay(500);
+        // ESP.restart();
       }
-    case WStype_CONNECTED: {
-        websocketConnection[num] = String((char *)payload);
-        IPAddress ip = webSocket.remoteIP(num);
-        Log("WebSocketEvent", "[" + String(num) + "] Connected from " +
-            ip.toString() +
-            " url: " + websocketConnection[num]);
-
-        // send message to client
-        SendInfo(true);
-        SendSensor(true);
-        SendConfig();
-        break;
-      }
-    case WStype_TEXT: {
-        if (((char *)payload)[0] == '{') {
-          DynamicJsonDocument json(512);
-
-          deserializeJson(json, payload);
-
-          Log("WebSocketEvent",
-              "Incoming Json length: " + String(measureJson(json)));
-
-          if (websocketConnection[num] == "/setConfig") {
-            // extract the data
-            JsonObject object = json.as<JsonObject>();
-            SetConfig(object);
-            // delay(500);
-            // ESP.restart();
-          }
-        }
-        break;
-      }
+    }
+    break;
+  }
   }
 }
 #pragma endregion
@@ -641,7 +742,7 @@ String GetConfig() {
     std::unique_ptr<char[]> buf(new char[size]);
 
     configFile.readBytes(buf.get(), size);
-    DynamicJsonDocument root(1024);
+    DynamicJsonDocument root(4096);
 
     if (DeserializationError::Ok == deserializeJson(root, buf.get())) {
     }
@@ -704,8 +805,8 @@ void MqttReconnect() {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
       connected =
-        client.connect(("tehybug_" + GetChipID()).c_str(), mqttUser.c_str(),
-                       mqttPassword.c_str(), "state", 0, true, "diconnected");
+          client.connect(("tehybug_" + GetChipID()).c_str(), mqttUser.c_str(),
+                         mqttPassword.c_str(), "state", 0, true, "diconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
@@ -748,7 +849,7 @@ void toggleConfigMode() {
   SaveConfig();
   yield();
   if (configModeActive == false) {
-    //ESP.restart();
+    // ESP.restart();
   }
 }
 
@@ -759,27 +860,33 @@ void startDeepSleep(int freq) {
   yield();
 }
 // HTTP REQUESTS
-
-void http_post() {
-  http.begin(httpPostURL); // Specify request destination
+void http_post_custom(HTTPClient &http, String url, String post_json) {
+  D_print("HTTP POST: ");
+  D_println(url);
+  http.begin(espClient, url); // Specify request destination
   http.addHeader("Content-Type",
                  "application/json"); // Specify content-type header
-  String post_json = replace_placeholders(httpPostJson);
+  post_json = replace_placeholders(post_json);
   int httpCode = http.POST(post_json); // Send the request
   D_println(httpCode);                 // Print HTTP return code
   if (httpCode == 200) {
     Log(F("http_post"), post_json);
   }
-  if (httpCode > 0) { // Check the returning code
-    // String payload = http.getString();                  //Get the response
-    // payload Serial.println(payload);    //Print request response payload
+  if (httpCode > 0) {                  // Check the returning code
+    String payload = http.getString(); // Get the response
+    // payload
+    D_println(payload); // Print request response payload
   }
 
   http.end(); // Close connection
 }
-void http_get() {
-  String url = replace_placeholders(httpGetURL);
-  http.begin(url);                              // Specify request destination
+void http_post() { http_post_custom(http1, httpPostURL, httpPostJson); }
+void http_get_custom(HTTPClient &http, String url) {
+  D_print("HTTP GET: ");
+  D_println(url);
+  url = replace_placeholders(url);
+  http.begin(espClient, url); // Specify request destination
+  http.setURL(url);
   http.addHeader("Content-Type", "text/plain"); // Specify content-type header
 
   int httpCode = http.GET(); // Send the request
@@ -787,13 +894,15 @@ void http_get() {
   if (httpCode == 200) {
     Log(F("http_get"), url);
   }
-  if (httpCode > 0) { // Check the returning code
-    // String payload = http.getString();                  //Get the response
-    // payload Serial.println(payload);    //Print request response payload
+  if (httpCode > 0) {                  // Check the returning code
+    String payload = http.getString(); // Get the response
+    // payload
+    D_println(payload); // Print request response payload
   }
 
   http.end(); // Close connection
 }
+void http_get() { http_get_custom(http1, httpGetURL); }
 // SENSOR
 
 void read_bmx280() {
@@ -803,9 +912,7 @@ void read_bmx280() {
                 (float)bmx280.readHumidity());
   } else if (aht20_sensor) {
     addSensorData("temp2", (float)bmx280.readTemperature());
-  }
-  else
-  {
+  } else {
     addSensorData("temp", (float)bmx280.readTemperature());
   }
 
@@ -989,7 +1096,7 @@ void read_second_ds18b20(void) {
   // issue a global temperature request to all devices on the bus
   D_print("Requesting second port temperatures...");
   second_ds18b20_sensors
-  .requestTemperatures(); // Send the command to get temperatures
+      .requestTemperatures(); // Send the command to get temperatures
   D_println("DONE");
   // After we got the temperatures, we can print them here.
   // We use the function ByIndex, and as an example get the temperature from the
@@ -1100,6 +1207,7 @@ void SendConfig() {
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/settings" ||
           websocketConnection[i] == "/setsensor" ||
+          websocketConnection[i] == "/scenarios" ||
           websocketConnection[i] == "/setsystem") {
         String config = GetConfig();
         webSocket.sendTXT(i, config);
@@ -1117,8 +1225,8 @@ void Log(String function, String message) {
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main") {
         webSocket.sendTXT(i, "{\"log\":{\"timeStamp\":\"" + timeStamp +
-                          "\",\"function\":\"" + function +
-                          "\",\"message\":\"" + message + "\"}}");
+                                 "\",\"function\":\"" + function +
+                                 "\",\"message\":\"" + message + "\"}}");
       }
     }
   }
@@ -1131,9 +1239,9 @@ void serve_data() {
     delay(1000);
     if (sleepModeActive) {
       startDeepSleep(httpGetFrequency);
-    }/* else {
-      delay(httpGetFrequency * 1000);
-    }*/
+    } /* else {
+       delay(httpGetFrequency * 1000);
+     }*/
   }
 
   if (httpPostActive) {
@@ -1141,9 +1249,9 @@ void serve_data() {
     delay(1000);
     if (sleepModeActive) {
       startDeepSleep(httpPostFrequency);
-    }/* else {
-      delay(httpPostFrequency * 1000);
-    }*/
+    } /* else {
+       delay(httpPostFrequency * 1000);
+     }*/
   }
 
   if (mqttActive) {
@@ -1151,11 +1259,47 @@ void serve_data() {
     delay(1000);
     if (sleepModeActive) {
       startDeepSleep(mqttFrequency);
-    }/* else {
-      delay(mqttFrequency * 1000);
-    }*/
+    } /* else {
+       delay(mqttFrequency * 1000);
+     }*/
   }
 }
+
+void check_scenario(Scenario &s) {
+  float val = 0;
+  bool condtionMet = false;
+  if (s.active) {
+
+    if (sensorData.containsKey(s.data)) {
+      val = sensorData[s.data];
+    }
+    if (s.condition == "lt" && val < s.value) {
+      condtionMet = true;
+    } else if (s.condition == "gt" && val > s.value) {
+      condtionMet = true;
+    } else if (s.condition == "eq" && val == s.value) {
+      condtionMet = true;
+    }
+
+    if (condtionMet) {
+      D_println("condition met");
+      D_println(s.url);
+      if (s.type == "post") {
+        http_post_custom(http2, s.url, s.message);
+      } else {
+        http_get_custom(http2, s.url);
+      }
+    }
+    // delay(1000);
+  }
+}
+
+void serve_scenario() {
+  check_scenario(scenario1);
+  check_scenario(scenario2);
+  check_scenario(scenario3);
+}
+
 void led_on() {
   D_println("Led on");
   digitalWrite(SIGNAL_LED_PIN, HIGH); // on
@@ -1166,6 +1310,7 @@ void led_on() {
     pixel.show(); // Initialize all pixels to 'off'
   }
 }
+
 void led_off() {
   D_println("Led off");
   if (PIXEL_ACTIVE == 1) {
@@ -1183,6 +1328,7 @@ void configModeCallback(WiFiManager *myWiFiManager) {
   D_println(WiFi.softAPIP());
   D_println(myWiFiManager->getConfigPortalSSID());
 }
+
 void setupWifi() {
 
   D_println("Setup WIFI");
@@ -1284,17 +1430,17 @@ void setupSensors() {
       // Print sensor type
       D_print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
-        case CHIP_ID_BMP280:
-          D_println(F("BMP280\n"));
-          bme680_sensor = false;
-          break;
-        case CHIP_ID_BME280:
-          D_println(F("BME280\n"));
-          bme680_sensor = false;
-          break;
-        default:
-          Serial.println(F("Unknown\n"));
-          break;
+      case CHIP_ID_BMP280:
+        D_println(F("BMP280\n"));
+        bme680_sensor = false;
+        break;
+      case CHIP_ID_BME280:
+        D_println(F("BME280\n"));
+        bme680_sensor = false;
+        break;
+      default:
+        Serial.println(F("Unknown\n"));
+        break;
       }
 
       // Set sampling - Recommended modes of operation
@@ -1319,12 +1465,12 @@ void setupSensors() {
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
       bmx280.setSampling(
-        BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
-        BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
-        BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
-        BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
-        BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
-        BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
+          BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
+          BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
+          BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
+          BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
+          BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
+          BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
     }
   }
   if (bme680_sensor) {
@@ -1339,16 +1485,16 @@ void setupSensors() {
     D_println(output);
     checkIaqSensorStatus();
     bsec_virtual_sensor_t sensorList[10] = {
-      BSEC_OUTPUT_RAW_TEMPERATURE,
-      BSEC_OUTPUT_RAW_PRESSURE,
-      BSEC_OUTPUT_RAW_HUMIDITY,
-      BSEC_OUTPUT_RAW_GAS,
-      BSEC_OUTPUT_IAQ,
-      BSEC_OUTPUT_STATIC_IAQ,
-      BSEC_OUTPUT_CO2_EQUIVALENT,
-      BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
-      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
-      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+        BSEC_OUTPUT_RAW_TEMPERATURE,
+        BSEC_OUTPUT_RAW_PRESSURE,
+        BSEC_OUTPUT_RAW_HUMIDITY,
+        BSEC_OUTPUT_RAW_GAS,
+        BSEC_OUTPUT_IAQ,
+        BSEC_OUTPUT_STATIC_IAQ,
+        BSEC_OUTPUT_CO2_EQUIVALENT,
+        BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
     };
 
     bme680.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
@@ -1421,8 +1567,7 @@ void setup() {
   snprintf(identifier, sizeof(identifier), "TEHYBUG-%X", ESP.getChipId());
 
   Serial.begin(115200);
-  while (!Serial)
-  {
+  while (!Serial) {
     delay(10);
   }
   D_println(F("key: "));
@@ -1477,39 +1622,41 @@ void setup() {
   if (!configModeActive && !sleepModeActive) {
 
     uint8_t ticker_num = 0;
-    if (httpGetActive)
-    {
+    if (httpGetActive) {
       ticker.add(
-      ticker_num, httpGetFrequency * 1000, [&](void *) {
-        read_sensors();
-        yield();
-        http_get();
-      }, nullptr, true);
+          ticker_num, httpGetFrequency * 1000,
+          [&](void *) {
+            read_sensors();
+            yield();
+            http_get();
+          },
+          nullptr, true);
       ticker_num++;
     }
 
-    if (httpPostActive)
-    {
+    if (httpPostActive) {
       ticker.add(
-      ticker_num, httpPostFrequency * 1000, [&](void *) {
-        read_sensors();
-        yield();
-        http_post();
-      }, nullptr, true);
+          ticker_num, httpPostFrequency * 1000,
+          [&](void *) {
+            read_sensors();
+            yield();
+            http_post();
+          },
+          nullptr, true);
       ticker_num++;
     }
 
-    if (mqttActive)
-    {
+    if (mqttActive) {
       ticker.add(
-      ticker_num, mqttFrequency * 1000, [&](void *) {
-        read_sensors();
-        yield();
-        MqttSendData();
-      }, nullptr, true);
+          ticker_num, mqttFrequency * 1000,
+          [&](void *) {
+            read_sensors();
+            yield();
+            MqttSendData();
+          },
+          nullptr, true);
       ticker_num++;
     }
-
   }
 }
 
@@ -1524,6 +1671,8 @@ void loop() {
   // deep sleep mode
   else if (sleepModeActive) {
     read_sensors();
+    yield();
+    serve_scenario();
     yield();
     serve_data();
   }

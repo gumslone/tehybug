@@ -57,7 +57,7 @@ Demo web configuration page: https://tehybug.com/tehybug/v1/html/demo.html
 - Connect an external sensor to the board 3,5mm audio jack connector.
 - Connect the power supply to micro USB port
 - TeHyBug will boot, the LED will turn solid blue
-- Connect to a TeHyBug wifi network like the image below
+- Connect to a TeHyBug wifi network like the image below (Password: TeHyBug123)
 - <img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/wifimanager.png?raw=true" width="350">
 - open http://192.168.4.1/ in your browser, and click the configuration button
 - <img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/credentials.png?raw=true" width="350">

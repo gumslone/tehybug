@@ -58,9 +58,9 @@ Demo web configuration page: https://tehybug.com/tehybug/v1/html/demo.html
 - Connect the power supply to micro USB port
 - TeHyBug will boot, the LED will turn solid blue
 - Connect to a TeHyBug wifi network like the image below
-- <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/wifi.png?raw=true" width="600">
+- <img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/wifimanager.png?raw=true" width="350">
 - open http://192.168.4.1/ in your browser, and click the configuration button
-- <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/config.png?raw=true">
+- <img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/credentials.png?raw=true" width="350">
 - Provide credentials of your WIFI network and save them
 - If your credentials were correct, the TeHyBug WIFI network will disapear
 - TeHyBug will connect to your network and boot in a configuration mode with solid blue LED light

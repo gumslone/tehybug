@@ -326,8 +326,16 @@ void saveConfig() {
   }
 }
 
-void setConfigParameters(JsonObject &json) {
+void validateDataFrequency(int & freq)
+{
+  int maxDS = (int)(ESP.deepSleepMax() / 1000000);
+  if(freq > maxDS)
+  {
+    freq = maxDS;
+  }
+}
 
+void setConfigParameters(JsonObject &json) {  
   D_println("Config:");
   for (JsonPair kv : json) {
     D_print(kv.key().c_str());
@@ -336,10 +344,10 @@ void setConfigParameters(JsonObject &json) {
   }
   D_println();
   if (json.containsKey("mqttActive")) {
-    serveData.mqtt.active = json["mqttActive"];
+    serveData.mqtt.active = json["mqttActive"].as<bool>();
   }
   if (json.containsKey("mqttRetained")) {
-    serveData.mqtt.retained = json["mqttRetained"];
+    serveData.mqtt.retained = json["mqttRetained"].as<bool>();
   }
   if (json.containsKey("mqttUser")) {
     serveData.mqtt.user = json["mqttUser"].as<String>();
@@ -360,10 +368,11 @@ void setConfigParameters(JsonObject &json) {
     serveData.mqtt.message = json["mqttMessage"].as<String>();
   }
   if (json.containsKey("mqttPort")) {
-    serveData.mqtt.port = json["mqttPort"];
+    serveData.mqtt.port = json["mqttPort"].as<int>();
   }
   if (json.containsKey("mqttFrequency")) {
-    serveData.mqtt.frequency = json["mqttFrequency"];
+    serveData.mqtt.frequency = json["mqttFrequency"].as<int>();
+    validateDataFrequency(serveData.mqtt.frequency);
   }
 
   // http
@@ -371,57 +380,59 @@ void setConfigParameters(JsonObject &json) {
     serveData.get.url = json["httpGetURL"].as<String>();
   }
   if (json.containsKey("httpGetActive")) {
-    serveData.get.active = json["httpGetActive"];
+    serveData.get.active = json["httpGetActive"].as<bool>();
   }
   if (json.containsKey("httpGetFrequency")) {
-    serveData.get.frequency = json["httpGetFrequency"];
+    serveData.get.frequency = json["httpGetFrequency"].as<int>();
+    validateDataFrequency(serveData.get.frequency);
   }
 
   if (json.containsKey("httpPostURL")) {
     serveData.post.url = json["httpPostURL"].as<String>();
   }
   if (json.containsKey("httpPostActive")) {
-    serveData.post.active = json["httpPostActive"];
+    serveData.post.active = json["httpPostActive"].as<bool>();
   }
   if (json.containsKey("httpPostFrequency")) {
-    serveData.post.frequency = json["httpPostFrequency"];
+    serveData.post.frequency = json["httpPostFrequency"].as<int>();
+    validateDataFrequency(serveData.post.frequency);
   }
   if (json.containsKey("httpPostJson")) {
     serveData.post.message = json["httpPostJson"].as<String>();
   }
 
   if (json.containsKey("configModeActive")) {
-    configModeActive = json["configModeActive"];
+    configModeActive = json["configModeActive"].as<bool>();
   }
   if (json.containsKey("calibrationActive")) {
-    calibration.active = json["calibrationActive"];
+    calibration.active = json["calibrationActive"].as<bool>();
   }
   if (json.containsKey("calibrationTemp")) {
-    calibration.temp = json["calibrationTemp"];
+    calibration.temp = json["calibrationTemp"].as<float>();
   }
   if (json.containsKey("calibrationHumi")) {
-    calibration.humi = json["calibrationHumi"];
+    calibration.humi = json["calibrationHumi"].as<float>();
   }
   if (json.containsKey("calibrationQfe")) {
-    calibration.qfe = json["calibrationQfe"];
+    calibration.qfe = json["calibrationQfe"].as<float>();
   }
   if (json.containsKey("sleepModeActive")) {
-    sleepModeActive = json["sleepModeActive"];
+    sleepModeActive = json["sleepModeActive"].as<bool>();
   }
   if (json.containsKey("dht_sensor")) {
-    sensor.dht = json["dht_sensor"];
+    sensor.dht = json["dht_sensor"].as<bool>();
   }
   if (json.containsKey("second_dht_sensor")) {
-    sensor.dht_2 = json["second_dht_sensor"];
+    sensor.dht_2 = json["second_dht_sensor"].as<bool>();
   }
   if (json.containsKey("ds18b20_sensor")) {
-    sensor.ds18b20 = json["ds18b20_sensor"];
+    sensor.ds18b20 = json["ds18b20_sensor"].as<bool>();
   }
   if (json.containsKey("second_ds18b20_sensor")) {
-    sensor.ds18b20_2 = json["second_ds18b20_sensor"];
+    sensor.ds18b20_2 = json["second_ds18b20_sensor"].as<bool>();
   }
   if (json.containsKey("adc_sensor")) {
-    sensor.adc = json["adc_sensor"];
+    sensor.adc = json["adc_sensor"].as<bool>();
   }
 
   // scenarios
@@ -721,6 +732,7 @@ String getInfo() {
   root["chipID"] = ESP.getChipId();
   root["cpuFreqMHz"] = ESP.getCpuFreqMHz();
   root["sleepModeActive"] = sleepModeActive;
+  root["deepSleepMax"] = (int)(ESP.deepSleepMax() / 1000000);
   root["key"] = sensorData["key"];
 
   String json;

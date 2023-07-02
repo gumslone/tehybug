@@ -47,7 +47,7 @@ Replace /dev/cu.usbserial-1410 with your usb2serial port.
 
 To update the firmware from OTA WebInterface open http://tehybug.local/update in your browser, if this doesnt work, try to find out its IP from your router admin menu or use any local network ip scanner app for your mobile phone to get the device ip and then open http://<ip_address<ip address>>/update with your browser.
 
-### WebGui
+## WebGui
   
 <img src="https://github.com/gumslone/tehybug/blob/master/tehybug/images/webgui.png?raw=true" width="800">
 

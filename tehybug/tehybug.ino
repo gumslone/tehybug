@@ -1283,11 +1283,19 @@ void setupWifi() {
   WiFi.hostname(identifier);
   // set custom ip for portal
   wifiManager.setAPStaticIPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-  if (!wifiManager.autoConnect(identifier)) {
+  
+  std::vector<const char *> wm_menu  = {"wifi", "exit"};
+  wifiManager.setShowInfoUpdate(false);
+  wifiManager.setShowInfoErase(false);
+  wifiManager.setMenu(wm_menu);
+  wifiManager.setConfigPortalTimeout(180);
+  wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");  
+  if (!wifiManager.autoConnect(identifier, "TeHyBug123")) {
     Serial.println(F("Setup: Wifi failed to connect and hit timeout"));
     delay(3000);
     // Reset and try again, or maybe put it to deep sleep
-    ESP.reset();
+    //ESP.reset();
+    startDeepSleep(9000);
     delay(5000);
   }
 

@@ -352,15 +352,12 @@ void setConfigParameters(JsonObject &json) {
   if (json.containsKey("mqttUser")) {
     serveData.mqtt.user = json["mqttUser"].as<String>();
   }
-
   if (json.containsKey("mqttPassword")) {
     serveData.mqtt.password = json["mqttPassword"].as<String>();
   }
-
   if (json.containsKey("mqttServer")) {
     serveData.mqtt.server = json["mqttServer"].as<String>();
   }
-
   if (json.containsKey("mqttMasterTopic")) {
     serveData.mqtt.topic = json["mqttMasterTopic"].as<String>();
   }
@@ -1225,6 +1222,14 @@ void checkScenario(Scenario &s) {
       D_println(s.url);
       if (s.type == "post") {
         http_post_custom(http2, s.url, s.message);
+      }
+      else if (s.type == "io13_1") {
+        pinMode(13, OUTPUT);
+        digitalWrite(13, HIGH);
+      }
+      else if (s.type == "io13_0") {
+        pinMode(13, OUTPUT);
+        digitalWrite(13, LOW);
       } else {
         http_get_custom(http2, s.url);
       }

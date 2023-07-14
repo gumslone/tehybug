@@ -26,7 +26,7 @@
 #include <OneWire.h>
 #include <Wire.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)

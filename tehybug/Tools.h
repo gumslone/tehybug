@@ -128,6 +128,8 @@ String join(int *arr, String separator, int len) {
   return out;
 }
 // time
+// Time
+int Year, Month, Day, Hour, Minute, Second;
 
 int year() { return 0; }
 int month() { return 0; }
@@ -135,6 +137,14 @@ int day() { return 0; }
 int hour() { return 0; }
 int minute() { return 0; }
 int second() { return 0; }
+
+void createDateElements(const char *str) {
+  sscanf(str, "%d-%d-%dT%d:%d", year(), month(), day(), hour(), minute());
+}
+void createWeekdaysElements(const char *str, int *arr) {
+  sscanf(str, "%d,%d,%d,%d,%d,%d,%d", &arr[0], &arr[1], &arr[2], &arr[3],
+         &arr[4], &arr[5], &arr[6]);
+}
 //================================================================================
 // Begin calcdayofweek( D, M, Y)
 //================================================================================
@@ -195,3 +205,17 @@ String i2c_scanner() {
 }
 
 float temp2Imp(float value) { return round(1.8 * value + 32); }
+
+bool isIOScenario(const String & type)
+{
+  return type.substring(0, 2) == "io";
+}
+uint8_t ioScenarioPin(const String & type)
+{
+  return atoi(type.substring(2, 4).c_str());
+}
+uint8_t ioScenarioLevel(const String & type)
+{
+    size_t lenz = type.length();
+    return atoi(type.substring(lenz-1, lenz).c_str());
+}

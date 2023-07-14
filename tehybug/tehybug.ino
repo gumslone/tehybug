@@ -4,28 +4,29 @@
 #include "UUID.h"
 #include "bsec.h"
 #include <AM2320_asukiaaa.h>
+#include <ErriezBMX280.h>
+#include <DallasTemperature.h>
 #include <Adafruit_NeoPixel.h>
-#include <Adafruit_Sensor.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
-#include <DallasTemperature.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <ErriezBMX280.h>
 #include <FS.h>
-#include <OneWire.h>
+
 #include <PubSubClient.h> // Attention in the lib the #define MQTT_MAX_PACKET_SIZE must be increased to 4000!
 #include <TickerScheduler.h>
 #include <WebSocketsServer.h>
 #include <WiFiClient.h>
 #include <WiFiManager.h>
+
+#include <OneWire.h>
 #include <Wire.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -44,6 +45,12 @@
 #include "Webinterface.h"
 #include "tehybug.h"
 
+#if defined(ARDUINO_ESP8266_GENERIC)
+#define  PIXEL_ACTIVE 0
+#define  SIGNAL_LED_PIN 10
+#endif
+
+
 #ifndef PIXEL_ACTIVE
 #define PIXEL_ACTIVE 1
 #define PIXEL_COUNT 1 // Number of NeoPixels
@@ -52,8 +59,9 @@
 Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #endif
 // set pin 4 HIGH to turn on the pixel
+#ifndef SIGNAL_LED_PIN
 #define SIGNAL_LED_PIN 4
-
+#endif
 char identifier[24];
 
 // sensors
@@ -66,13 +74,14 @@ ErriezBMX280 bmx280 = ErriezBMX280(0x76);
 ErriezBMX280 bmp280 = ErriezBMX280(0x77);
 
 Bsec bme680;
-String output;
 
 Max44009 Max44009Lux(0x4A);
 
 AHT20 AHT;
 DHTesp dht;
+#if !defined(ARDUINO_ESP8266_GENERIC)
 DHTesp dht2;
+#endif
 
 AM2320_asukiaaa am2320;
 
@@ -86,6 +95,7 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature ds18b20_sensors(&oneWire);
 
+#if !defined(ARDUINO_ESP8266_GENERIC)
 // Data wire is plugged into port 13 on the Arduino
 #define SECOND_ONE_WIRE_BUS 13
 
@@ -95,6 +105,7 @@ OneWire secondOneWire(SECOND_ONE_WIRE_BUS);
 
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature second_ds18b20_sensors(&secondOneWire);
+#endif
 
 Calibration calibration{};
 Sensor sensor{};
@@ -163,9 +174,6 @@ String OldInfo = "";   // old board info
 String OldSensor = ""; // old sensor info
 // Websoket Vars
 String websocketConnection[10];
-
-// Time
-int Year, Month, Day, Hour, Minute, Second;
 
 UUID uuid;
 
@@ -242,14 +250,6 @@ String replace_placeholders(String text) {
     text.replace("%" + k + "%", v);
   }
   return text;
-}
-
-void createDateElements(const char *str) {
-  sscanf(str, "%d-%d-%dT%d:%d", &Year, &Month, &Day, &Hour, &Minute);
-}
-void createWeekdaysElements(const char *str, int *arr) {
-  sscanf(str, "%d,%d,%d,%d,%d,%d,%d", &arr[0], &arr[1], &arr[2], &arr[3],
-         &arr[4], &arr[5], &arr[6]);
 }
 /////
 
@@ -329,18 +329,21 @@ void saveConfig() {
 void validateDataFrequency(int & freq)
 {
   int maxDS = (int)(ESP.deepSleepMax() / 1000000);
-  if(freq > maxDS)
+  if (freq > maxDS)
   {
     freq = maxDS;
   }
 }
 
-void setConfigParameters(JsonObject &json) {  
+void setConfigParameters(JsonObject &json) {
   D_println("Config:");
-  for (JsonPair kv : json) {
-    D_print(kv.key().c_str());
-    D_print(" = ");
-    D_println(kv.value().as<String>());
+  if (DEBUG)
+  {
+    for (JsonPair kv : json) {
+      D_print(kv.key().c_str());
+      D_print(" = ");
+      D_println(kv.value().as<String>());
+    }
   }
   D_println();
   if (json.containsKey("mqttActive")) {
@@ -888,25 +891,21 @@ void read_bmx280() {
 void checkIaqSensorStatus(void) {
   if (bme680.status != BSEC_OK) {
     if (bme680.status < BSEC_OK) {
-      output = "BSEC error code : " + String(bme680.status);
-      D_println(output);
+      D_println("BSEC error code : " + String(bme680.status));
       for (;;)
         delay(1); /* Halt in case of failure */
     } else {
-      output = "BSEC warning code : " + String(bme680.status);
-      D_println(output);
+      D_println("BSEC warning code : " + String(bme680.status));
     }
   }
 
   if (bme680.bme680Status != BME680_OK) {
     if (bme680.bme680Status < BME680_OK) {
-      output = "BME680 error code : " + String(bme680.bme680Status);
-      D_println(output);
+      D_println("BME680 error code : " + String(bme680.bme680Status));
       for (;;)
         delay(1); /* Halt in case of failure */
     } else {
-      output = "BME680 warning code : " + String(bme680.bme680Status);
-      D_println(output);
+      D_println("BME680 warning code : " + String(bme680.bme680Status));
     }
   }
 }
@@ -917,18 +916,17 @@ void read_bme680() {
     return;
   }
 
-  output = String(bme680.rawTemperature);
-  output += ", " + String(bme680.pressure);
-  output += ", " + String(bme680.rawHumidity);
-  output += ", " + String(bme680.gasResistance);
-  output += ", " + String(bme680.iaq);
-  output += ", " + String(bme680.iaqAccuracy);
-  output += ", " + String(bme680.temperature);
-  output += ", " + String(bme680.humidity);
-  output += ", " + String(bme680.staticIaq);
-  output += ", " + String(bme680.co2Equivalent);
-  output += ", " + String(bme680.breathVocEquivalent);
-  D_println(output);
+  D_print(String(bme680.rawTemperature));
+  D_print(", " + String(bme680.pressure));
+  D_print(", " + String(bme680.rawHumidity));
+  D_print(", " + String(bme680.gasResistance));
+  D_print(", " + String(bme680.iaq));
+  D_print(", " + String(bme680.iaqAccuracy));
+  D_print(", " + String(bme680.temperature));
+  D_print(", " + String(bme680.humidity));
+  D_print(", " + String(bme680.staticIaq));
+  D_print(", " + String(bme680.co2Equivalent));
+  D_println(", " + String(bme680.breathVocEquivalent));
 
   addSensorData("qfe", (float)(bme680.pressure / 100.0F));
   addSensorData("eco2", (float)bme680.co2Equivalent);
@@ -995,9 +993,11 @@ void read_dht() {
   digitalWrite(0, LOW); // sets the digital pin 0 on
   read_dht_custom(dht, "temp", "humi");
 }
+#if !defined(ARDUINO_ESP8266_GENERIC)
 void read_second_dht() {
   read_dht_custom(dht2, "temp2", "humi2");
 }
+#endif
 void read_am2320() {
   float humidity, temperature;
   Wire.begin(0, 2);
@@ -1046,7 +1046,7 @@ void read_ds18b20(void) {
   pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
   read_ds18b20_custom(ds18b20_sensors, "temp");
 }
-
+#if !defined(ARDUINO_ESP8266_GENERIC)
 void read_second_ds18b20(void) {
   pinMode(SECOND_ONE_WIRE_BUS, INPUT_PULLUP);
   read_ds18b20_custom(second_ds18b20_sensors, "temp2");
@@ -1062,6 +1062,7 @@ void read_adc() {
   addSensorData("adc", (float)sensorValue);
   digitalWrite(pin, LOW); // off
 }
+#endif
 
 void read_sensors() {
   if (sensor.bmx) {
@@ -1079,21 +1080,24 @@ void read_sensors() {
   if (sensor.dht) {
     read_dht();
   }
-  if (sensor.dht_2) {
-    read_second_dht();
-  }
   if (sensor.am2320) {
     read_am2320();
   }
   if (sensor.ds18b20) {
     read_ds18b20();
   }
-  if (sensor.ds18b20_2) {
-    read_second_ds18b20();
-  }
+
+#if !defined(ARDUINO_ESP8266_GENERIC)
   if (sensor.adc) {
     read_adc();
   }
+  if (sensor.dht_2) {
+    read_second_dht();
+  }
+  if (sensor.ds18b20_2) {
+    read_second_ds18b20();
+  }
+#endif
 }
 // end of sensor
 void sendDeviceInfo(bool force) {
@@ -1223,14 +1227,12 @@ void checkScenario(Scenario &s) {
       if (s.type == "post") {
         http_post_custom(http2, s.url, s.message);
       }
-      else if (s.type == "io13_1") {
-        pinMode(13, OUTPUT);
-        digitalWrite(13, HIGH);
+      else if (isIOScenario(s.type)) {
+        uint8_t pin = ioScenarioPin(s.type);
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, ioScenarioLevel(s.type));
       }
-      else if (s.type == "io13_0") {
-        pinMode(13, OUTPUT);
-        digitalWrite(13, LOW);
-      } else {
+      else {
         http_get_custom(http2, s.url);
       }
     }
@@ -1246,24 +1248,43 @@ void serve_scenario() {
 
 void led_on() {
   D_println("Led on");
-  digitalWrite(SIGNAL_LED_PIN, HIGH); // on
-  if (PIXEL_ACTIVE) {
-    pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-    pixel.setPixelColor(0, pixel.Color(0, 0, 255));
-    pixel.setBrightness(50);
-    pixel.show(); // Initialize all pixels to 'off'
+  if (SIGNAL_LED_PIN == 10)
+  {
+    digitalWrite(SIGNAL_LED_PIN, LOW); // on
+  }
+  else
+  {
+    digitalWrite(SIGNAL_LED_PIN, HIGH); // on
+#if !defined(ARDUINO_ESP8266_GENERIC)
+    if (PIXEL_ACTIVE) {
+      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+      pixel.setPixelColor(0, pixel.Color(0, 0, 255));
+      pixel.setBrightness(50);
+      pixel.show(); // Initialize all pixels to 'off'
+    }
+#endif
   }
 }
 
 void led_off() {
   D_println("Led off");
-  if (PIXEL_ACTIVE == 1) {
-    pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-    pixel.setPixelColor(0, pixel.Color(0, 0, 0)); //  Set pixel's color (in RAM)
-    pixel.setBrightness(0);
-    pixel.show();
+  if (SIGNAL_LED_PIN == 10)
+  {
+    digitalWrite(SIGNAL_LED_PIN, HIGH); // off
   }
-  digitalWrite(SIGNAL_LED_PIN, LOW); // off
+  else
+  {
+#if !defined(ARDUINO_ESP8266_GENERIC)
+    if (PIXEL_ACTIVE == 1) {
+      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+      pixel.setPixelColor(0, pixel.Color(0, 0, 0)); //  Set pixel's color (in RAM)
+      pixel.setBrightness(0);
+      pixel.show();
+    }
+#endif
+    digitalWrite(SIGNAL_LED_PIN, LOW); // off
+  }
+
 }
 
 void configModeCallback(WiFiManager *myWiFiManager) {
@@ -1288,13 +1309,13 @@ void setupWifi() {
   WiFi.hostname(identifier);
   // set custom ip for portal
   wifiManager.setAPStaticIPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-  
+
   std::vector<const char *> wm_menu  = {"wifi", "exit"};
   wifiManager.setShowInfoUpdate(false);
   wifiManager.setShowInfoErase(false);
   wifiManager.setMenu(wm_menu);
   wifiManager.setConfigPortalTimeout(180);
-  wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");  
+  wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");
   if (!wifiManager.autoConnect(identifier, "TeHyBug123")) {
     Serial.println(F("Setup: Wifi failed to connect and hit timeout"));
     delay(3000);
@@ -1430,11 +1451,11 @@ void setupSensors() {
 
     bme680.begin(BME680_I2C_ADDR_SECONDARY, Wire);
 
-    output = "\nBSEC library version " + String(bme680.version.major) + "." +
-             String(bme680.version.minor) + "." +
-             String(bme680.version.major_bugfix) + "." +
-             String(bme680.version.minor_bugfix);
-    D_println(output);
+    D_print("BSEC library version " + String(bme680.version.major) + ".");
+    D_print(String(bme680.version.minor) + ".");
+    D_print(String(bme680.version.major_bugfix) + ".");
+    D_println(String(bme680.version.minor_bugfix));
+
     checkIaqSensorStatus();
     bsec_virtual_sensor_t sensorList[10] = {
       BSEC_OUTPUT_RAW_TEMPERATURE,
@@ -1452,11 +1473,10 @@ void setupSensors() {
     bme680.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
     checkIaqSensorStatus();
     // Print the header
-    output = "Timestamp [ms], raw temperature [°C], pressure [hPa], raw "
-             "relative humidity [%], gas [Ohm], IAQ, IAQ accuracy, temperature "
-             "[°C], relative humidity [%], Static IAQ, CO2 equivalent, breath "
-             "VOC equivalent";
-    D_println(output);
+    D_println("Timestamp [ms], raw temperature [°C], pressure [hPa], raw "
+              "relative humidity [%], gas [Ohm], IAQ, IAQ accuracy, temperature "
+              "[°C], relative humidity [%], Static IAQ, CO2 equivalent, breath "
+              "VOC equivalent");
   }
   if (sensor.max44009) {
     D_print("\nStart max44009_setAutomaticMode : ");
@@ -1471,10 +1491,12 @@ void setupSensors() {
   if (sensor.dht) {
     dht.setup(2, DHTesp::DHT22); // Connect DHT sensor to GPIO 2
   }
+#if !defined(ARDUINO_ESP8266_GENERIC)
   if (sensor.dht_2) {
     pinMode(13, INPUT_PULLUP);
     dht2.setup(13, DHTesp::DHT22); // Connect DHT sensor to GPIO 13
   }
+#endif
   if (sensor.am2320) {
     am2320.setWire(&Wire);
   }
@@ -1493,7 +1515,6 @@ void turnLedOn()
   }
 }
 void setupMode() {
-
   delay(100);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   if (digitalRead(BUTTON_PIN) == LOW) {

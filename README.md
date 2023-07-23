@@ -61,6 +61,10 @@ Tindie:
 Enclosures for 3D Printing:
 https://www.thingiverse.com/thing:5744609 TeHyBug Display / Clock
 
+### TeHyButton / WiFi Button / Open Door Sensor / Soil Moisture Sensor
+sends a http get/post or mqtt message through wifi network to a custom server with button state or any other custom message
+https://github.com/gumslone/tehybug/tree/master/tehybutton
+
 ### GumBoard / TeHyBug Sensor Board
 Latest firmware binaries and docummentation you can find here: https://github.com/gumslone/tehybug/tree/master/gumboard
 

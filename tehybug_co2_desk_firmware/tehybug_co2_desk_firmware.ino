@@ -180,6 +180,8 @@ void handleMainPage() {
 void handleSaveConfig() {
   Config::imperial_temp = (server.hasArg("imperial_temp") && server.arg("imperial_temp")) ? true : false;
   Config::imperial_qfe = (server.hasArg("imperial_qfe") && server.arg("imperial_qfe")) ? true : false;
+  Config::led_brightness = (server.hasArg("led_brightness") && server.arg("led_brightness") && server.arg("led_brightness").toInt() >=0 
+                            && server.arg("led_brightness").toInt() <= 255) ? server.arg("led_brightness").toInt() : 200;
   
   Config::save();
   server.sendHeader("Connection", "close");
@@ -531,7 +533,7 @@ void publishAutoConfig() {
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
   autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
   autoconfPayload["name"] = identifier + String(" Temperature");
-  autoconfPayload["unit_of_measurement"] = (Config::imperial_temp == true) ? "°F" : "°C";
+  autoconfPayload["unit_of_measurement"] = Config::imperial_temp ? "°F" : "°C";
 
   autoconfPayload["value_template"] = "{{value_json.temperature}}";
   autoconfPayload["unique_id"] = identifier + String("_temperature");
@@ -587,8 +589,7 @@ void colorWipe(uint32_t color, uint8_t wait) {
 
 void read_bmx280() {
   temp = String((bmx280.readTemperature()));
-  temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-  temp_imp = String(temp_imp);
+  temp2imp(temp, temp_imp);
   Serial.print(F("Temperature: "));
   Serial.print(temp);
   Serial.println(" C");
@@ -620,8 +621,7 @@ void read_aht20() {
     Serial.print(humi);
     Serial.print("%\t temperature: ");
     temp = String(temperature, 1);
-    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-    temp_imp = String(temp_imp);
+    temp2imp(temp, temp_imp);
     Serial.println(temp);
   } else // GET DATA FAIL
   {
@@ -668,8 +668,7 @@ void read_scd4x() {
       temp = String((mySensor.getTemperature() + calib_temp), 1);
       humi = String((mySensor.getHumidity() + calib_humi), 0);
 
-      temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-      temp_imp = String(temp_imp);
+      temp2imp(temp, temp_imp);
     }
 
     co2_ampel(co2.toInt());
@@ -855,10 +854,10 @@ void update_display() {
     if (temp != "") {
       display.setFont(&FreeSans18pt7b);
       display.setCursor(0, 30);
-      if (Config::imperial_temp == true) {
+      if (Config::imperial_temp) {
         uint8_t index = temp_imp.indexOf('.');
-        String temp_a = temp.substring(0, index);
-        String temp_b = temp.substring(index + 1, index + 2);
+        String temp_a = temp_imp.substring(0, index);
+        String temp_b = temp_imp.substring(index + 1, index + 2);
         temp_a += ".";
         display.getTextBounds(temp_a, 0, 0, &tbx, &tby, &tbw, &tbh);
         display.println(temp_a);
@@ -959,22 +958,22 @@ void update_display() {
     display.setTextColor(GxEPD_BLACK);
 
     if (temp != "") {
-      if (Config::imperial_temp == true) {
+      if (Config::imperial_temp) {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);
         uint8_t index = temp_imp.indexOf('.');
-        String temp_imp_a = temp.substring(0, index);
-        String temp_imp_b = temp.substring(index + 1, index + 2);
-        temp_imp_a += ".";
-        display.getTextBounds(temp_imp_a, 0, 0, &tbx, &tby, &tbw, &tbh);
-        display.println(temp_imp_a);
+        String temp_a = temp_imp.substring(0, index);
+        String temp_b = temp_imp.substring(index + 1, index + 2);
+        temp_a += ".";
+        display.getTextBounds(temp_a, 0, 0, &tbx, &tby, &tbw, &tbh);
+        display.println(temp_a);
         display.setFont(&FreeSans9pt7b);
         display.setCursor(tbw - 5, 21);
         display.println("o");
         display.setCursor(tbw + 6, 24);
         display.println("F");
         display.setCursor(tbw + 6, 44);
-        display.println(temp_imp_b);
+        display.println(temp_b);
       } else {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);

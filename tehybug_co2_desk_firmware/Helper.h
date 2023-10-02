@@ -85,3 +85,9 @@ void i2c_scanner(HardwareSerial *serialport, String & i2c_addresses) {
 
   // i2c scanner end
 }
+
+void temp2imp(const String val, String & var)
+{
+  float _t = 1.8 * val.toFloat() + 32;
+  var = String(_t, 1);
+}

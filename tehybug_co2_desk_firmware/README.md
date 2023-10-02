@@ -39,7 +39,7 @@ Username: TeHyBug
 Password: FreshAirMakesSense
 
 ## Calibration
-SCD40 and SCD41 come precalibrated and usually dont need require any calibration but in some unsommon cases you can forrce the sensorr calibration. 
+SCD40 and SCD41 come precalibrated and usually dont need require any calibration but in some unsommon cases you can force the sensor calibration. 
 1. Put your device outdoors to a fresh air.
 2. Hold the IO_4 Button pressed for 15 seconds.
 3. Release the button.

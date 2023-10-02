@@ -53,8 +53,8 @@ GxIO_Class io(SPI, /*CS*/ 16, /*DC*/ 15, -1);
 GxEPD_Class display(io, -1, -1); // no RST, no BUSY
 
 // dns
-const byte DNS_PORT = 53;
-IPAddress apIP(192, 168, 4, 1);
+const uint8_t DNS_PORT = 53;
+const IPAddress apIP(192, 168, 4, 1);
 DNSServer dnsServer;
 char cmDNS[33];
 String escapedMac;
@@ -161,12 +161,9 @@ String getSensor() {
 
   DynamicJsonDocument root(1024);
   root["co2"] = co2;
+  
+  root["temperature"] = Config::imperial_temp ? temp_imp : temp;
 
-  if (Config::imperial_temp == true) {
-    root["temperature"] = temp_imp;
-  } else {
-    root["temperature"] = temp;
-  }
   root["humidity"] = humi;
   root["pressure"] = qfe;
   root["altitude"] = alt;
@@ -181,23 +178,12 @@ void handleMainPage() {
 }
 
 void handleSaveConfig() {
-  if (server.hasArg("imperial_temp")) {
-    if (server.arg("imperial_temp")) {
-      Config::imperial_temp = true;
-    }
-  } else {
-    Config::imperial_temp = false;
-  }
-  if (server.hasArg("imperial_qfe")) {
-    if (server.arg("imperial_qfe")) {
-      Config::imperial_qfe = true;
-    }
-  } else {
-    Config::imperial_qfe = false;
-  }
+  Config::imperial_temp = (server.hasArg("imperial_temp") && server.arg("imperial_temp")) ? true : false;
+  Config::imperial_qfe = (server.hasArg("imperial_qfe") && server.arg("imperial_qfe")) ? true : false;
+  
   Config::save();
   server.sendHeader("Connection", "close");
-  server.send(200, "text/plain", "Configuration saved sucessfully!");
+  server.send(200, "text/plain", "Configuration saved successfully!");
 }
 
 void handleGetConfig() {
@@ -266,16 +252,22 @@ void setupOTA() {
   });
   ArduinoOTA.onError([](ota_error_t error) {
     Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) {
-      Serial.println("Auth Failed");
-    } else if (error == OTA_BEGIN_ERROR) {
-      Serial.println("Begin Failed");
-    } else if (error == OTA_CONNECT_ERROR) {
-      Serial.println("Connect Failed");
-    } else if (error == OTA_RECEIVE_ERROR) {
-      Serial.println("Receive Failed");
-    } else if (error == OTA_END_ERROR) {
-      Serial.println("End Failed");
+    switch(error) {
+      case OTA_AUTH_ERROR:
+        Serial.println("Auth Failed");
+        break;
+      case OTA_BEGIN_ERROR:
+        Serial.println("Begin Failed");
+        break;
+      case OTA_CONNECT_ERROR:
+        Serial.println("Connect Failed");
+        break;
+      case OTA_RECEIVE_ERROR:
+        Serial.println("Receive Failed");
+        break;
+      case OTA_END_ERROR:
+        Serial.println("End Failed");
+        break;
     }
   });
 
@@ -474,11 +466,8 @@ void publishState() {
   wifiJson["rssi"] = WiFi.RSSI();
 
   stateJson["co2"] = co2;
-  if (Config::imperial_temp == true) {
-    stateJson["temperature"] = temp_imp;
-  } else {
-    stateJson["temperature"] = temp;
-  }
+  stateJson["temperature"] = Config::imperial_temp ? temp_imp : temp;
+  
   stateJson["humidity"] = humi;
   stateJson["pressure"] = qfe;
 
@@ -488,7 +477,7 @@ void publishState() {
   mqttClient.publish(&MQTT_TOPIC_STATE[0], &payload[0], true);
 }
 
-void mqttCallback(char *topic, uint8_t *payload, unsigned int length) {}
+void mqttCallback(const char *topic, const uint8_t *payload, const unsigned int length) {}
 
 void publishAutoConfig() {
   char mqttPayload[2048];
@@ -542,10 +531,7 @@ void publishAutoConfig() {
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
   autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
   autoconfPayload["name"] = identifier + String(" Temperature");
-  autoconfPayload["unit_of_measurement"] = "°C";
-  if (Config::imperial_temp == true) {
-    autoconfPayload["unit_of_measurement"] = "°F";
-  }
+  autoconfPayload["unit_of_measurement"] = (Config::imperial_temp == true) ? "°F" : "°C";
 
   autoconfPayload["value_template"] = "{{value_json.temperature}}";
   autoconfPayload["unique_id"] = identifier + String("_temperature");
@@ -590,8 +576,9 @@ void publishAutoConfig() {
 // (as a single 'packed' 32-bit value, which you can get by calling
 // strip.Color(red, green, blue) as shown in the loop() function above),
 // and a delay time (in milliseconds) between pixels.
-void colorWipe(uint32_t color, int wait) {
-  for (int i = 0; i < strip.numPixels(); i++) { // For each pixel in strip...
+void colorWipe(uint32_t color, uint8_t wait) {
+  strip.setBrightness(Config::led_brightness);
+  for (uint8_t i = 0; i < strip.numPixels(); i++) { // For each pixel in strip...
     strip.setPixelColor(i, color);              //  Set pixel's color (in RAM)
     strip.show();                               //  Update strip to match
     delay(wait);                                //  Pause for a moment
@@ -625,8 +612,7 @@ void read_bmx280() {
 }
 void read_aht20() {
   float humidity, temperature;
-  int ret = AHT.getSensor(&humidity, &temperature);
-
+  bool ret = AHT.getSensor(&humidity, &temperature);
   if (ret) // GET DATA OK
   {
     Serial.print("humidity: ");
@@ -643,13 +629,13 @@ void read_aht20() {
   }
 }
 
-void co2_ampel(int val) {
+void co2_ampel(const int & val) {
   if (val > 1500) {
-    colorWipe(strip.Color(255, 0, 0), 90); // red
+    colorWipe(strip.Color(255, 0, 0), 10); // red
   } else if (val > 1000) {
-    colorWipe(strip.Color(255, 200, 0), 90); // yellow
+    colorWipe(strip.Color(255, 200, 0), 10); // yellow
   } else {
-    colorWipe(strip.Color(0, 255, 0), 90); // green
+    colorWipe(strip.Color(0, 255, 0), 10); // green
   }
   strip.show();
 }
@@ -671,7 +657,7 @@ void read_scd4x() {
 
     Serial.println();
 
-    if (aht20_sensor == false && bmx_sensor == false) {
+    if (!aht20_sensor && !bmx_sensor) {
       float calib_temp = (Config::offline_mode)
                              ? Calibration::scd4x_offline_temp
                              : Calibration::scd4x_online_temp;
@@ -690,24 +676,11 @@ void read_scd4x() {
   }
 }
 
-// calculate CRC according to datasheet section 5.17
-uint8_t CalcCrc(uint8_t data[2]) {
-  uint8_t crc = 0xFF;
-  for (int i = 0; i < 2; i++) {
-    crc ^= data[i];
-    for (uint8_t bit = 8; bit > 0; --bit) {
-      if (crc & 0x80) {
-        crc = (crc << 1) ^ 0x31u;
-      } else {
-        crc = (crc << 1);
-      }
-    }
-  }
-  return crc;
-}
-
 void calibrate_scd4x() {
-  if (scd4x_sensor) {
+  if (!scd4x_sensor)
+  {
+    return;
+  }
     ticker.disable(0);
     display_show("Calibration started", "Put sensor", "outside and",
                  "wait for 15 minutes", "", "", true);
@@ -823,7 +796,6 @@ void calibrate_scd4x() {
     display_show("Calibration finished", "", "", "", "", "", true);
     delay(10000);
     ticker.enable(0);
-  }
 }
 
 void calibrate_sensor() { calibrate_scd4x(); }
@@ -884,7 +856,7 @@ void update_display() {
       display.setFont(&FreeSans18pt7b);
       display.setCursor(0, 30);
       if (Config::imperial_temp == true) {
-        int index = temp_imp.indexOf('.');
+        uint8_t index = temp_imp.indexOf('.');
         String temp_a = temp.substring(0, index);
         String temp_b = temp.substring(index + 1, index + 2);
         temp_a += ".";
@@ -898,7 +870,7 @@ void update_display() {
         display.setCursor(tbw + 6, 30);
         display.println(temp_b);
       } else {
-        int index = temp.indexOf('.');
+        uint8_t index = temp.indexOf('.');
         String temp_a = temp.substring(0, index);
         String temp_b = temp.substring(index + 1, index + 2);
         temp_a += ".";
@@ -952,7 +924,7 @@ void update_display() {
       display.println("hpa");
     }
 
-    if (Config::offline_mode == false) {
+    if (!Config::offline_mode) {
       uint16_t x = display.width() - 16;
       uint16_t y = display.height() - 16;
       display.drawExampleBitmap(wifi_icon_small, x, y, 16, 16, GxEPD_BLACK,
@@ -990,7 +962,7 @@ void update_display() {
       if (Config::imperial_temp == true) {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);
-        int index = temp_imp.indexOf('.');
+        uint8_t index = temp_imp.indexOf('.');
         String temp_imp_a = temp.substring(0, index);
         String temp_imp_b = temp.substring(index + 1, index + 2);
         temp_imp_a += ".";
@@ -1006,7 +978,7 @@ void update_display() {
       } else {
         display.setFont(&FreeSans24pt7b);
         display.setCursor(0, 44);
-        int index = temp.indexOf('.');
+        uint8_t index = temp.indexOf('.');
         String temp_a = temp.substring(0, index);
         String temp_b = temp.substring(index + 1, index + 2);
         temp_a += ".";
@@ -1062,7 +1034,7 @@ void update_display() {
       display.println("hpa");
     }
 
-    if (Config::offline_mode == false) {
+    if (!Config::offline_mode) {
       uint16_t x = display.width() - 24;
       uint16_t y = display.height() - 24;
 
@@ -1093,48 +1065,6 @@ void read_sensors() {
   update_display();
 }
 
-void i2c_scanner() {
-  // i2c scanner begin
-  byte error, address;
-  int nDevices;
-
-  Serial.println("Scanning...");
-
-  nDevices = 0;
-  for (address = 1; address < 127; address++) {
-    // The i2c_scanner uses the return value of
-    // the Write.endTransmisstion to see if
-    // a device did acknowledge to the address.
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print("I2C device found at address 0x");
-      i2c_addresses = i2c_addresses + "0x";
-      if (address < 16) {
-        Serial.print("0");
-        i2c_addresses = i2c_addresses + "0";
-      }
-
-      Serial.print(address, HEX);
-      i2c_addresses = i2c_addresses + String(address, HEX) + ",";
-      Serial.println("  !");
-
-      nDevices++;
-    } else if (error == 4) {
-      Serial.print("Unknown error at address 0x");
-      if (address < 16)
-        Serial.print("0");
-      Serial.println(address, HEX);
-    }
-  }
-  if (nDevices == 0)
-    Serial.println("No I2C devices found\n");
-  else
-    Serial.println("done\n");
-
-  // i2c scanner end
-}
-
 void setup() {
 
   if (epaper) {
@@ -1154,7 +1084,7 @@ void setup() {
   }
 
   strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
-  colorWipe(strip.Color(0, 0, 255), 90); // Blue
+  colorWipe(strip.Color(0, 0, 255), 10); // Blue
   strip.show();
 
   /*
@@ -1168,7 +1098,7 @@ void setup() {
   Wire.begin(0, 2);
 
   i2c_addresses = "";
-  i2c_scanner();
+  i2c_scanner(&Serial, i2c_addresses);
 
   if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
     bmx280 = bmp280;
@@ -1193,7 +1123,7 @@ void setup() {
       bmx_sensor = false;
       break;
     }
-    if (bmx_sensor == true) {
+    if (bmx_sensor) {
       // Print sensor type
       Serial.print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
@@ -1248,7 +1178,7 @@ void setup() {
 
     //.begin will start periodic measurements for us (see the later examples for
     // details on how to override this)
-    if (mySensor.begin() == false) {
+    if (!mySensor.begin()) {
       Serial.println(
           F("Sensor not detected. Please check wiring. Freezing..."));
       while (1)
@@ -1261,14 +1191,13 @@ void setup() {
   // load the config
   Config::load();
 
-  int val = digitalRead(BUTTON_LEFT); // read the input pin
-  if (val == 0) {
-    colorWipe(strip.Color(255, 0, 255), 90); // pink
+  if (digitalRead(BUTTON_LEFT) == 0) {
+    colorWipe(strip.Color(255, 0, 255), 10); // pink
     strip.show();
     Serial.println("WIFI toggled!");
     Config::offline_mode = !Config::offline_mode;
     Config::save();
-    if (epaper == true) {
+    if (epaper) {
       String line3 = "OFF";
       String line4 = "WIFI enabled!";
       if (Config::offline_mode) {
@@ -1283,14 +1212,14 @@ void setup() {
     delay(1);
   }
 
-  if (Config::offline_mode == false) {
-    colorWipe(strip.Color(0, 0, 255), 90); // Blue
+  if (!Config::offline_mode) {
+    colorWipe(strip.Color(0, 0, 255), 10); // Blue
     strip.show();
     setupHandle();
     WiFi.mode(WIFI_STA);
     delay(1);
   } else {
-    colorWipe(strip.Color(0, 0, 0), 90); // off
+    colorWipe(strip.Color(0, 0, 0), 10); // off
     strip.show();
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
@@ -1302,16 +1231,9 @@ void setup() {
       0, 10033, [&](void *) { read_sensors(); }, nullptr, true);
 }
 
-void loop() {
-  ticker.update();
-  yield();
-  button_left.loop();
-  yield();
-  button_right.loop();
-  yield();
-  button_mode.loop();
-  yield();
-  if (Config::offline_mode == false) {
+
+void onlineModeLoop()
+{
     // ArduinoOTA.handle();
     mqttClient.loop();
     yield();
@@ -1320,17 +1242,28 @@ void loop() {
     server.handleClient();
 
     const uint32_t currentMillis = millis();
-    if (currentMillis - statusPublishPreviousMillis >= statusPublishInterval) {
-      statusPublishPreviousMillis = currentMillis;
-      printf("Publish state\n");
-      publishState();
-    }
-
     if (!mqttClient.connected() &&
         currentMillis - lastMqttConnectionAttempt >= mqttConnectionInterval) {
       lastMqttConnectionAttempt = currentMillis;
       printf("Reconnect mqtt\n");
       mqttReconnect();
     }
+    else if (currentMillis - statusPublishPreviousMillis >= statusPublishInterval) {
+      statusPublishPreviousMillis = currentMillis;
+      printf("Publish state\n");
+      publishState();
+    }
+}
+
+
+void loop() {
+  ticker.update();
+  yield();
+  button_left.loop();
+  button_right.loop();
+  button_mode.loop();
+  yield();
+  if (!Config::offline_mode) {
+    onlineModeLoop();
   }
 }

@@ -10,8 +10,11 @@ const char configPage[] PROGMEM = R"=====(
 <div id="page">
 <form action="/config" method="POST">
 <div>
-<input type="checkbox" name="imperial_temp" id="imperial_temp"><label for="imperial_temp">Temperature in Fahrenheit instead of Celcius</label>
 <br>
+<input type="checkbox" name="imperial_temp" id="imperial_temp"><label for="imperial_temp">Temperature in Fahrenheit instead of Celcius</label>
+<br><br>
+<input type="number" value="200" min="0" max="255" name="led_brightness" id="led_brightness"><label for="led_brightness">Led Brightness [0-255]</label>
+<br><br>
 <!--input type="checkbox" name="imperial_qfe" id="imperial_qfe"><label for="imperial_qfe">Barometric Air Pressuire in inHg instead of hpa</label>
 <br-->
 <input type="submit" value"Save">

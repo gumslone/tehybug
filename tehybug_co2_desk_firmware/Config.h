@@ -14,6 +14,8 @@ bool imperial_qfe = false;
 bool imperial_alt = false;
 bool offline_mode = false;
 
+uint8_t led_brightness = 200;
+
 void save() {
   DynamicJsonDocument json(512);
   json["mqtt_server"] = mqtt_server;
@@ -24,6 +26,7 @@ void save() {
   json["imperial_qfe"] = imperial_qfe;
   json["imperial_alt"] = imperial_alt;
   json["offline_mode"] = offline_mode;
+  json["led_brightness"] = led_brightness;
 
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
@@ -51,10 +54,11 @@ void load() {
           strcpy(mqtt_server, json["mqtt_server"]);
           strcpy(username, json["username"]);
           strcpy(password, json["password"]);
-          imperial_temp = json["imperial_temp"];
-          imperial_qfe = json["imperial_qfe"];
-          imperial_alt = json["imperial_alt"];
-          offline_mode = json["offline_mode"];
+          imperial_temp = json["imperial_temp"].as<bool>();
+          imperial_qfe = json["imperial_qfe"].as<bool>();
+          imperial_alt = json["imperial_alt"].as<bool>();
+          offline_mode = json["offline_mode"].as<bool>();
+          led_brightness = json["led_brightness"].as<uint8_t>();
         }
       }
     }

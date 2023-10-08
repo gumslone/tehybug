@@ -289,6 +289,14 @@ void setupWifi() {
   wifiManager.addParameter(&custom_mqtt_pass);
 
   WiFi.hostname(identifier);
+
+  std::vector<const char *> wm_menu  = {"wifi", "exit"};
+  wifiManager.setShowInfoUpdate(false);
+  wifiManager.setShowInfoErase(false);
+  wifiManager.setMenu(wm_menu);
+  wifiManager.setConfigPortalTimeout(300);
+  wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");
+  
   wifiManager.autoConnect(identifier);
   mqttClient.setClient(wifiClient);
 

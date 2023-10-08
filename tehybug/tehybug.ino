@@ -610,6 +610,11 @@ void handleGetSensor() {
   server.send(200, "application/json", getSensor());
 }
 
+void handleGetIp() {
+  server.sendHeader("Connection", "close");
+  server.send(200, "text/html", WiFi.localIP().toString());
+}
+
 void handleFactoryReset() {
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
@@ -1570,6 +1575,7 @@ void setup() {
     server.on(F("/api/config"), HTTP_POST, handleSetConfig);
     server.on(F("/api/config"), HTTP_GET, handleGetConfig);
     server.on(F("/api/sensor"), HTTP_GET, handleGetSensor);
+    server.on(F("/api/getip"), HTTP_GET, handleGetIp);
     server.on(F("/"), HTTP_GET, handleGetMainPage);
     server.onNotFound(handleNotFound);
     server.begin();

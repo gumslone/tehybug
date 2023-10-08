@@ -210,7 +210,7 @@ void addTempHumi(String key_temp, float temp, String key_humi, float humi) {
 void additionalSensorData(String key, float value) {
 
   if (key == "temp" || key == "temp2") {
-    addSensorData(key + "_imp", (float)temp2Imp(value));
+    addSensorData(key + "_imp", temp2Imp(value));
   }
   // humi should be always set after temp so the following calculation will work
   else if (key == "humi" || key == "hum2") {
@@ -219,13 +219,13 @@ void additionalSensorData(String key, float value) {
 
     float hi = dht.computeHeatIndex(sensorData["temp" + num].as<float>(),
                                     sensorData[key + num].as<float>());
-    addSensorData("hi" + num, (float)hi);
-    addSensorData("hi_imp" + num, (float)temp2Imp(hi));
+    addSensorData("hi" + num, hi);
+    addSensorData("hi_imp" + num, temp2Imp(hi));
 
     float dew = dht.computeDewPoint(sensorData["temp" + num].as<float>(),
                                     sensorData[key + num].as<float>());
-    addSensorData("dew" + num, (float)dew);
-    addSensorData("dew_imp" + num, (float)temp2Imp(dew));
+    addSensorData("dew" + num, dew);
+    addSensorData("dew_imp" + num, temp2Imp(dew));
   }
 }
 void addSensorData(String key, float value) {
@@ -252,7 +252,6 @@ String replace_placeholders(String text) {
   return text;
 }
 /////
-
 void saveConfig() {
   // save the custom parameters to FS
   if (shouldSaveConfig) {
@@ -838,7 +837,7 @@ void http_post_custom(HTTPClient &http, String url, String post_json) {
   if (httpCode == 200) {
     Log(F("http_post"), post_json);
   }
-  if (httpCode > 0) {                  // Check the returning code
+  else if (httpCode > 0) {                  // Check the returning code
     String payload = http.getString(); // Get the response
     // payload
     D_println(payload); // Print request response payload
@@ -861,7 +860,7 @@ void http_get_custom(HTTPClient &http, String url) {
   if (httpCode == 200) {
     Log(F("http_get"), url);
   }
-  if (httpCode > 0) {                  // Check the returning code
+  else if (httpCode > 0) {                  // Check the returning code
     String payload = http.getString(); // Get the response
     // payload
     D_println(payload); // Print request response payload
@@ -968,11 +967,11 @@ void read_max44009() {
 
 void read_aht20() {
   float humidity, temperature;
-  int ret = AHT.getSensor(&humidity, &temperature);
+  bool ret = AHT.getSensor(&humidity, &temperature);
 
   if (ret) // GET DATA OK
   {
-    addTempHumi("temp", (float)temperature, "humi", (float)(humidity * 100.0F));
+    addTempHumi("temp", temperature, "humi", (humidity * 100.0F));
   } else // GET DATA FAIL
   {
     Serial.println("GET DATA FROM AHT20 FAIL");
@@ -985,7 +984,7 @@ void read_dht_custom(DHTesp &dht, const String &&temp, const String &&humi) {
   delay(dht.getMinimumSamplingPeriod());
   humidity = dht.getHumidity();
   temperature = dht.getTemperature();
-  addTempHumi(temp, (float)temperature, humi, (float)humidity);
+  addTempHumi("temp", temperature, "humi", humidity);
 }
 
 void read_dht() {
@@ -1015,7 +1014,7 @@ void read_am2320() {
 
   temperature = am2320.temperatureC;
   humidity = am2320.humidity;
-  addTempHumi("temp", (float)temperature, "humi", (float)(humidity));
+  addTempHumi("temp", temperature, "humi", humidity);
 }
 
 void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
@@ -1036,7 +1035,7 @@ void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
   if (tempC != DEVICE_DISCONNECTED_C) {
     D_print("Temperature for the device 1 (index 0) is: ");
     D_println(tempC);
-    addSensorData(temp, (float)tempC);
+    addSensorData("temp", tempC);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
@@ -1058,8 +1057,8 @@ void read_adc() {
   digitalWrite(pin, HIGH); // on
   delay(100);
   // read the analog in value
-  int sensorValue = analogRead(0);
-  addSensorData("adc", (float)sensorValue);
+  float sensorValue = analogRead(0);
+  addSensorData("adc", sensorValue);
   digitalWrite(pin, LOW); // off
 }
 #endif
@@ -1275,7 +1274,7 @@ void led_off() {
   else
   {
 #if !defined(ARDUINO_ESP8266_GENERIC)
-    if (PIXEL_ACTIVE == 1) {
+    if (PIXEL_ACTIVE) {
       pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
       pixel.setPixelColor(0, pixel.Color(0, 0, 0)); //  Set pixel's color (in RAM)
       pixel.setBrightness(0);
@@ -1361,11 +1360,11 @@ void setupMDSN() {
 // Helper function definitions
 
 void setupSensors() {
-  if (sensor.dht == false && sensor.ds18b20 == false) {
+  if (!sensor.dht && !sensor.ds18b20) {
     Wire.begin(0, 2);
     // Wire.setClock(400000);
     i2c_addresses = i2c_scanner();
-    i2c_addresses = i2c_addresses + i2c_scanner();
+    i2c_addresses += i2c_scanner();
   }
 
   if (strContains(i2c_addresses.c_str(), "0x77") == 1) {

@@ -17,7 +17,7 @@ const char configPage[] PROGMEM = R"=====(
 <br><br>
 <!--input type="checkbox" name="imperial_qfe" id="imperial_qfe"><label for="imperial_qfe">Barometric Air Pressuire in inHg instead of hpa</label>
 <br-->
-<input type="submit" value"Save">
+<input type="submit" value="Save">
 </div>
 </form>
 </div>

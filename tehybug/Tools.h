@@ -204,7 +204,7 @@ String i2c_scanner() {
   // i2c scanner end
 }
 
-float temp2Imp(float value) { return round(1.8 * value + 32); }
+float temp2Imp(float value) { return (1.8 * value + 32); }
 
 bool isIOScenario(const String & type)
 {

@@ -74,6 +74,10 @@ SCD40 and SCD41 come precalibrated and usually dont need require any calibration
 ## HomeAssistant
 <img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/ha.png?raw=true" width="600">
 
+## IOS Scriptable widget
+![enter image description here](https://user-images.githubusercontent.com/12110353/278871935-dab36e70-4a45-4c89-bae7-1a6990c64afd.jpg "enter image title here")
+The script is available here: https://gist.github.com/gumslone/22fb0bd529c787cc91c8f6e64f240749
+
 ## 3D Printed enclosure
 TeHyBug Mini CO2 enclosure for 3D printing is available on Thingiverse: https://www.thingiverse.com/thing:5999218
 

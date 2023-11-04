@@ -10,6 +10,21 @@ This firmware is compatible with tehybug universal boards (without display) like
 * or other tehybug boards with have audio jack connector for the sensors
 * It is also compatible with any other ESP8266/ESP8285 dev boards like wemos, lolin, nodemcu etc. See the pin mapping images. Only the indicator led will not work and the power saving mode with deep sleep will probably not work either.
 
+## Buttoms
+- Reset: forces TeHyBug to reboot/restart
+- Mode button: activates the configuration mode during the device boot
+
+## Modes
+- Live mode: when your device is configured to serve data (via http/mqtt) and you enable the powersaving deep sleep and deactivate the config mode in the system settings. <img width="402" alt="Bildschirmfoto 2023-11-04 um 16 26 51" src="https://github.com/gumslone/tehybug/assets/12110353/2b2524da-0643-447a-abb0-873b50236c4e">
+
+- Config mode: TeHyBug serves a web interface at http://tehybug.local where you can configure everything.
+
+
+To return back to Config mode from the Live mode:
+1. hit the RESET Button
+2. after that push and hold the MODE button untill the LED turns blue
+3. release the MODE button.
+
 ## Port B (green) supported sensors:
 * BME680
 * BME280/BMP280

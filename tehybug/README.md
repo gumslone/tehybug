@@ -21,7 +21,7 @@ This firmware is compatible with tehybug universal boards (without display) like
 
 
 To return back to Config mode from the Live mode:
-1. hit the RESET Button
+1. hit the RESET button
 2. after that push and hold the MODE button untill the LED turns blue
 3. release the MODE button.
 

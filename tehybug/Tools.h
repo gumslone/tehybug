@@ -146,7 +146,7 @@ void createWeekdaysElements(const char *str, int *arr) {
          &arr[4], &arr[5], &arr[6]);
 }
 //================================================================================
-// Begin calcdayofweek( D, M, Y)
+// Begin dayOfWeek( D, M, Y)
 //================================================================================
 uint8_t dayOfWeek(uint8_t y, uint8_t m,
                   uint8_t d) // 1 <= m <= 12,  y > 1752 (in the U.K.)
@@ -157,7 +157,7 @@ uint8_t dayOfWeek(uint8_t y, uint8_t m,
          7; // Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
 }
 //================================================================================
-// End calcdayofweek( D, M, Y)
+// End dayOfWeek( D, M, Y)
 //================================================================================
 
 String i2c_scanner() {

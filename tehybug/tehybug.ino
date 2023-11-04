@@ -134,7 +134,7 @@ DataServ serveData{};
     (__DATE__[9] - '0')) *                                                     \
    10 +                                                                    \
    (__DATE__[10] - '0'))
-#define COMPILE_SHORTYEAR (((__DATE__[9] - '0')) * 10 + (__DATE__[10] - '0'))
+#define COMPILE_SHORT_YEAR (((__DATE__[9] - '0')) * 10 + (__DATE__[10] - '0'))
 #define COMPILE_MONTH                                                          \
   ((__DATE__[2] == 'n'   ? (__DATE__[1] == 'a' ? 0 : 5)                        \
     : __DATE__[2] == 'b' ? 1                                                   \
@@ -150,7 +150,7 @@ DataServ serveData{};
 #define COMPILE_DAY                                                            \
   ((__DATE__[4] == ' ' ? 0 : __DATE__[4] - '0') * 10 + (__DATE__[5] - '0'))
 
-const String version = String(COMPILE_SHORTYEAR) + IntFormat(COMPILE_MONTH) +
+const String version = String(COMPILE_SHORT_YEAR) + IntFormat(COMPILE_MONTH) +
                        IntFormat(COMPILE_DAY) + IntFormat(COMPILE_HOUR) +
                        IntFormat(COMPILE_MINUTE);
 
@@ -170,8 +170,8 @@ bool shouldSaveConfig = false;
 // Timerserver Vars
 long lastClockUpdate = 0;
 bool clockSecondBlink = true;
-String OldInfo = "";   // old board info
-String OldSensor = ""; // old sensor info
+String oldInfo = "";   // old board info
+String oldSensor = ""; // old sensor info
 // Websoket Vars
 String websocketConnection[10];
 
@@ -712,10 +712,6 @@ String getConfig() {
 
     if (DeserializationError::Ok == deserializeJson(root, buf.get())) {
     }
-    String timeStamp = IntFormat(year()) + "-" + IntFormat(month()) + "-" +
-                       IntFormat(day()) + "T" + IntFormat(hour()) + ":" +
-                       IntFormat(minute());
-    root["clockTime"] = timeStamp;
     String json;
     serializeJson(root, json);
     return json;
@@ -989,7 +985,7 @@ void read_dht_custom(DHTesp &dht, const String &&temp, const String &&humi) {
   delay(dht.getMinimumSamplingPeriod());
   humidity = dht.getHumidity();
   temperature = dht.getTemperature();
-  addTempHumi("temp", temperature, "humi", humidity);
+  addTempHumi(temp, temperature, humi, humidity);
 }
 
 void read_dht() {
@@ -1023,6 +1019,7 @@ void read_am2320() {
 }
 
 void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
+  
   // Start up the library
   ds18b20.begin();
   // Setup a oneWire instance to communicate with any OneWire devices (not just
@@ -1040,7 +1037,7 @@ void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
   if (tempC != DEVICE_DISCONNECTED_C) {
     D_print("Temperature for the device 1 (index 0) is: ");
     D_println(tempC);
-    addSensorData("temp", tempC);
+    addSensorData(temp, tempC);
   } else {
     Serial.println("Error: Could not read temperature data");
   }
@@ -1048,11 +1045,13 @@ void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
 
 void read_ds18b20(void) {
   pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
+  delay(100);
   read_ds18b20_custom(ds18b20_sensors, "temp");
 }
 #if !defined(ARDUINO_ESP8266_GENERIC)
 void read_second_ds18b20(void) {
   pinMode(SECOND_ONE_WIRE_BUS, INPUT_PULLUP);
+  delay(100);
   read_ds18b20_custom(second_ds18b20_sensors, "temp2");
 }
 
@@ -1106,43 +1105,43 @@ void read_sensors() {
 // end of sensor
 void sendDeviceInfo(bool force) {
   if (force) {
-    OldInfo = "";
+    oldInfo = "";
   }
-  String Info;
+  String info;
   if ((webSocket.connectedClients() > 0)) {
-    Info = getInfo();
+    info = getInfo();
   }
-  if (webSocket.connectedClients() > 0 && OldInfo != Info) {
+  if (webSocket.connectedClients() > 0 && oldInfo != info) {
     for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
           websocketConnection[i] == "/firststart" ||
           websocketConnection[i] == "/api/info") {
-        webSocket.sendTXT(i, Info);
+        webSocket.sendTXT(i, info);
       }
     }
   }
-  OldInfo = Info;
+  oldInfo = info;
 }
 
 void sendSensorData(bool force) {
   if (force) {
-    OldSensor = "";
+    oldSensor = "";
   }
-  String Sensor;
+  String sensor;
   if ((webSocket.connectedClients() > 0)) {
-    Sensor = getSensor();
+    sensor = getSensor();
   }
-  if (webSocket.connectedClients() > 0 && OldSensor != Sensor) {
+  if (webSocket.connectedClients() > 0 && oldSensor != sensor) {
     for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
           websocketConnection[i] == "/settings") {
-        webSocket.sendTXT(i, Sensor);
+        webSocket.sendTXT(i, sensor);
       }
     }
   }
-  OldSensor = Sensor;
+  oldSensor = sensor;
 }
 
 void sendConfig() {
@@ -1264,7 +1263,7 @@ void led_on() {
       pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
       pixel.setPixelColor(0, pixel.Color(0, 0, 255));
       pixel.setBrightness(50);
-      pixel.show(); // Initialize all pixels to 'off'
+      pixel.show(); // Initialize all pixels to 'on'
     }
 #endif
   }
@@ -1318,7 +1317,6 @@ void setupWifi() {
   wifiManager.setShowInfoUpdate(false);
   wifiManager.setShowInfoErase(false);
   wifiManager.setMenu(wm_menu);
-  wifiManager.setConfigPortalTimeout(180);
   wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");
   if (!wifiManager.autoConnect(identifier, "TeHyBug123")) {
     Serial.println(F("Setup: Wifi failed to connect and hit timeout"));
@@ -1329,7 +1327,7 @@ void setupWifi() {
     delay(5000);
   }
 
-  D_println(F("Wifi connected...yeey :)"));
+  D_println(F("Wifi connected... yey :)"));
 
   if (shouldSaveConfig) {
     saveConfig();

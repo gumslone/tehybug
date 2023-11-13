@@ -790,6 +790,7 @@ void mqttReconnect() {
       Log(F("MqttReconnect"), F("MQTT not connected!"));
       Log(F("MqttReconnect"), F("Wait 5 seconds before retrying...."));
       serveData.mqtt.retryCounter++;
+      updateMqttClient();
     }
   }
 
@@ -1532,6 +1533,14 @@ void setupMode() {
   turnLedOn();
 }
 
+
+void updateMqttClient()
+{
+  if(serveData.mqtt.active) {
+    client.setServer(serveData.mqtt.server.c_str(), serveData.mqtt.port);
+  }
+}
+
 void setup() {
   uuid.seed(ESP.getChipId());
   uuid.generate();
@@ -1586,7 +1595,7 @@ void setup() {
   }
 
   if (configModeActive == false && serveData.mqtt.active) {
-    client.setServer(serveData.mqtt.server.c_str(), serveData.mqtt.port);
+    updateMqttClient();
     client.setCallback(callback);
     client.setBufferSize(4000);
     Log(F("Setup"), F("MQTT started"));

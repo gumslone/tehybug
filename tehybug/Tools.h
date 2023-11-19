@@ -89,33 +89,6 @@ int GetRSSIasQuality(int rssi) {
   }
   return quality;
 }
-// find in string
-uint8_t strContains(const char *string, char *toFind) {
-  uint8_t slen = strlen(string);
-  uint8_t tFlen = strlen(toFind);
-  uint8_t found = 0;
-
-  if (slen >= tFlen) {
-    for (uint8_t s = 0, t = 0; s < slen; s++) {
-      do {
-
-        if (string[s] == toFind[t]) {
-          if (++found == tFlen)
-            return 1;
-          s++;
-          t++;
-        } else {
-          s -= found;
-          found = 0;
-          t = 0;
-        }
-
-      } while (found);
-    }
-    return 0;
-  } else
-    return -1;
-}
 
 String join(int *arr, String separator, int len) {
   int i;
@@ -159,50 +132,6 @@ uint8_t dayOfWeek(uint8_t y, uint8_t m,
 //================================================================================
 // End dayOfWeek( D, M, Y)
 //================================================================================
-
-String i2c_scanner() {
-  // i2c scanner begin
-  String i2c_addresses = "";
-  byte error, address;
-  int nDevices;
-
-  D_println("Scanning...");
-
-  nDevices = 0;
-  for (address = 1; address < 127; address++) {
-    // The i2c_scanner uses the return value of
-    // the Write.endTransmisstion to see if
-    // a device did acknowledge to the address.
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-
-    if (error == 0) {
-      D_print("I2C device found at address 0x");
-      i2c_addresses = i2c_addresses + "0x";
-      if (address < 16) {
-        D_print("0");
-        i2c_addresses = i2c_addresses + "0";
-      }
-
-      D_print(address, HEX);
-      i2c_addresses = i2c_addresses + String(address, HEX) + ",";
-      D_println("  !");
-
-      nDevices++;
-    } else if (error == 4) {
-      D_print("Unknown error at address 0x");
-      if (address < 16)
-        D_print("0");
-      D_println(address, HEX);
-    }
-  }
-  if (nDevices == 0)
-    D_println("No I2C devices found\n");
-  else
-    D_println("done\n");
-  return i2c_addresses;
-  // i2c scanner end
-}
 
 float temp2Imp(float value) { return (1.8 * value + 32); }
 

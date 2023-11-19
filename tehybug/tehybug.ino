@@ -43,6 +43,7 @@
 // tehybug stuff
 #include "Tools.h"
 #include "Webinterface.h"
+#include "i2cscanner.h"
 #include "tehybug.h"
 
 #if defined(ARDUINO_ESP8266_GENERIC)
@@ -77,10 +78,11 @@ Bsec bme680;
 
 Max44009 Max44009Lux(0x4A);
 
-AHT20 AHT;
+
 DHTesp dht;
 #if !defined(ARDUINO_ESP8266_GENERIC)
 DHTesp dht2;
+AHT20 AHT;
 #endif
 
 AM2320_asukiaaa am2320;
@@ -110,6 +112,9 @@ DallasTemperature second_ds18b20_sensors(&secondOneWire);
 Calibration calibration{};
 Sensor sensor{};
 // end sensors
+
+Device device{};
+
 
 // Button
 #define BUTTON_PIN 0
@@ -168,8 +173,6 @@ bool sleepModeActive = true;
 bool shouldSaveConfig = false;
 
 // Timerserver Vars
-long lastClockUpdate = 0;
-bool clockSecondBlink = true;
 String oldInfo = "";   // old board info
 String oldSensor = ""; // old sensor info
 // Websoket Vars
@@ -178,8 +181,6 @@ String websocketConnection[10];
 UUID uuid;
 
 DynamicJsonDocument sensorData(1024);
-
-String i2c_addresses = "";
 
 Scenarios scenarios{};
 
@@ -733,7 +734,7 @@ String getInfo() {
   root["cpuFreqMHz"] = ESP.getCpuFreqMHz();
   root["sleepModeActive"] = sleepModeActive;
   root["deepSleepMax"] = (int)(ESP.deepSleepMax() / 1000000);
-  root["key"] = sensorData["key"];
+  root["key"] = device.key;
 
   String json;
   serializeJson(root, json);
@@ -953,7 +954,7 @@ void read_max44009() {
     D_print("Error:\t");
     D_println(err);
   } else {
-    addSensorData("lux", (float)max440099lux);
+    addSensorData("lux", max440099lux);
     D_print("lux:\t");
     D_print(max440099lux);
     D_print("\tCDR:\t");
@@ -966,7 +967,7 @@ void read_max44009() {
     D_println();
   }
 }
-
+#if !defined(ARDUINO_ESP8266_GENERIC)
 void read_aht20() {
   float humidity, temperature;
   bool ret = AHT.getSensor(&humidity, &temperature);
@@ -979,7 +980,7 @@ void read_aht20() {
     Serial.println("GET DATA FROM AHT20 FAIL");
   }
 }
-
+#endif
 void read_dht_custom(DHTesp &dht, const String &&temp, const String &&humi) {
   float humidity = dht.getHumidity();
   float temperature = dht.getTemperature();
@@ -1078,9 +1079,6 @@ void read_sensors() {
   if (sensor.max44009) {
     read_max44009();
   }
-  if (sensor.aht20) {
-    read_aht20();
-  }
   if (sensor.dht) {
     read_dht();
   }
@@ -1092,6 +1090,9 @@ void read_sensors() {
   }
 
 #if !defined(ARDUINO_ESP8266_GENERIC)
+  if (sensor.aht20) {
+    read_aht20();
+  }
   if (sensor.adc) {
     read_adc();
   }
@@ -1362,37 +1363,41 @@ void setupMDSN() {
   }
 }
 // Helper function definitions
+void findI2Csensors()
+{
+    Wire.begin(0, 2);
+    // Wire.setClock(400000);
+    // required to scan twice to find sensors like ams2320
+    i2cScanner::scan();
+    i2cScanner::scan();
+
+    if (i2cScanner::addressExists("0x77")) {
+      bmx280 = bmp280;
+      sensor.bmx = true;
+    } else if (i2cScanner::addressExists("0x76")) {
+      sensor.bmx = true;
+    }
+    if (i2cScanner::addressExists("0x5c")) {
+      sensor.am2320 = true;
+    }
+    if (i2cScanner::addressExists("0x58")) {
+      // sgp30
+    }
+    if (i2cScanner::addressExists("0x77")) {
+      sensor.bme680 = true;
+    }
+    if (i2cScanner::addressExists("0x4a")) {
+      sensor.max44009 = true;
+    }
+    if (i2cScanner::addressExists("0x38")) {
+      sensor.aht20 = true;
+    }
+}
 
 void setupSensors() {
   if (!sensor.dht && !sensor.ds18b20) {
-    Wire.begin(0, 2);
-    // Wire.setClock(400000);
-    i2c_addresses = i2c_scanner();
-    i2c_addresses += i2c_scanner();
+    findI2Csensors();
   }
-
-  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
-    bmx280 = bmp280;
-    sensor.bmx = true;
-  } else if (strContains(i2c_addresses.c_str(), "0x76") == 1) {
-    sensor.bmx = true;
-  }
-  if (strContains(i2c_addresses.c_str(), "0x5c") == 1) {
-    sensor.am2320 = true;
-  }
-  if (strContains(i2c_addresses.c_str(), "0x58") == 1) {
-    // sgp30
-  }
-  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
-    sensor.bme680 = true;
-  }
-  if (strContains(i2c_addresses.c_str(), "0x4a") == 1) {
-    sensor.max44009 = true;
-  }
-  if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
-    sensor.aht20 = true;
-  }
-
   // sensors
   // bmx280 and bme680 have same address
   if (sensor.bmx) {
@@ -1487,14 +1492,14 @@ void setupSensors() {
 
     Max44009Lux.setAutomaticMode();
   }
-  if (sensor.aht20) {
-    D_println("AHT20");
-    AHT.begin();
-  }
   if (sensor.dht) {
     dht.setup(2, DHTesp::DHT22); // Connect DHT sensor to GPIO 2
   }
 #if !defined(ARDUINO_ESP8266_GENERIC)
+  if (sensor.aht20) {
+    D_println("AHT20");
+    AHT.begin();
+  }
   if (sensor.dht_2) {
     pinMode(13, INPUT_PULLUP);
     dht2.setup(13, DHTesp::DHT22); // Connect DHT sensor to GPIO 13
@@ -1533,7 +1538,6 @@ void setupMode() {
   turnLedOn();
 }
 
-
 void updateMqttClient()
 {
   if(serveData.mqtt.active) {
@@ -1541,11 +1545,26 @@ void updateMqttClient()
   }
 }
 
-void setup() {
+void generateDeviceKey()
+{
   uuid.seed(ESP.getChipId());
   uuid.generate();
-  sensorData["key"] = String(uuid.toCharArray());
+  device.key = String(uuid.toCharArray());
+  D_println(F("key: "));
+  D_println(device.key);
+}
 
+void setDeviceKey()
+{
+  // UUID – is a 36-character alphanumeric string
+  if(device.key.length() != 36)
+  {
+    generateDeviceKey();
+  }
+  sensorData["key"] = device.key;
+}
+
+void setup() {
   pinMode(SIGNAL_LED_PIN, OUTPUT);
 
   snprintf(identifier, sizeof(identifier), "TEHYBUG-%X", ESP.getChipId());
@@ -1554,8 +1573,7 @@ void setup() {
   while (!Serial) {
     delay(10);
   }
-  D_println(F("key: "));
-  D_println(sensorData["key"].as<String>());
+
   // Mounting FileSystem
   D_println(F("Mounting file system..."));
   if (SPIFFS.begin()) {
@@ -1564,8 +1582,10 @@ void setup() {
   } else {
     D_println(F("Failed to mount FS"));
   }
+  // should be called after the fs mount
+  setDeviceKey();
 
-  // force config when no mode selected
+  // force config when no data serving mode is selected
   if (serveData.get.active == false && serveData.post.active == false &&
       serveData.mqtt.active == false) {
     configModeActive = true;

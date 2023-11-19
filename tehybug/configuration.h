@@ -39,7 +39,7 @@ namespace Config
 
             json["sleepModeActive"] = sleepModeActive;
 
-            json["key"] = sensorData["key"];
+            json["key"] = device.key;
             json["dht_sensor"] = sensor.dht;
             json["second_dht_sensor"] = sensor.dht_2;
 
@@ -244,6 +244,9 @@ namespace Config
         }
         if (json.containsKey("scenario3_message")) {
             scenarios.scenario3.message = json["scenario3_message"].as<String>();
+        }
+        if (json.containsKey("key")) {
+            device.key = json["key"].as<String>();
         }
     }
 

@@ -1,3 +1,6 @@
+struct Device {
+  String key;
+};
 struct Sensor {
   bool bmx{false};
   bool bme680{false};
@@ -17,7 +20,7 @@ struct Calibration {
   float qfe{0};
 };
 struct Scenario {
-  bool active = false;
+  bool active{false};
   String type{};
   String url{};
   String data{};
@@ -32,33 +35,33 @@ struct Scenarios {
 };
 struct HttpGetDataServ {
   String url;
-  bool active = false;
-  int frequency = 900;
+  bool active{false};
+  int frequency{900};
 };
 struct HttpPostDataServ {
   String url;
-  bool active = false;
-  int frequency = 900;
+  bool active{false};
+  int frequency{900};
   String message;
 };
 struct MqttDataServ {
-  bool active = false;
-  bool retained = false;
+  bool active{false};
+  bool retained{false};
   String user;
   String password;
-  String server = "0.0.0.0";
-  String topic = "/tehybug";
+  String server{"0.0.0.0"};
+  String topic{"/tehybug"};
   String message;
-  int port = 1883;
-  int frequency = 900;
-  int retryCounter = 0;
-  int maxRetries = 99;
-  long lastReconnectAttempt = 0;
-  long reconnectWait = 10000; // wait 10 seconds and try to reconnect again
+  int port{1883};
+  int frequency{900};
+  uint8_t retryCounter{0};
+  uint8_t maxRetries{99};
+  long lastReconnectAttempt{0};
+  long reconnectWait{10000}; // wait 10 seconds and try to reconnect again
 };
 struct DataServ {
   HttpGetDataServ get{};
   HttpPostDataServ post{};
   MqttDataServ mqtt{};
-  char data[80];
+  char data[90];
 };

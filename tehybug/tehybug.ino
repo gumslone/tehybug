@@ -214,10 +214,10 @@ void additionalSensorData(String key, float value) {
     addSensorData(key + "_imp", temp2Imp(value));
   }
   // humi should be always set after temp so the following calculation will work
-  else if (key == "humi" || key == "hum2") {
+  else if (key == "humi" || key == "humi2") {
 
-    String num = String(atoi(key.c_str()));
-
+    String num = (atoi(key.c_str()) > 0) ? String(atoi(key.c_str())) : "";
+      
     float hi = dht.computeHeatIndex(sensorData["temp" + num].as<float>(),
                                     sensorData[key + num].as<float>());
     addSensorData("hi" + num, hi);

@@ -12,7 +12,7 @@ struct Sensor {
   bool ds18b20{false};
   bool ds18b20_2{false};
   bool adc{false};
-};
+}__attribute__((packed));
 struct Calibration {
   bool active{false};
   float temp{0};

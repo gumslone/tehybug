@@ -26,7 +26,7 @@
 #include <OneWire.h>
 #include <Wire.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -48,7 +48,12 @@
 
 #if defined(ARDUINO_ESP8266_GENERIC)
 #define  PIXEL_ACTIVE 0
-#define  SIGNAL_LED_PIN 10
+#define  SIGNAL_LED_PIN 1
+#define I2C_SDA 2 
+#define I2C_SCL 0
+#else
+#define I2C_SDA 0 
+#define I2C_SCL 2
 #endif
 
 
@@ -59,6 +64,7 @@
 
 Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #endif
+
 // set pin 4 HIGH to turn on the pixel
 #ifndef SIGNAL_LED_PIN
 #define SIGNAL_LED_PIN 4
@@ -164,8 +170,9 @@ PubSubClient client(espClient);
 WiFiManager wifiManager;
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
+#if !defined(ARDUINO_ESP8266_GENERIC)
 ESP8266HTTPUpdateServer httpUpdater;
-
+#endif
 bool configModeActive = true;
 
 // System Vars
@@ -1002,7 +1009,7 @@ void read_second_dht() {
 #endif
 void read_am2320() {
   float humidity, temperature;
-  Wire.begin(0, 2);
+  Wire.begin(I2C_SDA, I2C_SCL);
   uint8_t count = 0;
 
   while (am2320.update() != 0) {
@@ -1253,8 +1260,9 @@ void serve_scenario() {
 
 void led_on() {
   D_println("Led on");
-  if (SIGNAL_LED_PIN == 10)
+  if (SIGNAL_LED_PIN == 1)
   {
+    pinMode(SIGNAL_LED_PIN, OUTPUT);
     digitalWrite(SIGNAL_LED_PIN, LOW); // on
   }
   else
@@ -1365,7 +1373,7 @@ void setupMDSN() {
 // Helper function definitions
 void findI2Csensors()
 {
-    Wire.begin(0, 2);
+    Wire.begin(I2C_SDA, I2C_SCL);
     // Wire.setClock(400000);
     // required to scan twice to find sensors like ams2320
     i2cScanner::scan();
@@ -1577,7 +1585,7 @@ void setup() {
   // Mounting FileSystem
   D_println(F("Mounting file system..."));
   if (SPIFFS.begin()) {
-    D_println(F("Mounted file system."));
+    D_println(F("File system successfully mounted."));
     loadConfig();
   } else {
     D_println(F("Failed to mount FS"));
@@ -1597,7 +1605,9 @@ void setup() {
 
   if (configModeActive) {
     D_println(F("Starting config mode"));
-    httpUpdater.setup(&server);
+    #if !defined(ARDUINO_ESP8266_GENERIC)
+      httpUpdater.setup(&server);
+    #endif
     server.on(F("/api/info"), HTTP_GET, handleGetInfo);
     server.on(F("/api/config"), HTTP_POST, handleSetConfig);
     server.on(F("/api/config"), HTTP_GET, handleGetConfig);

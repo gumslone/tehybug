@@ -135,16 +135,11 @@ uint8_t dayOfWeek(uint8_t y, uint8_t m,
 
 float temp2Imp(float value) { return (1.8 * value + 32); }
 
-bool isIOScenario(const String & type)
-{
-  return type.substring(0, 2) == "io";
-}
-uint8_t ioScenarioPin(const String & type)
-{
+bool isIOScenario(const String &type) { return type.substring(0, 2) == "io"; }
+uint8_t ioScenarioPin(const String &type) {
   return atoi(type.substring(2, 4).c_str());
 }
-uint8_t ioScenarioLevel(const String & type)
-{
-    size_t lenz = type.length();
-    return atoi(type.substring(lenz-1, lenz).c_str());
+uint8_t ioScenarioLevel(const String &type) {
+  size_t lenz = type.length();
+  return atoi(type.substring(lenz - 1, lenz).c_str());
 }

@@ -73,9 +73,8 @@ uint8_t strContains(const char *string, char *toFind) {
     return -1;
 }
 
-bool addressExists(char *addr)
-{
+bool addressExists(char *addr) {
   return strContains(addresses.c_str(), addr) == 1;
 }
 
-} // namespace i2cscanner
+} // namespace i2cScanner

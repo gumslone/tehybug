@@ -31,7 +31,7 @@ Tindie:
 
 Enclosures for 3D Printing:
 - https://www.thingiverse.com/thing:5752129 TeHyBug Universal 18650
-- https://www.thingiverse.com/thing:6492350 Minibug
+- https://www.thingiverse.com/thing:6492350 MiniBug
 
 ### TeHyBug FreshAirMakesSense CO2 Sensor
 Documentation and the latest firmware binaries you can find here: https://github.com/gumslone/tehybug/tree/master/tehybug_co2_firmware

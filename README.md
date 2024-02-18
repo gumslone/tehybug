@@ -23,6 +23,7 @@ and more at https://tehybug.com/faq
 Tindie:
 - https://www.tindie.com/products/25268/ TeHyBug Universal 18650
 - https://www.tindie.com/products/16458/ TeHyBug Mini
+- https://www.tindie.com/products/11871/ MiniBug S5
 - https://www.tindie.com/products/21467/ TeHyButton Mini, WIFI Water Leakage Sensor
 - https://www.tindie.com/products/19651/
 - https://www.tindie.com/products/11872/

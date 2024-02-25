@@ -13,6 +13,7 @@ bool imperial_temp = false;
 bool imperial_qfe = false;
 bool imperial_alt = false;
 bool offline_mode = false;
+bool scd40_single_shot = false;
 
 void save() {
   DynamicJsonDocument json(512);
@@ -23,6 +24,7 @@ void save() {
   json["imperial_temp"] = imperial_temp;
   json["imperial_qfe"] = imperial_qfe;
   json["imperial_alt"] = imperial_alt;
+  json["scd40_single_shot"] = scd40_single_shot;
   json["offline_mode"] = offline_mode;
 
   File configFile = SPIFFS.open("/config.json", "w");
@@ -55,6 +57,7 @@ void load() {
           imperial_qfe = json["imperial_qfe"];
           imperial_alt = json["imperial_alt"];
           offline_mode = json["offline_mode"];
+          scd40_single_shot = json["scd40_single_shot"];
         }
       }
     }

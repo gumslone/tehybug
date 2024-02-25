@@ -169,6 +169,8 @@ String getSensor() {
   root["humidity"] = humi;
   root["pressure"] = qfe;
   root["altitude"] = alt;
+  root["devices"] = i2c_addresses;
+  root["ip"] = WiFi.localIP().toString();
   String json;
   serializeJson(root, json);
   return json;
@@ -193,6 +195,13 @@ void handleSaveConfig() {
     }
   } else {
     Config::imperial_qfe = false;
+  }
+  if (server.hasArg("scd40_single_shot")) {
+    if (server.arg("scd40_single_shot")) {
+      Config::scd40_single_shot = true;
+    }
+  } else {
+    Config::scd40_single_shot = false;
   }
   Config::save();
   server.sendHeader("Connection", "close");
@@ -353,7 +362,7 @@ void longClick(Button2 &btn) {
     resetWifiSettingsAndReboot();
   }
   if (btn.getPin() == BUTTON_RIGHT) {
-    Serial.println("calibrate sensoor\n");
+    Serial.println("calibrate sensor\n");
     calibrate_sensor();
   }
 }
@@ -501,7 +510,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2022.11.20";
+  device["sw_version"] = "2024.02.25";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -679,6 +688,11 @@ void read_scd4x() {
     }
 
     co2_ampel(co2.toInt());
+  }
+
+  if (Config::scd40_single_shot)
+  {
+    mySensor.measureSingleShot(); // Request fresh data (should take 5 seconds)
   }
 }
 void read_s8() {
@@ -891,46 +905,10 @@ uint8_t strContains(const char *string, char *toFind) {
     return -1;
 }
 
-void setup() {
-  strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
-  colorWipe(strip.Color(0, 0, 255), 90); // Blue
-  strip.show();
 
-  /*
-    WiFi.mode(WIFI_OFF);
-    WiFi.forceSleepBegin();
-    delay(1); //Needed, at least in my tests WiFi doesn't power off without this
-    for some reason
-  */
-
-  Serial.begin(115200);
-  Wire.begin(0, 2);
-
-  i2c_addresses = "";
-  i2c_scanner();
-
-  if (strContains(i2c_addresses.c_str(), "0x3c") == 1) {
-    oled = true;
-  }
-
-  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
-    bmx280 = bmp280;
-    bmx_sensor = true;
-  } else if (strContains(i2c_addresses.c_str(), "0x76") == 1) {
-    bmx_sensor = true;
-  }
-
-  if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
-    aht20_sensor = true;
-  }
-
-  if (strContains(i2c_addresses.c_str(), "0x62") == 1) {
-    scd4x_sensor = true;
-  } else {
-    s8_sensor = true;
-  }
-
-  if (oled) {
+void setupDevices()
+{
+    if (oled) {
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
       Serial.println(F("SSD1306 allocation failed"));
@@ -1000,21 +978,6 @@ void setup() {
     }
   }
 
-  if (scd4x_sensor) {
-    // The SCD4x has data ready every five seconds
-    // mySensor.enableDebugging(); // Uncomment this line to get helpful debug
-    // messages on Serial
-
-    //.begin will start periodic measurements for us (see the later examples for
-    // details on how to override this)
-    if (mySensor.begin() == false) {
-      Serial.println(
-          F("Sensor not detected. Please check wiring. Freezing..."));
-      while (1)
-        ;
-    }
-  }
-
   if (s8_sensor) {
     // First message, we are alive
     Serial.println("");
@@ -1048,10 +1011,97 @@ void setup() {
     }
   }
 
+  
+  if (scd4x_sensor) {
+    if (Config::scd40_single_shot)
+    {
+      Serial.println(F("SCD4X single shot measurement"));
+      if (mySensor.begin(false, true, false) == false) // Do not start periodic measurements
+      //measBegin_________/     |     |
+      //autoCalibrate__________/      |
+      //skipStopPeriodicMeasurements_/
+      {
+        Serial.println(F("Sensor not detected. Please check wiring. Freezing..."));
+        while (1)
+          ;
+      }
+  
+      //Let's call measureSingleShot to start the first conversion
+      bool success = mySensor.measureSingleShot();
+      if (success == false)
+      {
+        Serial.println(F("measureSingleShot failed. Are you sure you have a SCD41 connected? Freezing..."));
+        while (1)
+          ;    
+      }
+    }
+    else
+    {
+      Serial.println(F("SCD4X perodic measurement"));
+      // The SCD4x has data ready every five seconds
+      // mySensor.enableDebugging(); // Uncomment this line to get helpful debug
+      // messages on Serial
+  
+      //.begin will start periodic measurements for us (see the later examples for
+      // details on how to override this)
+      if (mySensor.begin() == false) {
+        Serial.println(
+            F("Sensor not detected. Please check wiring. Freezing..."));
+        while (1)
+          ;
+      }
+    }
+  }
+
+}
+
+void setup() {
+  strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
+  colorWipe(strip.Color(0, 0, 255), 90); // Blue
+  strip.show();
+
+  /*
+    WiFi.mode(WIFI_OFF);
+    WiFi.forceSleepBegin();
+    delay(1); //Needed, at least in my tests WiFi doesn't power off without this
+    for some reason
+  */
+
+  Serial.begin(115200);
+  Wire.begin(0, 2);
+
+  i2c_addresses = "";
+  i2c_scanner();
+
+  if (strContains(i2c_addresses.c_str(), "0x3c") == 1) {
+    oled = true;
+  }
+
+  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
+    bmx280 = bmp280;
+    bmx_sensor = true;
+  } else if (strContains(i2c_addresses.c_str(), "0x76") == 1) {
+    bmx_sensor = true;
+  }
+
+  if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
+    aht20_sensor = true;
+  }
+
+  if (strContains(i2c_addresses.c_str(), "0x62") == 1) {
+    scd4x_sensor = true;
+  } else {
+    s8_sensor = true;
+  }
+
+
+
   setupButtons();
 
   // load the config
   Config::load();
+  //setup i2c devices
+  setupDevices();
 
   int val = digitalRead(BUTTON_LEFT); // read the input pin
   if (val == 0) {
@@ -1087,7 +1137,7 @@ void setup() {
     delay(1); // Needed, at least in my tests WiFi doesn't power off without
               // this for some reason
   }
-
+  
   ticker.add(
       0, 10033, [&](void *) { read_sensors(); }, nullptr, true);
 }

@@ -12,8 +12,8 @@ const char configPage[] PROGMEM = R"=====(
 <div>
 <input type="checkbox" name="imperial_temp" id="imperial_temp"><label for="imperial_temp">Temperature in Fahrenheit instead of Celcius</label>
 <br>
-<!--input type="checkbox" name="imperial_qfe" id="imperial_qfe"><label for="imperial_qfe">Barometric Air Pressuire in inHg instead of hpa</label>
-<br-->
+<input type="checkbox" name="scd40_single_shot" id="scd40_single_shot"><label for="scd40_single_shot">SCD4X sensor single shot mode (not recommended)</label>
+<br>
 <input type="submit" value"Save">
 </div>
 </form>

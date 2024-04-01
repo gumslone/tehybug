@@ -12,6 +12,7 @@
 #include <ArduinoOTA.h>
 #include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
 #include <ESP8266HTTPUpdateServer.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
@@ -89,6 +90,8 @@ AHT20 AHT;
 bool aht20_sensor =
     false; // in the setup the i2c scanner searches for the sensor
 
+bool remote_sensor = false;
+
 // Declare our NeoPixel strip object:
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 // Argument 1 = Number of pixels in NeoPixel strip
@@ -123,8 +126,11 @@ WiFiClient wifiClient;
 PubSubClient mqttClient;
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
+// HTTP Config
+HTTPClient http1;
+HTTPClient http2;
 
-WiFiManagerParameter custom_mqtt_server("server", "mqtt server",
+WiFiManagerParameter custom_mqtt_server("server", "MQTT server",
                                         Config::mqtt_server,
                                         sizeof(Config::mqtt_server));
 WiFiManagerParameter custom_mqtt_user("user", "MQTT username", Config::username,
@@ -167,6 +173,7 @@ String getSensor() {
   root["humidity"] = humi;
   root["pressure"] = qfe;
   root["altitude"] = alt;
+  root["ip"] = WiFi.localIP().toString();
   String json;
   serializeJson(root, json);
   return json;
@@ -448,6 +455,62 @@ void resetWifiSettingsAndReboot() {
   ESP.restart();
 }
 
+// HTTP REQUESTS
+void http_post_custom(HTTPClient &http, String url, String post_json) {
+  Serial.println("HTTP POST: ");
+  Serial.println(url);
+  http.begin(wifiClient, url); // Specify request destination
+  http.addHeader("Content-Type",
+                 "application/json"); // Specify content-type header
+  int httpCode = http.POST(post_json); // Send the request
+  Serial.println(httpCode);                 // Print HTTP return code
+  if (httpCode > 0) {                  // Check the returning code
+    String payload = http.getString(); // Get the response
+    // payload
+    Serial.println(payload); // Print request response payload
+  }
+  http.end(); // Close connection
+}
+
+void http_get_custom(HTTPClient &http, String url) {
+  Serial.println("HTTP GET: ");
+  Serial.println(url);
+  http.begin(wifiClient, url); // Specify request destination
+  http.setURL(url);
+  http.addHeader("Content-Type", "text/plain"); // Specify content-type header
+
+  int httpCode = http.GET(); // Send the request
+  Serial.println(httpCode);       // Print HTTP return code
+
+  if (httpCode > 0) {                  // Check the returning code
+    String payload = http.getString(); // Get the response
+    // Parse response
+    DynamicJsonDocument json(2048);
+    deserializeJson(json, http.getStream());
+    
+    // Read values
+    if (json.containsKey("co2")) {
+      co2 = json["co2"].as<String>();
+    }
+    if (json.containsKey("temperature")) {
+      temp = json["temperature"].as<String>();
+    }
+    if (json.containsKey("humidity")) {
+      humi = json["humidity"].as<String>();
+    }
+    if (json.containsKey("pressure")) {
+      qfe = json["pressure"].as<String>();
+    }
+    if (json.containsKey("altitude")) {
+      alt = json["altitude"].as<String>();
+    }
+    
+    // payload
+    Serial.println(payload); // Print request response payload
+  }
+  http.end(); // Close connection
+}
+
 void mqttReconnect() {
   for (uint8_t attempt = 0; attempt < 3; ++attempt) {
     if (mqttClient.connect(identifier, Config::username, Config::password,
@@ -502,7 +565,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2023.10.08";
+  device["sw_version"] = "2024.04.01";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -807,6 +870,11 @@ void calibrate_scd4x() {
 
 void calibrate_sensor() { calibrate_scd4x(); }
 
+void read_remote() {
+  http_get_custom(http1, "http://tehybug.local");
+}
+
+
 void display_show(const String line1, const String line2, const String line3,
                   const String line4, const String line5, const String line6,
                   bool partial) {
@@ -1068,6 +1136,10 @@ void read_sensors() {
     read_scd4x();
   }
 
+  if(remote_sensor){
+    read_remote();
+  }
+
   update_epaper_display = true;
   update_display();
 }
@@ -1122,6 +1194,11 @@ void setup() {
     scd4x_sensor = true;
   }
 
+  if(i2c_addresses == "")
+  {
+    remote_sensor = true;
+  }
+  
   // bmx280 and bme680 have same address
   if (bmx_sensor) {
     // Initialize sensor
@@ -1169,7 +1246,7 @@ void setup() {
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
       bmx280.setSampling(
-          BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
+          BMX280_MODE_NORMAL,      // SLEEP, FORCED, NORMAL
           BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
           BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
           BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)

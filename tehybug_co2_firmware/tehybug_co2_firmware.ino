@@ -161,11 +161,8 @@ String getSensor() {
   DynamicJsonDocument root(1024);
   root["co2"] = co2;
 
-  if (Config::imperial_temp == true) {
-    root["temperature"] = temp_imp;
-  } else {
-    root["temperature"] = temp;
-  }
+  root["temperature"] = Config::imperial_temp ? temp_imp : temp;
+
   root["humidity"] = humi;
   root["pressure"] = qfe;
   root["altitude"] = alt;
@@ -510,7 +507,7 @@ void publishAutoConfig() {
   device["manufacturer"] = "TeHyBug";
   device["model"] = "FreshAirMakesSense";
   device["name"] = identifier;
-  device["sw_version"] = "2024.02.25";
+  device["sw_version"] = "2024.04.01";
 
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
@@ -777,6 +774,7 @@ void display_show(const String line1, const String line2, const String line3,
       display.setCursor(32, 36);
       display.println(line4);
     }
+    
     if (offline == false) {
       display.setCursor(95, 0);
       display.println("^");
@@ -808,7 +806,11 @@ void update_display() {
     if (qfe != "") {
       line4 = "P: " + qfe + "hPa";
     }
-
+    if (line1 == "" && line2 == "" && line3 == "") {
+      line1 = "Reading";
+      line2 = "sensors";
+      line3 = "...";
+    }
     display_show(line1, line2, line3, line4, Config::offline_mode);
   }
 }
@@ -906,9 +908,9 @@ uint8_t strContains(const char *string, char *toFind) {
 }
 
 
-void setupDevices()
+void setupOled()
 {
-    if (oled) {
+  if (oled) {
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
       Serial.println(F("SSD1306 allocation failed"));
@@ -921,7 +923,10 @@ void setupDevices()
     display.setRotation(2);
     delay(2000); // Pause for 2 seconds
   }
-
+}
+void setupDevices()
+{
+  strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
   // bmx280 and bme680 have same address
   if (bmx_sensor) {
     // Initialize sensor
@@ -969,7 +974,7 @@ void setupDevices()
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
       bmx280.setSampling(
-          BMX280_MODE_SLEEP,      // SLEEP, FORCED, NORMAL
+          BMX280_MODE_NORMAL,      // SLEEP, FORCED, NORMAL
           BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
           BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
           BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
@@ -1056,10 +1061,6 @@ void setupDevices()
 }
 
 void setup() {
-  strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
-  colorWipe(strip.Color(0, 0, 255), 90); // Blue
-  strip.show();
-
   /*
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
@@ -1075,6 +1076,7 @@ void setup() {
 
   if (strContains(i2c_addresses.c_str(), "0x3c") == 1) {
     oled = true;
+    setupOled();
   }
 
   if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
@@ -1093,15 +1095,12 @@ void setup() {
   } else {
     s8_sensor = true;
   }
-
-
-
-  setupButtons();
-
   // load the config
   Config::load();
+  delay(10);
   //setup i2c devices
   setupDevices();
+  setupButtons();
 
   int val = digitalRead(BUTTON_LEFT); // read the input pin
   if (val == 0) {

@@ -1,5 +1,0 @@
-print("1")
-tmr.delay(1*1000000)
-print("2")
-node.dsleep(2*1000000)
-print("3")

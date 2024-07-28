@@ -27,8 +27,6 @@ void scan() {
 
       D_println(address, HEX);
       addresses = addresses + String(address, HEX) + ",";
-      D_println("  !");
-
       nDevices++;
     } else if (error == 4) {
       D_print("Unknown error at address 0x");
@@ -40,7 +38,7 @@ void scan() {
   if (nDevices == 0)
     D_println("No I2C devices found\n");
   else
-    D_println("done\n");
+    D_println("I2C scan is finished\n");
 
   // i2c scanner end
 }

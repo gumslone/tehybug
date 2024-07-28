@@ -1,3 +1,6 @@
+#pragma once
+#ifndef _COMMON_FUNCTIONS_
+#define _COMMON_FUNCTIONS_
 /// <summary>
 /// Adds a leading 0 to a number if it is smaller than 10
 /// </summary>
@@ -133,7 +136,7 @@ uint8_t dayOfWeek(uint8_t y, uint8_t m,
 // End dayOfWeek( D, M, Y)
 //================================================================================
 
-float temp2Imp(float value) { return (1.8 * value + 32); }
+float temp2Imp(const float & value) { return (1.8 * value + 32); }
 
 bool isIOScenario(const String &type) { return type.substring(0, 2) == "io"; }
 uint8_t ioScenarioPin(const String &type) {
@@ -143,3 +146,5 @@ uint8_t ioScenarioLevel(const String &type) {
   size_t lenz = type.length();
   return atoi(type.substring(lenz - 1, lenz).c_str());
 }
+
+#endif

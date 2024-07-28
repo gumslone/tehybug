@@ -1,69 +1,108 @@
-struct Device {
-  String key;
-  bool configMode{false};
-  bool sleepMode{true};
+#pragma once
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include "data_types.h"
+#include "configuration.h"
+#include "UUID.h"
+#ifndef _TeHyBug_HEADER_
+#define _TeHyBug_HEADER_
+class TeHyBug {
+  public:
+    Calibration calibration{};
+    Sensor sensor{};
+    Device device{};
+    DataServ serveData{};
+    Scenarios scenarios{};
+    DynamicJsonDocument sensorData;
+    TeHyBugConfig conf;
+
+    TeHyBug(DHTesp & dht): sensorData(1024), m_dht(dht), conf(calibration, sensor, device, serveData, scenarios) {
+    }
+
+    String replacePlaceholders(String text) {
+      const JsonObject root = sensorData.as<JsonObject>();
+      for (JsonPair keyValue : root) {
+        String k = keyValue.key().c_str();
+        String v = keyValue.value();
+        text.replace("%" + k + "%", v);
+      }
+      return text;
+    }
+
+    void additionalSensorData(const String & key, float & value) {
+
+      if (key == "temp" || key == "temp2") {
+        addSensorData(key + "_imp", temp2Imp(value));
+      }
+      // humi should be always set after temp so the following calculation will work
+      else if (key == "humi" || key == "humi2") {
+
+        const String num = atoi(key.c_str()) > 0 ? String(atoi(key.c_str())) : "";
+
+        const float hi = m_dht.computeHeatIndex(sensorData["temp" + num].as<float>(),
+                                                sensorData[key + num].as<float>());
+        addSensorData("hi" + num, hi);
+        addSensorData("hi_imp" + num, temp2Imp(hi));
+
+        const float dew = m_dht.computeDewPoint(sensorData["temp" + num].as<float>(),
+                                                sensorData[key + num].as<float>());
+        addSensorData("dew" + num, dew);
+        addSensorData("dew_imp" + num, temp2Imp(dew));
+      }
+    }
+
+    void addSensorData(const String & key, float value) {
+
+      if (key == "temp" || key == "temp2") {
+        value = calibrateValue("temp", value);
+      } else if (key == "humi" || key == "humi2") {
+        value = calibrateValue("humi", value);
+      } else if (key == "qfe") {
+        value = calibrateValue("qfe", value);
+      }
+      sensorData[key] = String(value, 1);
+      // calculate imperial temperature also heat index and the dew point
+      additionalSensorData(key, value);
+    }
+    void addTempHumi(const String & key_temp, float temp, const String & key_humi, float humi) {
+      addSensorData(key_temp, temp);
+      addSensorData(key_humi, humi);
+    }
+
+    void getDeviceKey() {
+      // UUID – is a 36-character alphanumeric string
+      String key = device.key;
+      if (key.length() != 36) {
+        key = generateDeviceKey();
+        setDeviceKey(key);
+      }
+      D_println(F("key: "));
+      D_println(key);
+    }
+
+  private:
+    DHTesp & m_dht;
+    UUID m_uuid;
+    void setDeviceKey(String key) {
+      device.key = key;
+      sensorData["key"] = key;
+    }
+    String generateDeviceKey() {
+      m_uuid.seed(ESP.getChipId());
+      m_uuid.generate();
+      return String(m_uuid.toCharArray());
+    }
+    float calibrateValue(const String & _n, float _v) {
+      if (calibration.active) {
+        if (_n == "temp")
+          _v += calibration.temp;
+        else if (_n == "humi")
+          _v += calibration.humi;
+        else if (_n == "qfe")
+          _v += calibration.qfe;
+      }
+      return _v;
+    }
 };
-struct Sensor {
-  bool bmx{false};
-  bool bme680{false};
-  bool max44009{false};
-  bool aht20{false};
-  bool dht{false};
-  bool dht_2{false};
-  bool am2320{false};
-  bool ds18b20{false};
-  bool ds18b20_2{false};
-  bool adc{false};
-} __attribute__((packed));
-struct Calibration {
-  bool active{false};
-  float temp{0};
-  float humi{0};
-  float qfe{0};
-};
-struct Scenario {
-  bool active{false};
-  String type{};
-  String url{};
-  String data{};
-  String condition{};
-  float value{};
-  String message{};
-};
-struct Scenarios {
-  Scenario scenario1{};
-  Scenario scenario2{};
-  Scenario scenario3{};
-};
-struct HttpGetDataServ {
-  String url;
-  bool active{false};
-  int frequency{900};
-};
-struct HttpPostDataServ {
-  String url;
-  bool active{false};
-  int frequency{900};
-  String message;
-};
-struct MqttDataServ {
-  bool active{false};
-  bool retained{false};
-  String user;
-  String password;
-  String server{"0.0.0.0"};
-  String topic{"/tehybug"};
-  String message;
-  int port{1883};
-  int frequency{900};
-  uint8_t retryCounter{0};
-  uint8_t maxRetries{99};
-  long lastReconnectAttempt{0};
-  long reconnectWait{10000}; // wait 10 seconds and try to reconnect again
-};
-struct DataServ {
-  HttpGetDataServ get{};
-  HttpPostDataServ post{};
-  MqttDataServ mqtt{};
-  char data[90];
-};
+
+#endif

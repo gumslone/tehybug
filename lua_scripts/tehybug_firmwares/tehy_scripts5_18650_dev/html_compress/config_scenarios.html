@@ -1,0 +1,131 @@
+<html>
+<head>
+	<title>Scenario configuration</title>
+</head>
+<body>
+	<h3>Scenario configuration</h3>
+	<div class="msg warn">Please use metric values for the conditions. You can define up to 3 scenarios</div>
+	<div id="message"></div>
+	<div>
+		<form method="get">
+			<input type="hidden" name="configuration_name" value="scenario">
+			<input type="hidden" name="action" value="save_configuration">
+			
+			<div id="conditions">
+					<p>
+						<span>Select scenario:</span><br>
+						<select name="configuration_file" onchange="load_config();">
+							<option value="config_scenario1.lua">Scenario 1</option>
+							<option value="config_scenario2.lua">Scenario 2</option>
+							<option value="config_scenario3.lua">Scenario 3</option>
+						</select>
+					</p>
+					<p>
+						<select class="form-control" name="parameter">
+							<option value="temp">Temperature</option>
+							<option value="humi">Humidity</option>
+							<option value="qfe">Barometric Air Pressure</option>
+							<option value="air">Air Quality</option>
+							<option value="uv">UV Light</option>
+							<option value="lux">Ambient Light</option>
+							<option value="xdc">ADC Value</option>
+						</select>
+					</p>
+					
+					<p>			
+						<select class="form-control" name="condition">
+							<option value="gt">&gt; is higher than</option>
+							<option value="lt">&lt; is lower than</option>
+							<option value="eq">= is equal</option>
+						</select>
+					</p>
+					
+					<p>
+						<input type="text" class="form-control" name="value" value="25">
+					</p>
+						
+					<p>
+						<label for="url">Call HTTP GET URL:</label>
+						<input type="text" class="form-control" name="url" value="" placeholder="send a http get request to some web server">
+					</p>
+				
+			</div>			
+			<p>
+				<input type="submit" value="Save configuration">
+			</p>
+		</form>
+	</div>
+	<p>
+		<a href="/?action=remove_scenario" onclick="return confirm('Are you sure?');">Unset scenario configuration</a>
+	</p>
+	<p>
+		<a href="/">&lt; Main Menu</a>
+	</p>
+<script>
+function id(i)
+{
+	return document.getElementById(i);
+}
+function name(n)
+{
+	return document.getElementsByName(n);
+}
+function load_css()
+	{
+		var cssFile = document.createElement("link");
+		cssFile.setAttribute("rel", "stylesheet");
+		cssFile.setAttribute("type", "text/css");
+		cssFile.setAttribute("href", '/style.css.gz');
+		document.getElementsByTagName("head")[0].appendChild(cssFile);
+	}
+	function load_config()
+	{
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			load_css();
+			var config_content= this.responseText;
+			config_content = config_content.substring(config_content.indexOf('{')+1, config_content.lastIndexOf('}'));
+			const regex = /(\w+)\s?=(.*)/gmi;
+			const subst = `"$1":$2`;
+			const result = config_content.replace(regex, subst);
+			var response_json = JSON.parse('{'+result.replace(/,\s*$/, "")+'}');
+			if(response_json['url']!=null)
+				name('url')[0].value = response_json['url'];
+			if(response_json['parameter']!=null)
+				name('parameter')[0].value = response_json['parameter'];
+			if(response_json['condition']!=null)
+				name('condition')[0].value = response_json['condition'];
+			
+		}
+		else if (this.readyState == 4 && this.status == 404) {
+		load_css();
+		}
+		};
+		
+		xhttp.open("GET", "/"+name("configuration_file")[0].value+"?"+Math.random().toString(36).slice(-5), true);
+		xhttp.send();
+	}
+	
+	document.forms[0].addEventListener('submit', function(e) {
+		e.preventDefault();
+		let params = new FormData(this);
+		let action = window.location + '?';
+		for (var key of params.keys())
+		{
+			action += '&' + key + '=' + encodeURIComponent(params.get(key));
+		}
+		let xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				id('message').innerHTML='<div class="msg success">Configuration file updated successfully!</div>';
+			}
+		};
+		xhttp.open("GET", action, true);
+		xhttp.send();
+	});
+	load_config();
+</script>
+
+</body>
+</html>

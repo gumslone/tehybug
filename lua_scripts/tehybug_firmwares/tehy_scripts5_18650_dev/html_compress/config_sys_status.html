@@ -1,0 +1,80 @@
+<html>
+<head>
+	<title>System status configuration</title>
+</head>
+<body>
+	<h3>System status configuration</h3>
+
+	<div id="message"></div>
+	
+	<div>
+		<form method="get">
+			<input type="hidden" name="configuration_file" value="system.lua">
+			<input type="hidden" name="configuration_name" value="status">
+			<input type="hidden" name="action" value="save_configuration">
+			<p>
+				<span>System status:</span><br>
+				
+				<select name="status">
+					<option value="0">Setup Mode</option>
+					<option value="1">Active Mode</option>
+					<option value="2">Generate File list Mode</option>
+					<option value="3">WGET</option>
+					<option value="4">Custom dofile</option>
+				</select>
+			</p>
+			<p>
+				<input type="submit" value="Save configuration">
+			</p>
+		</form>
+	</div>
+	
+	<p>
+		<a href="/admin.html">&lt; Admin Menu</a>
+	</p>
+	
+	<p>
+		<a href="/">&lt; Main Menu</a>
+	</p>
+
+
+	<script>
+		function id(i)
+		{
+			return document.getElementById(i);
+		}
+		function name(n)
+		{
+			return document.getElementsByName(n);
+		}
+		function load_css()
+			{
+				var cssFile = document.createElement("link");
+				cssFile.setAttribute("rel", "stylesheet");
+				cssFile.setAttribute("type", "text/css");
+				cssFile.setAttribute("href", '/style.css.gz');
+				document.getElementsByTagName("head")[0].appendChild(cssFile);
+			}
+			
+			document.forms[0].addEventListener('submit', function(e) {
+				e.preventDefault();
+				let params = new FormData(this);
+				let action = window.location + '?';
+				for (var key of params.keys())
+				{
+					action += '&' + key + '=' + encodeURIComponent(params.get(key));
+				}
+				let xhttp = new XMLHttpRequest();
+				xhttp.onreadystatechange = function() {
+					if (this.readyState == 4 && this.status == 200) {
+						id('message').innerHTML='<div class="msg success">Configuration file updated successfully!</div>';
+					}
+				};
+				xhttp.open("GET", action, true);
+				xhttp.send();
+			});
+			load_css();
+		</script>
+
+</body>
+</html>

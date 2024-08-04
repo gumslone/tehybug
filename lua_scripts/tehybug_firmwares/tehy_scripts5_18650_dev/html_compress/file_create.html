@@ -1,0 +1,124 @@
+<html>
+<head>
+	<title>Create File</title>
+</head>
+<body>
+	<h3>Create File</h3>
+	<div id="message"></div>
+	<!--message-->
+	<div>
+		<form method="get">
+			<p>
+				<span>File name:</span><br>
+				<input type="text" name="file_name" id="file_name" value="file_name.lua">
+			</p>
+			<p>
+				<span>File contents:</span><br>
+				<textarea name="file_contents" id="file_contents" style="min-width: 400px;min-height: 200px;"></textarea>
+			</p>
+			<p>
+				<a href="javascript:void(0);" onclick="send_file_contents();">Create file</a>
+				<br>
+				<br>
+				<a href="javascript:void(0);" onclick="compile_file();">Compile file</a><br>
+				<a href="javascript:void(0);" onclick="delete_file();">Delete file</a>
+			</p>
+		</form>
+	</div>
+	
+	<p>
+		<a href="/admin.html">&lt; Admin Menu</a>
+	</p>
+
+	<p>
+		<a href="/">&lt; Main Menu</a>
+	</p>
+	
+<script>
+var prev_line_num = -1;
+var file_lines = 0;
+var lines = null;
+var file_name = null;
+var curr_line_num = -1;
+var file_lines_num = 0;
+function id(i)
+{
+	return document.getElementById(i);
+}
+function name(n)
+{
+	return document.getElementsByName(n);
+}
+function send_file_contents(){
+	lines = id("file_contents").value.split('\n');
+	file_name = id("file_name").value.trim();
+	file_lines_num = lines.length;
+	curr_line_num = 0;
+	
+	if (file_lines_num > 200 && confirm("Files larger than 200 lines may cause upload failure!")) {
+		send_rq();
+	} 
+	else if (file_lines_num <= 200)
+	{
+		send_rq();
+	}
+	
+	
+}
+function send_rq()
+{
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			curr_line_num++;
+			if(curr_line_num<file_lines_num)
+			{
+				var html = "Total lines: <b>"+lines.length+"</b><br>Current line: <b>"+(curr_line_num+1)+"</b><br>Writing contents file:<br>"+htmlEntities(lines[curr_line_num])+"<br>";	  
+				if(curr_line_num == file_lines_num-1)
+				{ 
+					html += 'FINISHED!<br>Please check whether the file contents are correct: <a href="/' + file_name + '?action=view_file">view file</a> or <a href="/file_create.html?action=execute&execute_command=%3Dnode.compile%28%27' + file_name + '%27%29">compile file</a>';
+				}
+				id("message").innerHTML = '<div class="msg warn">'+html+'</div>';
+				prev_line_num = curr_line_num;
+				send_rq();
+			}
+		}
+	};
+	xhttp.open("GET", "/dummy.html?action=file_append&file_name="+file_name+"&file_line_num="+curr_line_num+"&file_line="+encodeURIComponent(lines[curr_line_num])+"&rnd="+Math.random(), true);
+	xhttp.send();
+
+	
+}
+
+function htmlEntities(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function get(url)
+{
+	let xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				id('message').innerHTML='<code>Output:<pre>'+this.responseText+'</pre></code>';
+			}
+		};
+		xhttp.open("GET", url, true);
+		xhttp.send();
+}
+function delete_file()
+{
+	file_name = id("file_name").value.trim();
+	get('/dummy?action=execute&execute_command=%3Dfile.remove%28%27' + file_name + '%27%29');
+	
+}
+function compile_file()
+{
+	file_name = id("file_name").value.trim();
+	get('/dummy.html?action=execute&execute_command=%3Dnode.compile%28%27' + file_name + '%27%29');
+	
+}
+
+</script>	
+<link rel="stylesheet" href="/style.css.gz">	
+</body>
+</html>

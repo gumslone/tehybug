@@ -1,0 +1,66 @@
+<html>
+<head>
+	<title>WGET</title>
+</head>
+<body>
+	<h3>WGET</h3>
+	<div class="msg warn">This feature will work only with previously configured WIFI credentials.<br>After submitting wget file <a href="/configuration_sys_status.html">change the system status</a> to wget and restart the TeHyBug, it will restart and try to fetch the remote file. After a successful restart and wget you should be able to see your file in the <a href="/file_list.html">File List</a></div>
+	<!--message-->
+	<div id="message"></div>
+	<div>
+		<form method="get">
+		<input type="hidden" name="configuration_file" value="config_wget.lua">
+			<input type="hidden" name="configuration_name" value="wget">
+			<input type="hidden" name="action" value="save_configuration">
+			<p>
+				<span>File url:</span><br>
+				<input type="text" name="file_url" value="http://">
+			</p>
+			<p>
+				<span>File name:</span><br>
+				<input type="text" name="file_name" value="file_name.lua">
+			</p>
+			<p>
+				<input type="checkbox" id="compile" name="compile" value="1">
+				<label for="compile">Compile file?</label>
+			</p>
+			<p>
+				<input type="checkbox" id="do_file" name="do_file" value="1">
+				<label for="do_file">Dofile?</label>
+			</p>
+			<p>
+				<input type="submit" value="WGET File">
+			</p>
+		</form>
+	</div>
+	
+	<p>
+		<a href="/admin.html">&lt; Admin Menu</a>
+	</p>
+
+	<p>
+		<a href="/">&lt; Main Menu</a>
+	</p>
+	
+<script>
+document.forms[0].addEventListener('submit', function(e) {
+		e.preventDefault();
+		let params = new FormData(this);
+		let action = window.location + '?';
+		for (var key of params.keys())
+		{
+			action += '&' + key + '=' + encodeURIComponent(params.get(key));
+		}
+		let xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				id('message').innerHTML='<div class="msg success">Configuration file updated successfully! You can <a href="/?action=activate_live_mode">activate</a> the live mode to start tracking the environmental data or <a href="/?action=restart" target="_blank">restart</a> the TeHyBug.</div>';
+			}
+		};
+		xhttp.open("GET", action, true);
+		xhttp.send();
+	});
+</script>	
+<link rel="stylesheet" href="/style.css.gz">	
+</body>
+</html>

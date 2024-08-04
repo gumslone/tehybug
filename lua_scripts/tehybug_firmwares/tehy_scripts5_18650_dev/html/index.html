@@ -1,0 +1,126 @@
+<html>
+<head>
+	<title>TeHyBug-config_system.chip_id</title>
+</head>
+<body>
+	<div>
+		<div class="logo"></div>
+		<br>TeHyBug Key: config_system.bug_key
+		<br><div id="ip">IP: <span id="nodeip">node_ip</span></div>
+	</div>
+	<!--message-->
+	<p>
+		<a href="/first_start.html">First start</a>
+	</p>
+	<p>
+		<a href="/config_wifi.html">Configure WiFi</a>
+	</p>
+	<p>
+		<a href="/config_default.html">Default configuration</a>
+	</p>
+	
+	<p>
+		<a href="/config_custom_get.html">Custom HTTP GET configuration</a>
+	</p>
+	<p>
+		<a href="/config_custom_post.html">Custom HTTP POST configuration</a>
+	</p>
+	<p>
+		<a href="/config_custom_mqtt.html">Custom MQTT configuration</a>
+	</p>
+	<p>
+		<a href="/config_custom_web.html">Custom WEB SERVER configuration</a>
+	</p>
+	<p>
+		<a href="/config_ap.html">AP Mode configuration</a>
+	</p>
+	<p>
+		<a href="/config_uart.html">UART Mode configuration</a>
+	</p>
+	
+	<p>
+		<a href="/config_scenarios.html">Configure scenarios</a>
+	</p>
+	<p>
+		<a href="/config_calibration.html">Sensor calibration</a>
+	</p>
+	<p>
+		<a href="/config_sensors.html">Sensors configuration</a>
+	</p>
+	<p>
+		<a href="/node_info.html">Node info</a>
+	</p>
+	<p>
+		<a href="/sensor_data.html">Current environment data</a>
+	</p>
+	
+	<p>
+		<a href="/?action=activate_live_mode" onclick="return confirm('Is your TeHyBug already configured?');">Activate live mode</a>
+	</p>
+	
+	<p>
+		<a href="/?action=reset_config" onclick="return confirm('Are you sure you want to reset configuration?');">Reset configuration</a>
+	</p>
+	
+	<p>
+		<a href="about.html">About</a>
+	</p>
+	<footer>
+		<div class="m15" style="color: gray;">
+			Copyright &copy; 2017-<span id="year">2021</span> - Oleg Jusaew, TeHyBug.com - Some rights reserved!
+		</div>
+	</footer>
+	<script>
+		id("year").innerHTML = new Date().getFullYear();
+		if(location.host=='192.168.1.1' && Boolean(id("nodeip").innerText))
+		{
+			id("ip").innerHTML = "<div class=\"msg success\">Wifi Successfully Configured! You can disconnect from TeHyBugs WiFi network and connect to IP: <a href=\"http://"+id("nodeip").innerText+"/\">"+id("nodeip").innerText+"</a> on your home network to continue the configuration.</div>"
+		}
+		else
+		id("ip").innerHTML = "";
+function id(i)
+{
+	return document.getElementById(i);
+}
+function name(n)
+{
+	return document.getElementsByName(n);
+}
+function load_css()
+{
+	var cssFile = document.createElement("link");
+	cssFile.setAttribute("rel", "stylesheet");
+	cssFile.setAttribute("type", "text/css");
+	cssFile.setAttribute("href", '/style.css.gz');
+	document.getElementsByTagName("head")[0].appendChild(cssFile);
+}
+function load_config()
+{
+var xhttp = new XMLHttpRequest();
+
+xhttp.onreadystatechange = function() {
+if (this.readyState == 4 && this.status == 200) {
+	load_css();
+	var config_content= this.responseText;
+	//console.log(config_content);
+	re = /[^{\}]+(?=})/g;
+	const regex = /(\w+)\s?=(.*)/gmi;
+	const subst = `"$1":$2`;
+	const result = config_content.match(re)[0].replace(regex, subst).replace("..node.chipid()", "").replace("node.chipid()", '""');
+	//console.log(result);
+	var response_json = JSON.parse('{'+result.replace(/,\s*$/, "")+'}');
+	document.body.innerHTML = document.body.innerHTML.replace(/config_system.bug_key/g, response_json['bug_key']);
+	
+	document.title = document.title.replace(/config_system.chip_id/, response_json['chip_id']);
+	document.cookie = "bug_key="+response_json['bug_key'];
+	document.cookie = "chip_id="+response_json['chip_id'];
+	
+}
+};
+xhttp.open("GET", "/config_system.lua?"+Math.random().toString(36).slice(-5), true);
+xhttp.send();
+}
+load_config();
+	</script>
+</body>
+</html>

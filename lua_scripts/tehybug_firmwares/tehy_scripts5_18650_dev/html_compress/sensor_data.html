@@ -1,0 +1,75 @@
+<html>
+	<head>
+		<title>Sensor data</title>
+	</head>
+	<body>
+		<h3>Sensor data</h3>
+		<div><progress value="0" max="10" id="progressBar"></progress></div>
+		<div id="demo"></div>
+		<p><a href="/">&lt; Main Menu</a></p>
+		<script>
+var response_json = null;
+function id(i)
+{
+	return document.getElementById(i);
+}
+function name(n)
+{
+	return document.getElementsByName(n);
+}
+function def(p)
+{
+	if (typeof response_json[p] != 'undefined')
+		return true;
+	else
+		return false;
+}		
+		var timeleft = 10;var tmr = setInterval(function(){id("progressBar").value = 10 - --timeleft;;
+		if(timeleft <= 0){
+			timeleft = 10;
+			var xhttp = new XMLHttpRequest();
+
+			xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				response_json = JSON.parse('{'+this.responseText.replace(/,\s*$/, "}"));
+				var html = '';
+				if (def('temp'))
+					html += '<p><b>Temperature:</b><br>'+response_json['temp']+' &deg;C / '+response_json['temp_imp']+' &deg;F</p>';
+			
+				if (def('humi'))
+					html += '<p><b>Humidity:</b><br>'+response_json['humi']+' %RH</p>';
+				
+				if (def('dew'))
+					html += '<p><b>Dew point:</b><br>'+response_json['dew']+' &deg;C / '+response_json['dew_imp']+' &deg;F</p>';
+				
+				if (def('qfe'))
+					html += '<p><b>Barometric air pressure QFE:</b><br>'+response_json['qfe']+' hPa / '+response_json['qfe_imp']+' inHg</p>';
+				
+				if (def('qnh'))
+					html += '<p><b>Barometric air pressure QNH:</b><br>'+response_json['qnh']+' hPa / '+response_json['qnh_imp']+' inHg</p>';
+			
+				if (def('air'))
+					html += '<p><b>Air quality:</b><br>'+response_json['air']+' kOhm</p>';
+			
+				if (def('uv'))
+					html += '<p><b>UV light level:</b><br>'+response_json['uv']+'</p>';
+			
+				if (def('lux'))
+					html += '<p><b>Ambient light luminance:</b><br>'+response_json['lux']+' Lux</p>';
+				
+				if (def('vdd'))
+					html += '<p><b>VDD:</b><br>'+response_json['vdd']+' Volt</p>';
+
+				if (def('xdc'))
+					html += '<p><b>ADC:</b><br>'+response_json['xdc']+'</p>';
+			
+				id("demo").innerHTML = html;
+			}
+			};
+			xhttp.open("GET", "/sensor_data.txt?"+Math.random().toString(36).slice(-5), true);
+			xhttp.send();
+		} 
+		},1000);</script>
+		<link rel="stylesheet" href="/style.css.gz">
+	</body>
+</html>

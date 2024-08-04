@@ -1,0 +1,180 @@
+<html>
+<head>
+	<title>Sensor calibration</title>
+</head>
+<body>
+	<h3>Sensor calibration</h3>
+	<div class="msg warn">Different data serving modes may require different calibration values. Low data frequency may cause the esp8266 chip to get warm, it will warm up the air near the sensor. I.e. in a WEB SERVER mode the measured temperature might be higher than in the default data serving mode with a esp8266 chip deep sleep. If you use the default, HTTP or MQTT data sending configuration, you don't need to change here anything.</div>
+	<div id="message"></div>
+	<div>
+		<form method="get">
+			<input type="hidden" name="configuration_file" value="config_calibration.lua">
+			<input type="hidden" name="configuration_name" value="calibration">
+			<input type="hidden" name="action" value="save_configuration">
+			<p>
+				<span>Temperature in &deg;C:</span><br>
+				
+				<select name="temp">
+					<option value="">None</option>
+					<option value="-2">-2</option>
+					<option value="-1.8">-1.8</option>
+					<option value="-1.6">-1.6</option>
+					<option value="-1.4">-1.4</option>
+					<option value="-1.2">-1.2</option>
+					<option value="-1">-1</option>
+					<option value="-0.8">-0.8</option>
+					<option value="-0.6">-0.6</option>
+					<option value="-0.4">-0.4</option>
+					<option value="-0.2">-0.2</option>
+					<option value="">0</option>
+					<option value="0.2">0.2</option>
+					<option value="0.4">0.4</option>
+					<option value="0.6">0.6</option>
+					<option value="0.8">0.8</option>
+					<option value="1">1</option>
+					<option value="1.2">1.2</option>
+					<option value="1.4">1.4</option>
+					<option value="1.6">1.6</option>
+					<option value="1.8">1.8</option>
+					<option value="2">2</option>
+				</select>
+			</div>
+			<p>
+				<span>Humidity in % (if available):</span><br>
+				<select name="humi">
+					<option value="">None</option>
+					<option value="-5">-5%</option>
+					<option value="-4.5">-4.5%</option>
+					<option value="-4">-4%</option>
+					<option value="-3.5">-3.5%</option>
+					<option value="-3">-3%</option>
+					<option value="-2.5">-2.5%</option>
+					<option value="-2">-2%</option>
+					<option value="-1.5">-1.5%</option>
+					<option value="-1">-1%</option>
+					<option value="-0.5">-0.5%</option>
+					<option value="">0</option>
+					<option value="0.5">0.5</option>
+					<option value="1">1</option>
+					<option value="1.5">1.5</option>
+					<option value="2">2</option>
+					<option value="2.5">2.5</option>
+					<option value="3">3</option>
+					<option value="3.5">3.5</option>
+					<option value="4">4</option>
+					<option value="4.5">4.5</option>
+					<option value="5">5</option>
+				</select>
+			</div>
+			<p>
+				<span>Barometric air pressure in hPa (if available):</span><br>
+				<select name="qfe">
+					<option value="">None</option>
+					<option value="-20">-20</option>
+					<option value="-18">-18</option>
+					<option value="-16">-16</option>
+					<option value="-14">-14</option>
+					<option value="-12">-12</option>
+					<option value="-10">-10</option>
+					<option value="-8">-8</option>
+					<option value="-6">-6</option>
+					<option value="-4">-4</option>
+					<option value="-2">-2</option>
+					<option value="">0</option>
+					<option value="2">2</option>
+					<option value="4">4</option>
+					<option value="6">6</option>
+					<option value="8">8</option>
+					<option value="10">10</option>
+					<option value="12">12</option>
+					<option value="14">14</option>
+					<option value="16">16</option>
+					<option value="18">18</option>
+					<option value="20">20</option>
+				</select>
+			</div>
+			<p>
+				<span>Altitude:</span><br>
+				<input type="text" name="altitude" pattern="[0-9]{1,4}">
+			</div>
+			<p>
+				<input type="submit" value="Save configuration">
+			</div>
+		</form>
+	</div>
+	<p>
+		<a href="/?action=remove_calibration" onclick="return confirm('Are you sure?');">Unset calibration configuration</a>
+	</div>
+	<p>
+		<a href="/">&lt; Main Menu</a>
+	</div>
+<script>
+	function id(i)
+{
+	return document.getElementById(i);
+}
+function name(n)
+{
+	return document.getElementsByName(n);
+}
+function load_css()
+	{
+		var cssFile = document.createElement("link");
+		cssFile.setAttribute("rel", "stylesheet");
+		cssFile.setAttribute("type", "text/css");
+		cssFile.setAttribute("href", '/style.css.gz');
+		document.getElementsByTagName("head")[0].appendChild(cssFile);
+	}
+	function load_config()
+	{
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+	if (this.readyState == 4 && this.status == 200) {
+		load_css();
+		var config_content= this.responseText;
+		console.log(config_content);
+		config_content = config_content.substring(config_content.indexOf('{')+1, config_content.lastIndexOf('}'));
+		const regex = /(\w+)\s?=(.*)/gmi;
+		const subst = `"$1":$2`;
+		const result = config_content.replace(regex, subst);
+		var response_json = JSON.parse('{'+result.replace(/,\s*$/, "")+'}');
+		if(response_json['humi']!=null)
+			name('humi')[0].value = response_json['humi'];
+		if(response_json['temp']!=null)
+			name('temp')[0].value = response_json['temp'];
+		if(response_json['qfe']!=null)
+			name('qfe')[0].value = response_json['qfe'];
+		if(response_json['altitude']!=null)
+			name('altitude')[0].value = response_json['altitude'];
+		
+	}
+	else if (this.readyState == 4 && this.status == 404) {
+		load_css();
+	}
+	};
+	xhttp.open("GET", "/config_calibration.lua?"+Math.random().toString(36).slice(-5), true);
+	xhttp.send();
+	}
+	
+	document.forms[0].addEventListener('submit', function(e) {
+		e.preventDefault();
+		let params = new FormData(this);
+		let action = window.location+'?';
+		for (var key of params.keys())
+		{
+			action += '&' + key + '=' + encodeURIComponent(params.get(key));
+		}
+		let xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				id('message').innerHTML='<div class="msg success">Configuration file updated successfully!</div>';
+			}
+		};
+		xhttp.open("GET", action, true);
+		xhttp.send();
+	});
+	load_config();
+</script>
+
+</body>
+</html>

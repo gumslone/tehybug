@@ -1,0 +1,80 @@
+<html>
+<head>
+	<title>TeHyBug-config_system.chip_id</title>
+</head>
+<body>
+	<p>
+		<p class="logo"></p>
+		<br>TeHyBug Key: config_system.bug_key
+		<br>IP: node_ip
+	</p>
+	<!--message-->
+	<p class="m15">
+		<a href="/first_start.html">First start</a>
+	</p>
+	<p class="m15">
+		<a href="/configuration_wifi.html">Configure WiFi</a>
+	</p>
+	<p class="m15">
+		<a href="/configuration_default.html">Default configuration</a>
+	</p>
+	<p class="m15">
+		<a href="/configuration_custom_get.html">Custom HTTP GET configuration</a>
+	</p>
+	<p class="m15">
+		<a href="/configuration_custom_post.html">Custom HTTP POST configuration</a>
+	</p>
+	<p class="m15">
+		<a href="/configuration_custom_mqtt.html">Custom MQTT configuration</a>
+	</p>
+	<p class="m15">
+		<a href="/configuration_uart.html">UART Mode configuration</a>
+	</p>
+	<p class="m15">
+		<a href="/node_info.html">Node info</a>
+	</p>
+	
+	<p class="m15">
+		<a href="/?action=activate_live_mode" onclick="return confirm('Is your TeHyButton already configured?');">Activate live mode</a>
+	</p>
+	
+	<p class="m15">
+		<a href="/?action=reset_config" onclick="return confirm('Are you sure you want to reset configuration?');">Reset configuration</a>
+	</p>
+	
+	<p class="m15">
+		<a href="about.html">About</a>
+	</p>
+	<footer>
+		<p class="m15" style="color: gray;">
+			Copyright &copy; 2017-<span id="year">2021</span> - Oleg Jusaew, TeHyBug.com - Some rights reserved!
+		</p>
+	</footer>
+	<script>
+		id("year").innerHTML = new Date().getFullYear();
+
+		var xhttp = new XMLHttpRequest();
+
+xhttp.onreadystatechange = function() {
+if (this.readyState == 4 && this.status == 200) {
+	var config_content= this.responseText;
+	re = /[^{\}]+(?=})/g;
+	const regex = /(\w+)\s?=(.*)/gmi;
+	const subst = `"$1":$2`;
+	const result = config_content.match(re)[0].replace(regex, subst).replace("..node.chipid()", "").replace("node.chipid()", '""');
+	var response_json = JSON.parse('{'+result.replace(/,\s*$/, "")+'}');
+	console.log(response_json);
+	document.body.innerHTML = document.body.innerHTML.replace(/config_system.bug_key/g, response_json['bug_key']);
+	
+	document.title = document.title.replace(/config_system.chip_id/, response_json['chip_id']);
+
+}
+};
+xhttp.open("GET", "/config_system.lua?"+Math.random().toString(36).slice(-5), true);
+xhttp.send();
+
+
+	</script>
+	<link rel="stylesheet" href="/style.css.gz">
+</body>
+</html>

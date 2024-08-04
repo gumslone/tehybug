@@ -1,0 +1,87 @@
+<html>
+<head>
+	<title>AP Configuration</title>
+</head>
+<body>
+	<h3>AP Mode Configuration</h3>
+	
+	<div class="msg error">This configuration enables an AP mode of your TeHyBug.<br>It will act as a WIFI access point, where you'll be able to vie the sensor data after you connect to it.<br>With a AP mode a battery powered "power saving mode" will not work anymore, you should use a different power source, i.e. usb power supply.</div>
+	<div id="message"></div>
+	<div>
+		<form method="get">
+			<input type="hidden" name="configuration_file" value="config.lua">
+			<input type="hidden" name="configuration_name" value="config">
+			<input type="hidden" name="action" value="save_configuration">
+			<p>
+				<span>AP Password 8-64 alphanumeric-symbols (optional):</span><br>
+				<input type="text" name="ap_password" pattern="[0-9a-fA-F]{8,64}">
+			</p>
+			<p>
+				<input type="hidden" name="request_type" value="ap">
+				<input type="submit" value="Save configuration">
+			</p>
+		</form>
+	</div>
+
+	<p>
+		<a href="/">&lt; Main Menu</a>
+	</p>
+<script>
+function id(i)
+{
+	return document.getElementById(i);
+}
+function name(n)
+{
+	return document.getElementsByName(n);
+}
+function load_css()
+{
+	var cssFile = document.createElement("link");
+	cssFile.setAttribute("rel", "stylesheet");
+	cssFile.setAttribute("type", "text/css");
+	cssFile.setAttribute("href", '/style.css.gz');
+	document.getElementsByTagName("head")[0].appendChild(cssFile);
+}
+function load_config()
+{
+var xhttp = new XMLHttpRequest();
+xhttp.onreadystatechange = function() {
+if (this.readyState == 4 && this.status == 200) {
+	load_css();
+	var config_content= this.responseText;
+	config_content = config_content.substring(config_content.indexOf('{')+1, config_content.lastIndexOf('}'));
+	const regex = /(\w+)\s?=(.*)/gmi;
+	const subst = `"$1":$2`;
+	const result = config_content.replace(regex, subst);
+	var response_json = JSON.parse('{'+result.replace(/,\s*$/, "")+'}');
+	if(response_json['ap_password']!=null)
+		name('ap_password')[0].value = response_json['ap_password'];
+}
+};
+xhttp.open("GET", "/config.lua?"+Math.random().toString(36).slice(-5), true);
+xhttp.send();
+}
+
+document.forms[0].addEventListener('submit', function(e) {
+		e.preventDefault();
+		let params = new FormData(this);
+		let action = window.location+'?';
+		for (var key of params.keys())
+		{
+			action += '&' + key + '=' + encodeURIComponent(params.get(key));
+		}
+		let xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				id('message').innerHTML='<div class="msg success">Configuration file updated successfully! You can <a href="/?action=activate_live_mode">activate</a> the live mode to start tracking the environmental data or <a href="/?action=restart" target="_blank">restart</a> the TeHyBug.</div>';
+			}
+		};
+		xhttp.open("GET", action, true);
+		xhttp.send();
+	});
+	load_config();
+</script>
+
+</body>
+</html>

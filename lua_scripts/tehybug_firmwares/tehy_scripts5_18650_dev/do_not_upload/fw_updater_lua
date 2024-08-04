@@ -1,0 +1,106 @@
+function trim(s)
+	return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
+function w_get(url,file_name,compile,do_file,check)
+	collectgarbage()
+	http.get(url, nil, function(code, data)
+		if (code < 0) then
+			return ("HTTP request failed")
+		else
+			if file.open(file_name..'_wget', "w") then
+				-- write text to the file
+				file.write(data)
+				file.flush()
+				file.close()
+				data = nil
+				code = nil
+				url = nil
+				if check ~= nil then
+					local count = 0
+					src = file.open(file_name..'_wget', "r")
+					if src then
+						local line
+						repeat
+							line = file.readline()
+							if line then
+								if count==0 then
+									wget_first_line = line
+								end
+								wget_last_line = line
+								count = count+1
+							end
+						until line == nil
+						file.close() src = nil
+					end
+				end
+				if check==nil or (check~=nil and trim(wget_first_line)=='--start--' and trim(wget_last_line)=='--finish--') then
+					print('File '..file_name..' is valid!')
+					file.remove(file_name)
+					file.rename(file_name..'_wget',file_name)
+					if compile  ~= nil then
+						print("Compile: "..file_name)
+						node.compile(file_name)
+					end
+					if do_file  ~= nil then
+						collectgarbage()
+						print("Do: "..file_name)
+						dofile(file_name)
+					end
+				else
+					print ('File '..file_name..' is NOT valid! Removing....')
+					file.remove(file_name..'_wget')
+				end
+			end
+		end
+	end)
+
+end
+
+dofile("config.lua")
+wifi.setmode(wifi.STATIONAP)
+wifi.nullmodesleep(false)
+cfg={}
+cfg.ssid = config.wifi_router_ssid
+cfg.pwd = config.wifi_router_password
+cfg.save=false
+wifi.sta.config(cfg)
+wifi.sta.connect()
+cfg = nil
+config = nil
+wifi.eventmon.register(wifi.eventmon.STA_CONNECTED, function(T)
+	local files_arr = {'bme280.lua', 'dht.lua', 'am2320.lua','ds18b20.lua','veml6070.lua','web.lua','oled128x64.lua','request.lua','setup.lua','setup_functions.lua','placeholders.html'}
+	local num = 1
+	local end_num = #files_arr
+	local timeout = 3
+	print('wifi connected')
+	
+	
+	tmr.create():alarm(1000, tmr.ALARM_AUTO, function() 
+		timeout = timeout + 1
+		if timeout >= 5 then
+			timeout = 0
+			
+			if num > end_num then
+				file.remove("system_status.lua")
+				file.open("system_status.lua", "w")
+				file.writeline('system_status = { ')
+				file.writeline('system_status = 2;')
+				file.writeline('} ')
+				file.close()
+				node.restart()
+			end
+			
+			if files_arr[num] ~= nil then
+				print(files_arr[num])
+				w_get('http://tehybug.com/get_file?file='..files_arr[num],files_arr[num],1,nil,nil)
+				files_arr[num] = nil
+				num = num + 1
+			end
+
+		
+		end
+
+	end)
+	
+end)

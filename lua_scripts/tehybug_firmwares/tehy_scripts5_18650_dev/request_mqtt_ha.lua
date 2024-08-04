@@ -26,12 +26,6 @@ else
 	config.mqtt_secure = 0
 end
 
-if config.mqtt_retain ~= nil then
-	config.mqtt_retain = config.mqtt_retain * 1
-else
-	config.mqtt_retain = 0
-end
-
 config.mqtt_retain = 1
 
 

@@ -28,14 +28,12 @@ void setupHandle(const Device &device) {
     
   autoconfPayload["device"] = device.as<JsonObject>();
   autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["name"] = String(" WiFi");
+  autoconfPayload["name"] = "WiFi";
   autoconfPayload["value_template"] = "{{value_json.wifi.rssi}}";
-  autoconfPayload["unique_id"] = String(identifier) + "_sensor_wifi";
+  autoconfPayload["unique_id"] = String(identifier) + "_wifi";
   autoconfPayload["unit_of_measurement"] = "dBm";
   autoconfPayload["json_attributes_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["json_attributes_template"] =
-      "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": "
-      "\"{{value_json.wifi.ip}}\"}";
+  autoconfPayload["json_attributes_template"] = "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": \"{{value_json.wifi.ip}}\"}";
   autoconfPayload["icon"] = "mdi:wifi";
 
   serializeJson(autoconfPayload, mqttPayload);
@@ -51,12 +49,6 @@ void setupHandle(const Device &device) {
      continue;
     const String v = keyValue.value();
     const String topic = "homeassistant/sensor/"+String(identifier)+"/"+String(identifier)+"_"+k+"/config";
-
-    device["identifiers"] = identifiers;
-    device["manufacturer"] = "TeHyBug";
-    device["model"] = "TeHyBug Mini";
-    device["name"] = identifier;
-    device["sw_version"] = version;
   
     autoconfPayload["device"] = device.as<JsonObject>();
     autoconfPayload["name"] = key2name(k);

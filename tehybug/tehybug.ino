@@ -345,7 +345,7 @@ String getSensor() {
 /////////////////////////////////////////////////////////////////////
 void haSendData() {
   if (client.connected()) {
-    ha::publishAutoConfig(client);
+    ha::publishAutoConfig(client, version, tehybug.sensorData);
     ha::publishState(client, tehybug.sensorData);
     Log(F("HomeAssistant"), F("MqttSendData"));
   } else
@@ -387,7 +387,14 @@ void mqttReconnect() {
       Log(F("MqttReconnect"), F("MQTT connected!"));
       tehybug.serveData.mqtt.retryCounter = 0;
       // ... and publish
-      mqttSendData();
+      if (tehybug.serveData.ha.active)
+      {
+        haSendData();
+      }
+      else
+      {
+        mqttSendData();
+      }
     } else {
       Log(F("MqttReconnect"), F("MQTT not connected!"));
       Log(F("MqttReconnect"), F("Wait 5 seconds before retrying...."));
@@ -1088,7 +1095,7 @@ void setupMode() {
 }
 
 void updateMqttClient() {
-  if (tehybug.serveData.mqtt.active) {
+  if (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active) {
     client.setServer(tehybug.serveData.mqtt.server.c_str(), tehybug.serveData.mqtt.port);
   }
 }
@@ -1113,7 +1120,7 @@ void setup() {
   tehybug.getDeviceKey();
 
   // force config when no data serving mode is selected
-  if (!tehybug.serveData.get.active && !tehybug.serveData.post.active && !tehybug.serveData.mqtt.active) {
+  if (!tehybug.serveData.get.active && !tehybug.serveData.post.active && !tehybug.serveData.mqtt.active && !tehybug.serveData.ha.active) {
     tehybug.device.configMode = true;
     D_println("Data serving mode not selected");
   }

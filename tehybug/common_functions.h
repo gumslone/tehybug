@@ -40,17 +40,17 @@ byte Utf8ToAscii(byte _ascii) {
   byte _result = 0;
 
   switch (last) {
-  case 0xC2:
-    _result = _ascii - 34;
-    break;
-  case 0xC3:
-    _result = (_ascii | 0xC0) - 34;
-    break;
-  case 0x82:
-    if (_ascii == 0xAC) {
-      _result = (0xEA);
-    }
-    break;
+    case 0xC2:
+      _result = _ascii - 34;
+      break;
+    case 0xC3:
+      _result = (_ascii | 0xC0) - 34;
+      break;
+    case 0x82:
+      if (_ascii == 0xAC) {
+        _result = (0xEA);
+      }
+      break;
   }
   return _result;
 }
@@ -75,7 +75,9 @@ String Utf8ToAscii(String _str) {
 /// <summary>
 /// Returns the chip id
 /// </summary>
-String GetChipID() { return String(ESP.getChipId()); }
+String GetChipID() {
+  return String(ESP.getChipId());
+}
 
 /// <summary>
 /// Convert RSSI to percentage quality
@@ -107,12 +109,24 @@ String join(int *arr, String separator, int len) {
 // Time
 int Year, Month, Day, Hour, Minute, Second;
 
-int year() { return 0; }
-int month() { return 0; }
-int day() { return 0; }
-int hour() { return 0; }
-int minute() { return 0; }
-int second() { return 0; }
+int year() {
+  return 0;
+}
+int month() {
+  return 0;
+}
+int day() {
+  return 0;
+}
+int hour() {
+  return 0;
+}
+int minute() {
+  return 0;
+}
+int second() {
+  return 0;
+}
 
 void createDateElements(const char *str) {
   sscanf(str, "%d-%d-%dT%d:%d", year(), month(), day(), hour(), minute());
@@ -136,9 +150,13 @@ uint8_t dayOfWeek(uint8_t y, uint8_t m,
 // End dayOfWeek( D, M, Y)
 //================================================================================
 
-float temp2Imp(const float & value) { return (1.8 * value + 32); }
+float temp2Imp(const float & value) {
+  return (1.8 * value + 32);
+}
 
-bool isIOScenario(const String &type) { return type.substring(0, 2) == "io"; }
+bool isIOScenario(const String &type) {
+  return type.substring(0, 2) == "io";
+}
 uint8_t ioScenarioPin(const String &type) {
   return atoi(type.substring(2, 4).c_str());
 }
@@ -146,5 +164,76 @@ uint8_t ioScenarioLevel(const String &type) {
   size_t lenz = type.length();
   return atoi(type.substring(lenz - 1, lenz).c_str());
 }
+String key2unit(const String & key)
+{
+  if (key == "temp" || key == "temp2" || key == "dew" || key == "hi")
+    return "°C";
+  if (key == "temp_imp" || key == "temp2_imp" || key == "dew_imp" || key == "hi_imp")
+    return "°F";
+  if (key == "humi")
+    return "%RH";
+  if (key == "air")
+    return "kOhm";
+  if (key == "qfe")
+    return "hPa";
+  if (key == "alt")
+    return "m";
+  if (key == "lux")
+    return "Lux";
+  if (key == "adc")
+    return "ADC";
 
+  return "";
+}
+String key2name(const String & key)
+{
+  if (key == "temp" || key == "temp_imp")
+    return "Temperature";
+  if (key == "temp2" || key == "temp2_imp")
+    return "Temperature2";
+  if (key == "humi")
+    return "Humidity";
+  if (key == "dew")
+    return "Dew point";
+  if (key == "dew_imp")
+    return "Dew point";
+  if (key == "hi" || key == "hi_imp")
+    return "Heat index";
+  if (key == "air")
+    return "Gas resistance";
+  if (key == "iaq")
+    return "Indoor air quality";
+  if (key == "qfe")
+    return "Atmospheric pressure";
+  if (key == "alt")
+    return "Altitude";
+  if (key == "eco2")
+    return "CO2 equivalent";
+  if (key == "bvoc")
+    return "breath VOC equivalent";
+  if (key == "uv")
+    return "UV index";
+  if (key == "lux")
+    return "Ambient light";
+  if (key == "adc")
+    return "ADC";
+
+  return "";
+}
+String key2icon(const String & key)
+{
+  if (key == "temp" || key == "temp2" || key == "temp_imp" || key == "temp2_imp")
+    return "mdi:thermometer";
+  if (key == "humi")
+    return "mdi:water-percent";
+  if (key == "qfe")
+    return "mdi:gauge";
+  if (key == "alt")
+    return "mdi:mountain";
+  if (key == "dew"||key =="dew_imp")
+    return "mdi:dew-pint";
+  if (key == "hi" || key == "hi_imp")
+    return "mdi:heat-index";
+  return "";
+}
 #endif

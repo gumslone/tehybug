@@ -80,6 +80,30 @@ class TeHyBug {
       D_println(key);
     }
 
+    void handleRemoteControl(const String & data )
+    {
+      DynamicJsonDocument json(4096);
+      const auto error = deserializeJson(json, data);
+      if (!error) {
+        JsonObject root = json.as<JsonObject>();
+          if (json.containsKey("configMode")) {
+            if (root["configMode"])
+            {
+              device.configMode = true;
+              tickerStop = true;
+            }
+            else
+            {
+              device.configMode = false;
+              tickerStart = true;
+            }
+          }
+      }  
+    }
+
+    bool tickerStop = false;
+    bool tickerStart = false;
+    
   private:
     DHTesp & m_dht;
     UUID m_uuid;

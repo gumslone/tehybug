@@ -60,29 +60,32 @@ class TeHyBugConfig {
         json["second_ds18b20_sensor"] = m_sensor.ds18b20_2;
         json["adc_sensor"] = m_sensor.adc;
 
-        json["scenario1_active"] = m_scenarios.scenario1.active;
-        json["scenario1_type"] = m_scenarios.scenario1.type;
-        json["scenario1_url"] = m_scenarios.scenario1.url;
-        json["scenario1_data"] = m_scenarios.scenario1.data;
-        json["scenario1_condition"] = m_scenarios.scenario1.condition;
-        json["scenario1_value"] = m_scenarios.scenario1.value;
-        json["scenario1_message"] = m_scenarios.scenario1.message;
+        json["sc1_active"] = m_scenarios.scenario1.active;
+        json["sc1_type"] = m_scenarios.scenario1.type;
+        json["sc1_url"] = m_scenarios.scenario1.url;
+        json["sc1_data"] = m_scenarios.scenario1.data;
+        json["sc1_condition"] = m_scenarios.scenario1.condition;
+        json["sc1_value"] = m_scenarios.scenario1.value;
+        json["sc1_message"] = m_scenarios.scenario1.message;
 
-        json["scenario2_active"] = m_scenarios.scenario2.active;
-        json["scenario2_type"] = m_scenarios.scenario2.type;
-        json["scenario2_url"] = m_scenarios.scenario2.url;
-        json["scenario2_data"] = m_scenarios.scenario2.data;
-        json["scenario2_condition"] = m_scenarios.scenario2.condition;
-        json["scenario2_value"] = m_scenarios.scenario2.value;
-        json["scenario2_message"] = m_scenarios.scenario2.message;
+        json["sc2_active"] = m_scenarios.scenario2.active;
+        json["sc2_type"] = m_scenarios.scenario2.type;
+        json["sc2_url"] = m_scenarios.scenario2.url;
+        json["sc2_data"] = m_scenarios.scenario2.data;
+        json["sc2_condition"] = m_scenarios.scenario2.condition;
+        json["sc2_value"] = m_scenarios.scenario2.value;
+        json["sc2_message"] = m_scenarios.scenario2.message;
 
-        json["scenario3_active"] = m_scenarios.scenario3.active;
-        json["scenario3_type"] = m_scenarios.scenario3.type;
-        json["scenario3_url"] = m_scenarios.scenario3.url;
-        json["scenario3_data"] = m_scenarios.scenario3.data;
-        json["scenario3_condition"] = m_scenarios.scenario3.condition;
-        json["scenario3_value"] = m_scenarios.scenario3.value;
-        json["scenario3_message"] = m_scenarios.scenario3.message;
+        json["sc3_active"] = m_scenarios.scenario3.active;
+        json["sc3_type"] = m_scenarios.scenario3.type;
+        json["sc3_url"] = m_scenarios.scenario3.url;
+        json["sc3_data"] = m_scenarios.scenario3.data;
+        json["sc3_condition"] = m_scenarios.scenario3.condition;
+        json["sc3_value"] = m_scenarios.scenario3.value;
+        json["sc3_message"] = m_scenarios.scenario3.message;
+
+        json["rc_active"] = m_device.remoteControl.active;
+        json["rc_url"] = m_device.remoteControl.url;
 
         File configFile = SPIFFS.open("/config.json", "w");
         serializeJson(json, configFile);
@@ -235,29 +238,32 @@ class TeHyBugConfig {
       setData(json, "adc_sensor", m_sensor.adc);
 
       // scenarios
-      setData(json, "scenario1_active", m_scenarios.scenario1.active);
-      setData(json, "scenario1_type", m_scenarios.scenario1.type);
-      setData(json, "scenario1_url", m_scenarios.scenario1.url);
-      setData(json, "scenario1_data", m_scenarios.scenario1.data);
-      setData(json, "scenario1_condition", m_scenarios.scenario1.condition);
-      setData(json, "scenario1_value", m_scenarios.scenario1.value);
-      setData(json, "scenario1_message", m_scenarios.scenario1.message);
+      setData(json, "sc1_active", m_scenarios.scenario1.active);
+      setData(json, "sc1_type", m_scenarios.scenario1.type);
+      setData(json, "sc1_url", m_scenarios.scenario1.url);
+      setData(json, "sc1_data", m_scenarios.scenario1.data);
+      setData(json, "sc1_condition", m_scenarios.scenario1.condition);
+      setData(json, "sc1_value", m_scenarios.scenario1.value);
+      setData(json, "sc1_message", m_scenarios.scenario1.message);
 
-      setData(json, "scenario2_active", m_scenarios.scenario2.active);
-      setData(json, "scenario2_type", m_scenarios.scenario2.type);
-      setData(json, "scenario2_url", m_scenarios.scenario2.url);
-      setData(json, "scenario2_data", m_scenarios.scenario2.data);
-      setData(json, "scenario2_condition", m_scenarios.scenario2.condition);
-      setData(json, "scenario2_value", m_scenarios.scenario2.value);
-      setData(json, "scenario2_message", m_scenarios.scenario2.message);
+      setData(json, "sc2_active", m_scenarios.scenario2.active);
+      setData(json, "sc2_type", m_scenarios.scenario2.type);
+      setData(json, "sc2_url", m_scenarios.scenario2.url);
+      setData(json, "sc2_data", m_scenarios.scenario2.data);
+      setData(json, "sc2_condition", m_scenarios.scenario2.condition);
+      setData(json, "sc2_value", m_scenarios.scenario2.value);
+      setData(json, "sc2_message", m_scenarios.scenario2.message);
       
-      setData(json, "scenario3_active", m_scenarios.scenario3.active);
-      setData(json, "scenario3_type", m_scenarios.scenario3.type);
-      setData(json, "scenario3_url", m_scenarios.scenario3.url);
-      setData(json, "scenario3_data", m_scenarios.scenario3.data);
-      setData(json, "scenario3_condition", m_scenarios.scenario3.condition);
-      setData(json, "scenario3_value", m_scenarios.scenario3.value);
-      setData(json, "scenario3_message", m_scenarios.scenario3.message);
+      setData(json, "sc3_active", m_scenarios.scenario3.active);
+      setData(json, "sc3_type", m_scenarios.scenario3.type);
+      setData(json, "sc3_url", m_scenarios.scenario3.url);
+      setData(json, "sc3_data", m_scenarios.scenario3.data);
+      setData(json, "sc3_condition", m_scenarios.scenario3.condition);
+      setData(json, "sc3_value", m_scenarios.scenario3.value);
+      setData(json, "sc3_message", m_scenarios.scenario3.message);
+
+      setData(json, "rc_active", m_device.remoteControl.active);
+      setData(json, "rc_url", m_device.remoteControl.url);
     }
     
     template<typename T>

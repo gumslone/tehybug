@@ -131,6 +131,7 @@ String escapedMac;
 // HTTP Config
 HTTPClient http1;
 HTTPClient http2;
+HTTPClient http3;
 
 #define COMPILE_HOUR (((__TIME__[0] - '0') * 10) + (__TIME__[1] - '0'))
 #define COMPILE_MINUTE (((__TIME__[3] - '0') * 10) + (__TIME__[4] - '0'))
@@ -138,7 +139,7 @@ HTTPClient http2;
 #define COMPILE_YEAR                                                           \
   ((((__DATE__[7] - '0') * 10 + (__DATE__[8] - '0')) * 10 +                    \
     (__DATE__[9] - '0')) *                                                     \
-       10 +                                                                    \
+   10 +                                                                    \
    (__DATE__[10] - '0'))
 #define COMPILE_SHORT_YEAR (((__DATE__[9] - '0')) * 10 + (__DATE__[10] - '0'))
 #define COMPILE_MONTH                                                          \
@@ -151,7 +152,7 @@ HTTPClient http2;
     : __DATE__[2] == 'p' ? 8                                                   \
     : __DATE__[2] == 't' ? 9                                                   \
     : __DATE__[2] == 'v' ? 10                                                  \
-                         : 11) +                                               \
+    : 11) +                                               \
    1)
 #define COMPILE_DAY                                                            \
   ((__DATE__[4] == ' ' ? 0 : __DATE__[4] - '0') * 10 + (__DATE__[5] - '0'))
@@ -198,7 +199,6 @@ void handleSetConfig() {
   DynamicJsonDocument json(1024);
   const auto error = deserializeJson(json, server.arg("plain"));
   server.sendHeader("Connection", "close");
-
   if (!error) {
     Log(("SetConfig"), ("Incoming Json length: " + String(measureJson(json))));
     // extract the data
@@ -254,12 +254,10 @@ void callback(char *topic, byte *payload, unsigned int length) {
     payload[length] = '\0';
     String channel = String(topic);
     channel.replace(tehybug.serveData.mqtt.topic, "");
-
     DynamicJsonDocument json(512);
     deserializeJson(json, payload);
-
     Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
-                             ": " + String(measureJson(json)));
+        ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
       client.publish((tehybug.serveData.mqtt.topic + "info").c_str(),
                      getInfo().c_str());
@@ -279,49 +277,46 @@ void callback(char *topic, byte *payload, unsigned int length) {
 /* Websocket */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t length) {
-
   switch (type) {
-  case WStype_DISCONNECTED: {
-    Log("WebSocketEvent", "[" + String(num) + "] Disconnected!");
-    websocketConnection[num] = "";
-    break;
-  }
-  case WStype_CONNECTED: {
-    websocketConnection[num] = String((char *)payload);
-    const IPAddress ip = webSocket.remoteIP(num);
-    Log("WebSocketEvent", "[" + String(num) + "] Connected from " +
-                              ip.toString() +
-                              " url: " + websocketConnection[num]);
-
-    // send message to client
-    sendDeviceInfo(true);
-    sendSensorData(true);
-    sendConfig();
-    break;
-  }
-  case WStype_TEXT: {
-    if (((char *)payload)[0] == '{') {
-      DynamicJsonDocument json(1024);
-      deserializeJson(json, payload);
-      Log("WebSocketEvent",
-          "Incoming Json length: " + String(measureJson(json)));
-      if (websocketConnection[num] == "/setConfig") {
-        // extract the data
-        JsonObject object = json.as<JsonObject>();
-        tehybug.conf.setConfig(object);
-        // delay(500);
-        // ESP.restart();
+    case WStype_DISCONNECTED: {
+        Log("WebSocketEvent", "[" + String(num) + "] Disconnected!");
+        websocketConnection[num] = "";
+        break;
       }
-    }
-    break;
-  }
+    case WStype_CONNECTED: {
+        websocketConnection[num] = String((char *)payload);
+        const IPAddress ip = webSocket.remoteIP(num);
+        Log("WebSocketEvent", "[" + String(num) + "] Connected from " +
+            ip.toString() +
+            " url: " + websocketConnection[num]);
+        // send message to client
+        sendDeviceInfo(true);
+        sendSensorData(true);
+        sendConfig();
+        break;
+      }
+    case WStype_TEXT: {
+        if (((char *)payload)[0] == '{') {
+          DynamicJsonDocument json(1024);
+          deserializeJson(json, payload);
+          Log("WebSocketEvent",
+              "Incoming Json length: " + String(measureJson(json)));
+          if (websocketConnection[num] == "/setConfig") {
+            // extract the data
+            JsonObject object = json.as<JsonObject>();
+            tehybug.conf.setConfig(object);
+            // delay(500);
+            // ESP.restart();
+          }
+        }
+        break;
+      }
   }
 }
 #pragma endregion
 
 String getInfo() {
   DynamicJsonDocument root(1024);
-
   root["gumboardVersion"] = version;
   root["sketchSize"] = ESP.getSketchSize();
   root["freeSketchSpace"] = ESP.getFreeSketchSpace();
@@ -335,10 +330,8 @@ String getInfo() {
   root["sleepModeActive"] = tehybug.device.sleepMode;
   root["deepSleepMax"] = (int)(ESP.deepSleepMax() / 1000000);
   root["key"] = tehybug.device.key;
-
   String json;
   serializeJson(root, json);
-
   return json;
 }
 
@@ -360,7 +353,6 @@ void haSendData() {
 }
 void mqttSendData() {
   if (client.connected()) {
-    
     client.publish((tehybug.serveData.mqtt.topic).c_str(), tehybug.serveData.data,
                    tehybug.serveData.mqtt.retained);
     String payload = tehybug.replacePlaceholders(tehybug.serveData.mqtt.message);
@@ -381,8 +373,8 @@ void mqttReconnect() {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
       connected = client.connect(
-          ("tehybug_" + GetChipID()).c_str(), tehybug.serveData.mqtt.user.c_str(),
-          tehybug.serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
+                    ("tehybug_" + GetChipID()).c_str(), tehybug.serveData.mqtt.user.c_str(),
+                    tehybug.serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
@@ -440,14 +432,16 @@ void startDeepSleep(int freq) {
 void httpPost() {
   http::post(http1, espClient, tehybug.serveData.post.url, tehybug.serveData.post.message);
 }
-void httpGet() { http::get(http1, espClient, tehybug.serveData.get.url); }
+void httpGet() {
+  http::get(http1, espClient, tehybug.serveData.get.url);
+}
 // SENSOR
 
 void read_bmx280() {
 
   if (bmx280.getChipID() == CHIP_ID_BME280) {
     tehybug.addTempHumi("temp", bmx280.readTemperature(), "humi",
-                bmx280.readHumidity());
+                        bmx280.readHumidity());
   } else if (tehybug.sensor.aht20) {
     tehybug.addSensorData("temp2", bmx280.readTemperature());
   } else {
@@ -563,7 +557,9 @@ void read_dht() {
   read_dht_custom(dht, "temp", "humi");
 }
 #if !defined(ARDUINO_ESP8266_GENERIC)
-void read_second_dht() { read_dht_custom(dht2, "temp2", "humi2"); }
+void read_second_dht() {
+  read_dht_custom(dht2, "temp2", "humi2");
+}
 #endif
 void read_am2320() {
   Wire.begin(I2C_SDA, I2C_SCL);
@@ -582,7 +578,6 @@ void read_am2320() {
 }
 
 void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
-
   // Start up the library
   ds18b20.begin();
   // Setup a oneWire instance to communicate with any OneWire devices (not just
@@ -595,7 +590,6 @@ void read_ds18b20_custom(DallasTemperature &ds18b20, const String &&temp) {
   // We use the function ByIndex, and as an example get the temperature from the
   // first sensor only.
   const float tempC = ds18b20.getTempCByIndex(0);
-
   // Check if reading was successful
   if (tempC != DEVICE_DISCONNECTED_C) {
     D_print("Temperature for the device 1 (index 0) is: ");
@@ -730,7 +724,7 @@ void Log(String function, String message) {
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main") {
         webSocket.sendTXT(i, "{\"log\":{\"function\":\"" + function +
-                                 "\",\"message\":\"" + message + "\"}}");
+                          "\",\"message\":\"" + message + "\"}}");
       }
     }
   }
@@ -768,7 +762,6 @@ void serve_data() {
      }*/
   }
 
-  
   if (tehybug.serveData.ha.active) {
     haSendData();
     delay(1000);
@@ -784,13 +777,12 @@ void checkScenario(Scenario &s) {
   float val = 0;
   bool conditionMet = false;
   if (s.active) {
-
     if (tehybug.sensorData.containsKey(s.data)) {
       val = tehybug.sensorData[s.data];
     }
     conditionMet = (s.condition == "lt" && val < s.value)
-    ||(s.condition == "gt" && val > s.value) 
-    ||(s.condition == "eq" && val == s.value);
+                   || (s.condition == "gt" && val > s.value)
+                   || (s.condition == "eq" && val == s.value);
 
     if (conditionMet) {
       D_println("condition met");
@@ -862,17 +854,14 @@ void saveConfigCallback() {
 }
 
 void setupWifi() {
-
   D_println("Setup WIFI");
   wifiManager.setDebugOutput(true);
   // Set config save notify callback
   wifiManager.setSaveConfigCallback(saveConfigCallback);
   wifiManager.setMinimumSignalQuality();
   wifiManager.setAPCallback(configModeCallback);
-
   // Config menu timeout 180 seconds.
   wifiManager.setConfigPortalTimeout(180);
-
   WiFi.hostname(identifier);
   // set custom ip for portal
   wifiManager.setAPStaticIPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
@@ -967,17 +956,17 @@ void setupSensors() {
       // Print sensor type
       D_print(F("\nSensor type: "));
       switch (bmx280.getChipID()) {
-      case CHIP_ID_BMP280:
-        D_println(F("BMP280\n"));
-        tehybug.sensor.bme680 = false;
-        break;
-      case CHIP_ID_BME280:
-        D_println(F("BME280\n"));
-        tehybug.sensor.bme680 = false;
-        break;
-      default:
-        Serial.println(F("Unknown\n"));
-        break;
+        case CHIP_ID_BMP280:
+          D_println(F("BMP280\n"));
+          tehybug.sensor.bme680 = false;
+          break;
+        case CHIP_ID_BME280:
+          D_println(F("BME280\n"));
+          tehybug.sensor.bme680 = false;
+          break;
+        default:
+          Serial.println(F("Unknown\n"));
+          break;
       }
 
       // Set sampling - Recommended modes of operation
@@ -1002,17 +991,17 @@ void setupSensors() {
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
       BMX280_Mode_e sampling = BMX280_MODE_NORMAL; // SLEEP, FORCED, NORMAL
-      if(tehybug.device.sleepMode)
+      if (tehybug.device.sleepMode)
       {
         sampling = BMX280_MODE_SLEEP;
       }
       bmx280.setSampling(
-          sampling,               // SLEEP, FORCED, NORMAL
-          BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
-          BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
-          BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
-          BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
-          BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
+        sampling,               // SLEEP, FORCED, NORMAL
+        BMX280_SAMPLING_X16,    // Temp:  NONE, X1, X2, X4, X8, X16
+        BMX280_SAMPLING_X16,    // Press: NONE, X1, X2, X4, X8, X16
+        BMX280_SAMPLING_X16,    // Hum:   NONE, X1, X2, X4, X8, X16 (BME280)
+        BMX280_FILTER_X16,      // OFF, X2, X4, X8, X16
+        BMX280_STANDBY_MS_500); // 0_5, 10, 20, 62_5, 125, 250, 500, 1000
     }
   }
   if (tehybug.sensor.bme680) {
@@ -1027,26 +1016,26 @@ void setupSensors() {
 
     checkIaqSensorStatus();
     bsec_virtual_sensor_t sensorList[10] = {
-        BSEC_OUTPUT_RAW_TEMPERATURE,
-        BSEC_OUTPUT_RAW_PRESSURE,
-        BSEC_OUTPUT_RAW_HUMIDITY,
-        BSEC_OUTPUT_RAW_GAS,
-        BSEC_OUTPUT_IAQ,
-        BSEC_OUTPUT_STATIC_IAQ,
-        BSEC_OUTPUT_CO2_EQUIVALENT,
-        BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
-        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
-        BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+      BSEC_OUTPUT_RAW_TEMPERATURE,
+      BSEC_OUTPUT_RAW_PRESSURE,
+      BSEC_OUTPUT_RAW_HUMIDITY,
+      BSEC_OUTPUT_RAW_GAS,
+      BSEC_OUTPUT_IAQ,
+      BSEC_OUTPUT_STATIC_IAQ,
+      BSEC_OUTPUT_CO2_EQUIVALENT,
+      BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
     };
 
     bme680.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
     checkIaqSensorStatus();
     // Print the header
     D_println(
-        "Timestamp [ms], raw temperature [°C], pressure [hPa], raw "
-        "relative humidity [%], gas [Ohm], IAQ, IAQ accuracy, temperature "
-        "[°C], relative humidity [%], Static IAQ, CO2 equivalent, breath "
-        "VOC equivalent");
+      "Timestamp [ms], raw temperature [°C], pressure [hPa], raw "
+      "relative humidity [%], gas [Ohm], IAQ, IAQ accuracy, temperature "
+      "[°C], relative humidity [%], Static IAQ, CO2 equivalent, breath "
+      "VOC equivalent");
   }
   if (tehybug.sensor.max44009) {
     D_print("\nStart max44009_setAutomaticMode : ");
@@ -1070,7 +1059,6 @@ void setupSensors() {
   if (tehybug.sensor.am2320) {
     am2320.setWire(&Wire);
   }
-
   if (tehybug.sensor.ds18b20) {
     pinMode(ONE_WIRE_BUS, INPUT_PULLUP);
   }
@@ -1107,9 +1095,7 @@ void updateMqttClient() {
 
 void setup() {
   pinMode(SIGNAL_LED_PIN, OUTPUT);
-
   snprintf(identifier, sizeof(identifier), "TEHYBUG-%X", ESP.getChipId());
-
   Serial.begin(115200);
   while (!Serial) {
     delay(10);
@@ -1156,71 +1142,79 @@ void setup() {
     D_println(F("Starting live mode"));
   }
 
+  // setup homeassistant
   if (tehybug.device.configMode == false && (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active)) {
     updateMqttClient();
     client.setKeepAlive(10);
     client.setCallback(callback);
     client.setBufferSize(4000);
-    if(tehybug.serveData.ha.active)
+    if (tehybug.serveData.ha.active)
     {
       ha::setupHandle(tehybug.device);
     }
     Log(F("Setup"), F("MQTT started"));
   }
+  
   setupSensors();
-
+  
+  // process changes requested by remote control
+  if (tehybug.device.configMode == false && tehybug.device.remoteControl.active) {
+     const String rcData = http::get(http2, espClient, tehybug.device.remoteControl.url);
+     tehybug.handleRemoteControl(rcData);
+  }
+  
   // setup tickers for non-deep-sleep mode
   if (!tehybug.device.configMode && !tehybug.device.sleepMode) {
 
     uint8_t ticker_num = 0;
     if (tehybug.serveData.get.active) {
       ticker.add(
-          ticker_num, tehybug.serveData.get.frequency * 1000,
-          [&](void *) {
-            read_sensors();
-            yield();
-            httpGet();
-          },
-          nullptr, true);
+        ticker_num, tehybug.serveData.get.frequency * 1000,
+      [&](void *) {
+        read_sensors();
+        yield();
+        httpGet();
+      },
+      nullptr, true);
       ticker_num++;
     }
 
     if (tehybug.serveData.post.active) {
       ticker.add(
-          ticker_num, tehybug.serveData.post.frequency * 1000,
-          [&](void *) {
-            read_sensors();
-            yield();
-            httpPost();
-          },
-          nullptr, true);
+        ticker_num, tehybug.serveData.post.frequency * 1000,
+      [&](void *) {
+        read_sensors();
+        yield();
+        httpPost();
+      },
+      nullptr, true);
       ticker_num++;
     }
 
     if (tehybug.serveData.mqtt.active) {
       ticker.add(
-          ticker_num, tehybug.serveData.mqtt.frequency * 1000,
-          [&](void *) {
-            read_sensors();
-            yield();
-            mqttSendData();
-          },
-          nullptr, true);
+        ticker_num, tehybug.serveData.mqtt.frequency * 1000,
+      [&](void *) {
+        read_sensors();
+        yield();
+        mqttSendData();
+      },
+      nullptr, true);
       ticker_num++;
     }
 
     if (tehybug.serveData.ha.active) {
       ticker.add(
-          ticker_num, tehybug.serveData.mqtt.frequency * 1000,
-          [&](void *) {
-            read_sensors();
-            yield();
-            haSendData();
-          },
-          nullptr, true);
+        ticker_num, tehybug.serveData.mqtt.frequency * 1000,
+      [&](void *) {
+        read_sensors();
+        yield();
+        haSendData();
+      },
+      nullptr, true);
       ticker_num++;
     }
-    
+
   }
 }
 
@@ -1239,6 +1233,19 @@ void loop() {
     serve_scenario();
     yield();
     serve_data();
+  }
+  
+  if (tehybug.tickerStop && tehybug.device.configMode)
+  {
+    tehybug.tickerStop = false;
+    ticker.disableAll();
+    led_on();
+  }
+  if (tehybug.tickerStart && !tehybug.device.configMode)
+  {
+    tehybug.tickerStart = false;
+    ticker.enableAll();
+    led_off();
   }
   // update ticker for the non-deep-sleep mode
   ticker.update();

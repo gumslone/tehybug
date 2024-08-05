@@ -229,11 +229,11 @@ String key2icon(const String & key)
   if (key == "qfe")
     return "mdi:gauge";
   if (key == "alt")
-    return "mdi:mountain";
+    return "mdi:image-filter-hdr";
   if (key == "dew"||key =="dew_imp")
-    return "mdi:dew-pint";
+    return "mdi:water-thermometer";
   if (key == "hi" || key == "hi_imp")
-    return "mdi:heat-index";
+    return "mdi:sun-thermometer";
   return "";
 }
 #endif

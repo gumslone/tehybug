@@ -126,8 +126,6 @@ DallasTemperature second_ds18b20_sensors(&secondOneWire);
 const byte DNS_PORT = 53;
 const IPAddress apIP(192, 168, 4, 1);
 DNSServer dnsServer;
-char cmDNS[33];
-String escapedMac;
 // HTTP Config
 HTTPClient http1;
 HTTPClient http2;
@@ -889,6 +887,15 @@ void setupWifi() {
 
   D_println(F("Wifi successfully connected!"));
   tehybug.conf.saveConfig();
+  
+  if(tehybug.device.configMode)
+  {
+    WiFi.softAP(identifier, "TeHyBug123");
+  }
+  else
+  {
+    WiFi.softAPdisconnect(true);
+  }
   Serial.println("Setup IP : " + WiFi.localIP().toString());
   D_println("Setup " + WiFi.gatewayIP().toString());
   D_println("Setup " + WiFi.subnetMask().toString());
@@ -898,22 +905,20 @@ void setupWifi() {
 
 void setupMDSN() {
   // generate module IDs
-  escapedMac = WiFi.macAddress();
+  String escapedMac = WiFi.macAddress();
   escapedMac.replace(":", "");
   escapedMac.toLowerCase();
-  strcpy_P(cmDNS, PSTR("tehybug"));
   // Set up mDNS responder:
-  if (strlen(cmDNS) > 0) {
     // "end" must be called before "begin" is called a 2nd time
     // see https://github.com/esp8266/Arduino/issues/7213
     MDNS.end();
-    MDNS.begin(cmDNS);
-    D_println(cmDNS);
+    MDNS.begin("tehybug");
     D_println(F("mDNS started"));
     MDNS.addService("http", "tcp", 80);
-    MDNS.addService("tehybug", "tcp", 80);
-    MDNS.addServiceTxt("tehybug", "tcp", "mac", escapedMac.c_str());
-  }
+    MDNS.addServiceTxt("http", "tcp", "mac", escapedMac.c_str());
+    MDNS.addServiceTxt("http", "tcp", "device", "TeHyBug");
+    MDNS.addServiceTxt("http", "tcp", "version", version);
+    MDNS.addServiceTxt("http", "tcp", "endpoint", "/");
 }
 // Helper function definitions
 void findI2Csensors() {

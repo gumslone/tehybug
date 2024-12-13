@@ -1,34 +1,12 @@
-struct Sensor {
-  bool bmx{false};
-  bool bme680{false};
-  bool max44009{false};
-  bool aht20{false};
-  bool dht{false};
-  bool dht_2{false};
-  bool am2320{false};
-  bool ds18b20{false};
-  bool ds18b20_2{false};
-  bool adc{false};
-};
-struct Calibration {
-  bool active{false};
-  float temp{0};
-  float humi{0};
-  float qfe{0};
-};
-struct Scenario {
-  bool active = false;
-  String type{};
-  String url{};
-  String data{};
-  String condition{};
-  float value{};
-  String message{};
-};
-struct Scenarios {
-  Scenario scenario1{};
-  Scenario scenario2{};
-  Scenario scenario3{};
+#pragma once
+
+#ifndef _DATA_TYPES_HEADER_
+#define _DATA_TYPES_HEADER_
+struct Device {
+  String key;
+  bool configMode{false};
+  bool sleepMode{true};
+  bool skipButtonActions{false};
 };
 struct HttpGetDataServ {
   String url;
@@ -62,3 +40,4 @@ struct DataServ {
   MqttDataServ mqtt{};
   char data[80];
 };
+#endif

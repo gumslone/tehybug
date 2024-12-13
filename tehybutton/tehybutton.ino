@@ -1,4 +1,3 @@
-#include "UUID.h"
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -32,10 +31,12 @@
 #define D_println(...)
 #endif
 
+
 // tehybug stuff
-#include "Tools.h"
+#include "common_functions.h"
+#include "http_request.h"
 #include "Webinterface.h"
-#include "tehybug.h"
+#include "tehybutton.h"
 
 #define COMPILE_HOUR (((__TIME__[0] - '0') * 10) + (__TIME__[1] - '0'))
 #define COMPILE_MINUTE (((__TIME__[3] - '0') * 10) + (__TIME__[4] - '0'))
@@ -107,11 +108,7 @@ String escapedMac;
 HTTPClient http1;
 HTTPClient http2;
 
-DataServ serveData{};
-
-bool skipButtonActions = false;
-unsigned long sleepAfter = 0;
-bool shouldServeData = true;
+TeHyButton tehybutton{};
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -120,187 +117,16 @@ ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
 ESP8266HTTPUpdateServer httpUpdater;
 
-bool configModeActive = true;
-
-// System Vars
-bool sleepModeActive = true;
-bool shouldSaveConfig = false;
-
-// Timerserver Vars
-long lastClockUpdate = 0;
-bool clockSecondBlink = true;
-String OldInfo = "";   // old board info
-String OldSensor = ""; // old sensor info
 // Websoket Vars
 String websocketConnection[10];
-
-UUID uuid;
-
-DynamicJsonDocument sensorData(1024);
-
-Scenarios scenarios{};
 
 TickerScheduler ticker(5);
 
 void saveConfigCallback() {
-  shouldSaveConfig = true;
+  tehybutton.conf.saveConfigCallback();
 }
 
 /////////////////////////////////////////////////////////////////////
-void saveConfig() {
-  // save the custom parameters to FS
-  if (shouldSaveConfig) {
-    DynamicJsonDocument json(4096);
-
-    json["mqttActive"] = serveData.mqtt.active;
-    json["mqttRetained"] = serveData.mqtt.retained;
-    json["mqttUser"] = serveData.mqtt.user;
-    json["mqttPassword"] = serveData.mqtt.password;
-    json["mqttServer"] = serveData.mqtt.server;
-    json["mqttMasterTopic"] = serveData.mqtt.topic;
-    json["mqttMessage"] = serveData.mqtt.message;
-    json["mqttPort"] = serveData.mqtt.port;
-    json["mqttFrequency"] = serveData.mqtt.frequency;
-
-    json["httpGetURL"] = serveData.get.url;
-    json["httpGetActive"] = serveData.get.active;
-    json["httpGetFrequency"] = serveData.get.frequency;
-
-    json["httpPostURL"] = serveData.post.url;
-    json["httpPostActive"] = serveData.post.active;
-    json["httpPostFrequency"] = serveData.post.frequency;
-    json["httpPostJson"] = serveData.post.message;
-
-    json["configModeActive"] = configModeActive;
-    json["skipButtonActions"] = skipButtonActions;
-
-    json["key"] = sensorData["key"];
-
-    File configFile = SPIFFS.open("/config.json", "w");
-    serializeJson(json, configFile);
-    configFile.close();
-    Log("SaveConfig", "Saved");
-    // end save
-  }
-}
-
-void setConfigParameters(JsonObject &json) {
-  D_println("Config:");
-  if (DEBUG)
-  {
-    for (JsonPair kv : json) {
-      D_print(kv.key().c_str());
-      D_print(" = ");
-      D_println(kv.value().as<String>());
-    }
-  }
-  D_println();
-  if (json.containsKey("mqttActive")) {
-    serveData.mqtt.active = json["mqttActive"].as<bool>();
-  }
-  if (json.containsKey("mqttRetained")) {
-    serveData.mqtt.retained = json["mqttRetained"].as<bool>();
-  }
-  if (json.containsKey("mqttUser")) {
-    serveData.mqtt.user = json["mqttUser"].as<String>();
-  }
-  if (json.containsKey("mqttPassword")) {
-    serveData.mqtt.password = json["mqttPassword"].as<String>();
-  }
-  if (json.containsKey("mqttServer")) {
-    serveData.mqtt.server = json["mqttServer"].as<String>();
-  }
-  if (json.containsKey("mqttMasterTopic")) {
-    serveData.mqtt.topic = json["mqttMasterTopic"].as<String>();
-  }
-  if (json.containsKey("mqttMessage")) {
-    serveData.mqtt.message = json["mqttMessage"].as<String>();
-  }
-  if (json.containsKey("mqttPort")) {
-    serveData.mqtt.port = json["mqttPort"].as<int>();
-  }
-
-  // http
-  if (json.containsKey("httpGetURL")) {
-    serveData.get.url = json["httpGetURL"].as<String>();
-  }
-  if (json.containsKey("httpGetActive")) {
-    serveData.get.active = json["httpGetActive"].as<bool>();
-  }
-
-  if (json.containsKey("httpPostURL")) {
-    serveData.post.url = json["httpPostURL"].as<String>();
-  }
-  if (json.containsKey("httpPostActive")) {
-    serveData.post.active = json["httpPostActive"].as<bool>();
-  }
-  if (json.containsKey("httpPostJson")) {
-    serveData.post.message = json["httpPostJson"].as<String>();
-  }
-
-  if (json.containsKey("configModeActive")) {
-    configModeActive = json["configModeActive"].as<bool>();
-  }
-
-  if (json.containsKey("skipButtonActions"))
-  {
-    skipButtonActions = json["skipButtonActions"].as<bool>();
-  }
-
-}
-
-void loadConfig() {
-  if (SPIFFS.exists("/config.json")) {
-    // file exists, reading and loading
-    File configFile = SPIFFS.open("/config.json", "r");
-
-    if (configFile) {
-      Log("LoadConfig", "opened config file");
-
-      DynamicJsonDocument json(4096);
-      auto error = deserializeJson(json, configFile);
-
-      if (!error) {
-        JsonObject documentRoot = json.as<JsonObject>();
-        setConfigParameters(documentRoot);
-
-        Log("LoadConfig", "Loaded");
-      } else {
-        switch (error.code()) {
-          case DeserializationError::Ok:
-            D_println(F("Deserialization succeeded"));
-            break;
-          case DeserializationError::InvalidInput:
-            D_println(F("Invalid input!"));
-            break;
-          case DeserializationError::NoMemory:
-            D_println(F("Not enough memory"));
-            break;
-          default:
-            D_println(F("Deserialization failed"));
-            break;
-        }
-      }
-    }
-  } else {
-    Log("LoadConfig", "No configfile found, create a new file");
-    saveConfigCallback();
-    saveConfig();
-  }
-}
-
-void setConfig(JsonObject &json) {
-  setConfigParameters(json);
-  saveConfigCallback();
-  saveConfig();
-
-  if (json.containsKey("reboot")) {
-    if (json["reboot"]) {
-      delay(1000);
-      ESP.restart();
-    }
-  }
-}
 
 void WifiSetup() {
   wifiManager.resetSettings();
@@ -333,7 +159,7 @@ void handleSetConfig() {
     Log(("SetConfig"), ("Incoming Json length: " + String(measureJson(json))));
     // extract the data
     JsonObject object = json.as<JsonObject>();
-    setConfig(object);
+    tehybutton.conf.setConfig(object);
     server.send(200, "application/json", "{\"response\":\"OK\"}");
     // delay(500);
     // ESP.restart();
@@ -344,7 +170,7 @@ void handleSetConfig() {
 
 void handleGetConfig() {
   server.sendHeader("Connection", "close");
-  server.send(200, "application/json", getConfig());
+  server.send(200, "application/json", tehybutton.conf.getConfig());
 }
 
 void handleGetInfo() {
@@ -371,7 +197,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
   if (payload[0] == '{') {
     payload[length] = '\0';
     String channel = String(topic);
-    channel.replace(serveData.mqtt.topic, "");
+    channel.replace(tehybutton.serveData.mqtt.topic, "");
 
     DynamicJsonDocument json(512);
     deserializeJson(json, payload);
@@ -379,15 +205,15 @@ void callback(char *topic, byte *payload, unsigned int length) {
     Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
         ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
-      client.publish((serveData.mqtt.topic + "info").c_str(),
+      client.publish((tehybutton.serveData.mqtt.topic + "info").c_str(),
                      getInfo().c_str());
     } else if (channel.equals("getConfig")) {
-      client.publish((serveData.mqtt.topic + "config").c_str(),
-                     getConfig().c_str());
+      client.publish((tehybutton.serveData.mqtt.topic + "config").c_str(),
+                     tehybutton.conf.getConfig().c_str());
     } else if (channel.equals("setConfig")) {
       // extract the data
       JsonObject object = json.as<JsonObject>();
-      setConfig(object);
+      tehybutton.conf.setConfig(object);
     }
   }
 }
@@ -412,7 +238,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             " url: " + websocketConnection[num]);
 
         // send message to client
-        sendDeviceInfo(true);
+        sendDeviceInfo();
         sendConfig();
         break;
       }
@@ -425,7 +251,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
           if (websocketConnection[num] == "/setConfig") {
             // extract the data
             JsonObject object = json.as<JsonObject>();
-            setConfig(object);
+            tehybutton.conf.setConfig(object);
             // delay(500);
             // ESP.restart();
           }
@@ -435,28 +261,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   }
 }
 #pragma endregion
-
-String getConfig() {
-  File configFile = SPIFFS.open("/config.json", "r");
-
-  if (configFile) {
-    const size_t size = configFile.size();
-    std::unique_ptr<char[]> buf(new char[size]);
-
-    configFile.readBytes(buf.get(), size);
-    DynamicJsonDocument root(4096);
-
-    if (DeserializationError::Ok == deserializeJson(root, buf.get())) {
-    }
-    String timeStamp = IntFormat(year()) + "-" + IntFormat(month()) + "-" +
-                       IntFormat(day()) + "T" + IntFormat(hour()) + ":" +
-                       IntFormat(minute());
-    root["clockTime"] = timeStamp;
-    String json;
-    serializeJson(root, json);
-    return json;
-  }
-}
 
 String getInfo() {
   DynamicJsonDocument root(1024);
@@ -471,9 +275,9 @@ String getInfo() {
   root["freeHeap"] = ESP.getFreeHeap();
   root["chipID"] = ESP.getChipId();
   root["cpuFreqMHz"] = ESP.getCpuFreqMHz();
-  root["sleepModeActive"] = sleepModeActive;
+  root["sleepMode"] = tehybutton.device.sleepMode;
   root["deepSleepMax"] = (int)(ESP.deepSleepMax() / 1000000);
-  root["key"] = sensorData["key"];
+  root["key"] = tehybutton.device.key;
 
   String json;
   serializeJson(root, json);
@@ -484,10 +288,10 @@ String getInfo() {
 /////////////////////////////////////////////////////////////////////
 void mqttSendData() {
   if (client.connected()) {
-    String payload = replace_placeholders(serveData.mqtt.message);
-    payload.toCharArray(serveData.data, (payload.length() + 1));
-    client.publish((serveData.mqtt.topic).c_str(), serveData.data,
-                   serveData.mqtt.retained);
+    String payload = replace_placeholders(tehybutton.serveData.mqtt.message);
+    payload.toCharArray(tehybutton.serveData.data, (payload.length() + 1));
+    client.publish((tehybutton.serveData.mqtt.topic).c_str(), tehybutton.serveData.data,
+                   tehybutton.serveData.mqtt.retained);
     Log(F("MqttSendData"), payload);
   } else
     mqttReconnect();
@@ -496,16 +300,16 @@ void mqttSendData() {
 void mqttReconnect() {
   // Loop until we're reconnected
   while (!client.connected() &&
-         serveData.mqtt.retryCounter < serveData.mqtt.maxRetries) {
+         tehybutton.serveData.mqtt.retryCounter < tehybutton.serveData.mqtt.maxRetries) {
     bool connected = false;
-    if (serveData.mqtt.user != NULL && serveData.mqtt.user.length() > 0 &&
-        serveData.mqtt.password != NULL &&
-        serveData.mqtt.password.length() > 0) {
+    if (tehybutton.serveData.mqtt.user != NULL && tehybutton.serveData.mqtt.user.length() > 0 &&
+        tehybutton.serveData.mqtt.password != NULL &&
+        tehybutton.serveData.mqtt.password.length() > 0) {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
       connected = client.connect(
-                    ("tehybutton_" + GetChipID()).c_str(), serveData.mqtt.user.c_str(),
-                    serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
+                    ("tehybutton_" + GetChipID()).c_str(), tehybutton.serveData.mqtt.user.c_str(),
+                    tehybutton.serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
@@ -516,17 +320,17 @@ void mqttReconnect() {
     // Attempt to connect
     if (connected) {
       Log(F("MqttReconnect"), F("MQTT connected!"));
-      serveData.mqtt.retryCounter = 0;
+      tehybutton.serveData.mqtt.retryCounter = 0;
       // ... and publish
       mqttSendData();
     } else {
       Log(F("MqttReconnect"), F("MQTT not connected!"));
       Log(F("MqttReconnect"), F("Wait 5 seconds before retrying...."));
-      serveData.mqtt.retryCounter++;
+      tehybutton.serveData.mqtt.retryCounter++;
     }
   }
 
-  if (serveData.mqtt.retryCounter >= serveData.mqtt.maxRetries) {
+  if (tehybutton.serveData.mqtt.retryCounter >= tehybutton.serveData.mqtt.maxRetries) {
     Log(F("MqttReconnect"),
         F("No connection to MQTT-Server, MQTT temporarily deactivated!"));
   }
@@ -537,17 +341,16 @@ void mqttReconnect() {
 //  Attach callback.
 void toggleConfigMode() {
 
-  Serial.println(F("Config mode changed"));
-  configModeActive = !configModeActive;
-  if (configModeActive) {
+  D_println(F("Config mode changed"));
+  tehybutton.device.configMode = !tehybutton.device.configMode;
+  if (tehybutton.device.configMode) {
     D_println(F("Config mode activated"));
   } else {
     D_println(F("Config mode deactivated"));
   }
-  saveConfigCallback();
-  saveConfig();
+  tehybutton.conf.saveConfig(true);
   yield();
-  if (configModeActive == false) {
+  if (tehybutton.device.configMode == false) {
     // ESP.restart();
   }
 }
@@ -563,81 +366,30 @@ void startDeepSleep(int freq) {
 /////////////////////////////////////////////////////////////////////
 String replace_placeholders(String text)
 {
-  JsonObject root = sensorData.as<JsonObject>();
-  for (JsonPair keyValue : root) {
-    String k = keyValue.key().c_str();
-    String v = keyValue.value();
-    text.replace("%" + k + "%", v);
-  }
   text.replace("%state%", button_state);
-
   return text;
 }
-void http_post_custom(HTTPClient &http, String url, String post_json) {
-  D_print("HTTP POST: ");
-  D_println(url);
-  http.begin(espClient, url); // Specify request destination
-  http.addHeader("Content-Type",
-                 "application/json"); // Specify content-type header
-  post_json = replace_placeholders(post_json);
-  int httpCode = http.POST(post_json); // Send the request
-  D_println(httpCode);                 // Print HTTP return code
-  if (httpCode == 200) {
-    Log(F("http_post"), post_json);
-  }
-  if (httpCode > 0) {                  // Check the returning code
-    String payload = http.getString(); // Get the response
-    // payload
-    D_println(payload); // Print request response payload
-  }
-  http.end(); // Close connection
-}
-void httpPost() {
-  http_post_custom(http1, serveData.post.url, serveData.post.message);
-}
-void http_get_custom(HTTPClient &http, String url) {
-  D_print("HTTP GET: ");
-  D_println(url);
-  url = replace_placeholders(url);
-  http.begin(espClient, url); // Specify request destination
-  http.setURL(url);
-  http.addHeader("Content-Type", "text/plain"); // Specify content-type header
 
-  int httpCode = http.GET(); // Send the request
-  D_println(httpCode);       // Print HTTP return code
-  if (httpCode == 200) {
-    Log(F("http_get"), url);
-  }
-  if (httpCode > 0) {                  // Check the returning code
-    String payload = http.getString(); // Get the response
-    // payload
-    D_println(payload); // Print request response payload
-  }
-  http.end(); // Close connection
+// HTTP REQUESTS
+void httpPost() {
+  http::post(http1, espClient, tehybutton.serveData.post.url, tehybutton.serveData.post.message);
 }
 void httpGet() {
-  http_get_custom(http1, serveData.get.url);
+  http::get(http1, espClient, tehybutton.serveData.get.url);
 }
 
-void sendDeviceInfo(bool force) {
-  if (force) {
-    OldInfo = "";
-  }
-  String Info;
-  if ((webSocket.connectedClients() > 0)) {
-    Info = getInfo();
-  }
-  if (webSocket.connectedClients() > 0 && OldInfo != Info) {
+void sendDeviceInfo() {
+  if (webSocket.connectedClients() > 0) {
     for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
           websocketConnection[i] == "/firststart" ||
           websocketConnection[i] == "/api/info") {
+        String Info = getInfo();
         webSocket.sendTXT(i, Info);
       }
     }
   }
-  OldInfo = Info;
 }
 
 void sendConfig() {
@@ -646,8 +398,8 @@ void sendConfig() {
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/settings" ||
           websocketConnection[i] == "/setsystem") {
-        String config = getConfig();
-        webSocket.sendTXT(i, config);
+        String cfg = tehybutton.conf.getConfig();
+        webSocket.sendTXT(i, cfg);
       }
     }
   }
@@ -674,16 +426,15 @@ void serve_data() {
 
   doSetPixelColor(pixel.Color(  0,   255,   0));         //  Set pixel's color (in RAM)
 
-
-  if (serveData.get.active) {
+  if (tehybutton.serveData.get.active) {
     httpGet();
   }
 
-  if (serveData.post.active) {
+  if (tehybutton.serveData.post.active) {
     httpPost();
   }
 
-  if (serveData.mqtt.active) {
+  if (tehybutton.serveData.mqtt.active) {
     mqttSendData();
   }
 }
@@ -749,7 +500,7 @@ void setupWifi() {
   wifiManager.setConfigPortalTimeout(180);
   wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");
   if (!wifiManager.autoConnect(identifier, "TeHyBug123")) {
-    Serial.println(F("Setup: Wifi failed to connect and hit timeout"));
+    D_println(F("Setup: Wifi failed to connect and hit timeout"));
     delay(3000);
     // Reset and try again, or maybe put it to deep sleep
     //ESP.reset();
@@ -759,14 +510,12 @@ void setupWifi() {
 
   D_println(F("Wifi connected...yeey :)"));
 
-  if (shouldSaveConfig) {
-    saveConfig();
-  }
+  tehybutton.conf.saveConfig();
 
-  Serial.println("Setup: Local IP");
-  Serial.println("Setup " + WiFi.localIP().toString());
-  Serial.println("Setup " + WiFi.gatewayIP().toString());
-  Serial.println("Setup " + WiFi.subnetMask().toString());
+  D_println("Setup: Local IP");
+  D_println("Setup " + WiFi.localIP().toString());
+  D_println("Setup " + WiFi.gatewayIP().toString());
+  D_println("Setup " + WiFi.subnetMask().toString());
 
   setupMDSN();
 }
@@ -793,7 +542,7 @@ void setupMDSN() {
 
 void turnLedOn()
 {
-  if (configModeActive) {
+  if (tehybutton.device.configMode) {
     led_on();
   } else {
     led_off();
@@ -814,51 +563,38 @@ void setupMode() {
   turnLedOn();
 }
 
-void setServeData()
-{
-  if (skipButtonActions == false)
-  {
-    shouldServeData = true;
-    sleepAfter = millis() + 1500;
-  }
-}
-
 void pressed(Button2& btn) {
-  Serial.println("pressed");
+  D_println("pressed");
   button_state = "pressed";
-  setServeData();
 }
 void released(Button2& btn) {
-  Serial.print("released: ");
-  Serial.println(btn.wasPressedFor());
+  D_print("released: ");
+  D_println(btn.wasPressedFor());
   button_state = btn.wasPressedFor();
-  setServeData();
 }
 void changed(Button2& btn) {
-  Serial.println("changed");
+  D_println("changed");
 }
 void click(Button2& btn) {
-  Serial.println("click\n");
+  D_println("click\n");
   button_state = "click";
-  setServeData();
+  tehybutton.setServeData();
 }
 void longClickDetected(Button2& btn) {
-  Serial.println("long click detected\n");
-  sleepAfter = millis() + 5000;
-
+  D_println("long click detected\n");
 }
 void longClick(Button2& btn) {
-  Serial.println("long click\n");
+  D_println("long click\n");
   button_state = "long click";
-  setServeData();
+  tehybutton.setServeData();
 }
 void doubleClick(Button2& btn) {
-  Serial.println("double click\n");
+  D_println("double click\n");
   button_state = "double click";
-  setServeData();
+  tehybutton.setServeData();
 }
 void tripleClick(Button2& btn) {
-  Serial.println("triple click\n");
+  D_println("triple click\n");
   button_state = "triple click";
   //setServeData();
 }
@@ -870,23 +606,23 @@ void latchOff()
 }
 
 void setup() {
-  uuid.seed(ESP.getChipId());
-  uuid.generate();
-  sensorData["key"] = String(uuid.toCharArray());
 
+  Serial.begin(115200);
+  while (!Serial) {
+    delay(10);
+  }
+  
   snprintf(identifier, sizeof(identifier), "TEHYBUTTON-%X", ESP.getChipId());
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(MODE_PIN, INPUT_PULLUP);
 
-  Serial.println("\n\nButton Demo");
-
   button.begin(BUTTON_PIN);
   button.setLongClickTime(1000);
   button.setDoubleClickTime(400);
 
-  Serial.println(" Longpress Time: " + String(button.getLongClickTime()) + "ms");
-  Serial.println(" DoubleClick Time: " + String(button.getDoubleClickTime()) + "ms");
+  D_println(" Longpress Time: " + String(button.getLongClickTime()) + "ms");
+  D_println(" DoubleClick Time: " + String(button.getDoubleClickTime()) + "ms");
 
   //button.setChangedHandler(changed);
   button.setPressedHandler(pressed);
@@ -909,25 +645,19 @@ void setup() {
   pixel.show();
   doSetPixelColor(pixel.Color(  255,   0,   0));
 
-  Serial.begin(115200);
-  while (!Serial) {
-    delay(10);
-  }
-  D_println(F("key: "));
-  D_println(sensorData["key"].as<String>());
   // Mounting FileSystem
   D_println(F("Mounting file system..."));
   if (SPIFFS.begin()) {
     D_println(F("Mounted file system."));
-    loadConfig();
+    tehybutton.conf.loadConfig();
   } else {
     D_println(F("Failed to mount FS"));
   }
 
   // force config when no mode selected
-  if (serveData.get.active == false && serveData.post.active == false &&
-      serveData.mqtt.active == false) {
-    configModeActive = true;
+  if (tehybutton.serveData.get.active == false && tehybutton.serveData.post.active == false &&
+      tehybutton.serveData.mqtt.active == false) {
+    tehybutton.device.configMode = true;
     D_println("Data serving mode not selected");
   }
 
@@ -935,7 +665,7 @@ void setup() {
   setupMode();
   doSetPixelColor(pixel.Color(  0,   255,   0));         //  Set pixel's color (in RAM)
 
-  if (configModeActive) {
+  if (tehybutton.device.configMode) {
     D_println(F("Starting config mode"));
     httpUpdater.setup(&server);
     server.on(F("/api/info"), HTTP_GET, handleGetInfo);
@@ -952,8 +682,8 @@ void setup() {
     D_println(F("Starting live mode"));
   }
 
-  if (configModeActive == false && serveData.mqtt.active) {
-    client.setServer(serveData.mqtt.server.c_str(), serveData.mqtt.port);
+  if (tehybutton.device.configMode == false && tehybutton.serveData.mqtt.active) {
+    client.setServer(tehybutton.serveData.mqtt.server.c_str(), tehybutton.serveData.mqtt.port);
     client.setCallback(callback);
     client.setBufferSize(4000);
     Log(F("Setup"), F("MQTT started"));
@@ -962,7 +692,7 @@ void setup() {
 
 void loop() {
   // config mode
-  if (configModeActive) {
+  if (tehybutton.device.configMode) {
     MDNS.update();
     server.handleClient();
     yield();
@@ -971,24 +701,23 @@ void loop() {
     // ticker.update();
   }
   // deep sleep mode
-  else if (sleepModeActive) {
+  else if (tehybutton.device.sleepMode) {
     // Get current button state.
     button.loop();
     yield();
 
-    if (shouldServeData == true)
+    if (tehybutton.shouldServeData == true)
     {
-      shouldServeData = false;
+      tehybutton.shouldServeData = false;
       serve_data();
       yield();
-      sleepAfter = millis() + 1000;
+      tehybutton.updateSleepAfter(1000);
     }
 
     if (digitalRead(BUTTON_PIN) == LOW) {
-      sleepAfter = millis() + 1500;
+      tehybutton.updateSleepAfter(1500);
     }
-
-    if (shouldServeData == false && sleepAfter < millis())
+    else if (tehybutton.shouldSleep())
     {
       latchOff();
     }

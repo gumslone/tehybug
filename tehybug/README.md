@@ -19,7 +19,7 @@ This firmware is compatible with tehybug universal boards (without display) like
 * or other tehybug boards with have audio jack connector for the sensors
 * It is also compatible with any other ESP8266/ESP8285 dev boards like wemos, lolin, nodemcu etc. See the pin mapping images. Only the indicator led will not work and the power saving mode with deep sleep will probably not work either.
 
-## Buttoms
+## Buttons
 - Reset: forces TeHyBug to reboot/restart
 - Mode button: activates the configuration mode after reset during the device boot
 

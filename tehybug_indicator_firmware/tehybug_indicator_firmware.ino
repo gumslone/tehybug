@@ -30,6 +30,8 @@
 
 #include "reed_switch.h"
 
+#include "IntervalTimer.h"
+
 // dns
 const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 4, 1);
@@ -84,6 +86,8 @@ String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux,
     uv, adc, tvoc, co2;
 
 String i2c_addresses = "";
+Pir pir(PIR_PIN);
+ReedSwitch reed(REED_PIN);
 
 TickerScheduler ticker(5);
 
@@ -127,12 +131,8 @@ WiFiManagerParameter custom_mqtt_user("user", "MQTT username", Config::username,
 WiFiManagerParameter custom_mqtt_pass("pass", "MQTT password", Config::password,
                                       sizeof(Config::password));
 
-uint32_t lastMqttConnectionAttempt = 0;
-const uint16_t mqttConnectionInterval =
-    60000; // 1 minute = 60 seconds = 60000 milliseconds
-
-uint32_t statusPublishPreviousMillis = 0;
-const uint16_t statusPublishInterval = 30000; // 30 seconds = 30000 milliseconds
+IntervalTimer mqttConnectionInterval(60000); // 1 minute = 60 seconds = 60000 milliseconds
+IntervalTimer statusPublishInterval(30000); // 30 seconds = 30000 milliseconds
 
 char identifier[24];
 #define FIRMWARE_PREFIX "tehybug-indicator"
@@ -514,8 +514,8 @@ void publishState() {
   }
   stateJson["humidity"] = humi;
   stateJson["pressure"] = qfe;
-  stateJson["motion"] = Pir::state;
-  stateJson["reed"] = ReedSwitch::state;
+  stateJson["motion"] = pir.getState();
+  stateJson["reed"] = reed.getState();
   stateJson["wifi"] = wifiJson.as<JsonObject>();
   serializeJson(stateJson, payload);
   mqttClient.publish(&MQTT_TOPIC_STATE[0], &payload[0], true);
@@ -864,39 +864,14 @@ void read_scd4x() {
 }
 
 void read_pin_sensors() {
-  read_pir();
-  read_reed_switch();
-}
-
-void read_pir() {
-  int val = digitalRead(PIR_PIN); // read sensor value
-  String prev_state = Pir::state;
-
-  if (val == HIGH) { // check if the sensor is HIGH
-    Pir::state = "detected";
-  } else {
-    Pir::state = "clear";
-  }
-
-  if (Pir::state != prev_state) {
+  const String prev_pir_state = pir.getState();
+  const String prev_reed_state = reed.getState();
+  if (pir.read() != prev_pir_state || reed.read() != prev_reed_state) {
     publishState();
   }
 }
 
-void read_reed_switch() {
-  int val = digitalRead(REED_PIN); // read sensor value
-  String prev_state = ReedSwitch::state;
 
-  if (val == HIGH) { // check if the sensor is HIGH
-    ReedSwitch::state = "open";
-  } else {
-    ReedSwitch::state = "closed";
-  }
-
-  if (ReedSwitch::state != prev_state) {
-    publishState();
-  }
-}
 
 void display_show(const String line1, const String line2, const String line3,
                   const String line4, bool offline) {
@@ -1055,8 +1030,8 @@ void setup() {
 
   pinMode(TONE_PIN, OUTPUT);
 
-  pinMode(PIR_PIN, INPUT);         // initialize sensor as an input
-  pinMode(REED_PIN, INPUT_PULLUP); // initialize sensor as an input
+  reed.setup(); // initialize sensor as an input
+  pir.setup();  // initialize sensor as an input
 
   Serial.begin(115200);
   Wire.begin(0, 2);
@@ -1241,17 +1216,13 @@ void loop() {
     yield();
     server.handleClient();
 
-    const uint32_t currentMillis = millis();
-    if (currentMillis - statusPublishPreviousMillis >= statusPublishInterval) {
-      statusPublishPreviousMillis = currentMillis;
-
+    if (statusPublishInterval.expired(true)) {
       printf("Publish state\n");
       publishState();
     }
 
-    if (!mqttClient.connected() &&
-        currentMillis - lastMqttConnectionAttempt >= mqttConnectionInterval) {
-      lastMqttConnectionAttempt = currentMillis;
+    if (!mqttClient.connected() && mqttConnectionInterval.expired()) {
+      mqttConnectionInterval.updateLast();
       printf("Reconnect mqtt\n");
       mqttReconnect();
     }

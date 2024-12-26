@@ -173,7 +173,7 @@ class TeHyBugConfig {
 
   private:
 
-    bool m_shouldSaveConfig = false;
+    bool m_shouldSaveConfig{false};
     Calibration & m_calibration;
     Sensor & m_sensor;
     Device & m_device;

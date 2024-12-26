@@ -22,7 +22,7 @@ void setupHandle(const Device &device) {
 
   device["identifiers"] = identifiers;
   device["manufacturer"] = "TeHyBug";
-  device["model"] = "TeHyBug Mini";
+  device["model"] = "TeHyBug Universal/Mini";
   device["name"] = identifier;
   device["sw_version"] = version;
     

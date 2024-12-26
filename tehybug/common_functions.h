@@ -154,7 +154,7 @@ float temp2Imp(const float & value) {
   return (1.8 * value + 32);
 }
 
-bool isIOScenario(const String &type) {
+bool isIoScenario(const String &type) {
   return type.substring(0, 2) == "io";
 }
 uint8_t ioScenarioPin(const String &type) {

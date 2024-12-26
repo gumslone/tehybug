@@ -73,8 +73,8 @@ Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #ifndef SIGNAL_LED_PIN
 #define SIGNAL_LED_PIN 4
 #endif
-char identifier[16];
-
+char wifiSsid[16];
+const char *wifiPassword = "TeHyBug123";
 // sensors
 
 // Adjust sea level for altitude calculation
@@ -168,9 +168,6 @@ WebSocketsServer webSocket = WebSocketsServer(81);
 ESP8266HTTPUpdateServer httpUpdater;
 #endif
 
-// Timerserver Vars
-String oldInfo = "";   // old board info
-String oldSensor = ""; // old sensor info
 // Websoket Vars
 String websocketConnection[10];
 
@@ -231,6 +228,14 @@ void handleGetIp() {
 }
 
 void handleFactoryReset() {
+#if !defined(ARDUINO_ESP8266_GENERIC)
+    if (PIXEL_ACTIVE) {
+      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+      pixel.setPixelColor(0, pixel.Color(255, 0, 0));
+      pixel.setBrightness(50);
+      pixel.show(); // Initialize all pixels to 'on'
+    }
+#endif
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
     Log("handleFactoryReset", "Failed to open config file for reset");
@@ -288,8 +293,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             ip.toString() +
             " url: " + websocketConnection[num]);
         // send message to client
-        sendDeviceInfo(true);
-        sendSensorData(true);
+        sendDeviceInfo();
+        sendSensorData();
         sendConfig();
         break;
       }
@@ -665,45 +670,31 @@ void read_sensors() {
 #endif
 }
 // end of sensor
-void sendDeviceInfo(bool force) {
-  if (force) {
-    oldInfo = "";
-  }
-  String info;
-  if ((webSocket.connectedClients() > 0)) {
-    info = getInfo();
-  }
-  if (webSocket.connectedClients() > 0 && oldInfo != info) {
+void sendDeviceInfo() {
+  if (webSocket.connectedClients() > 0) {
     for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
           websocketConnection[i] == "/firststart" ||
           websocketConnection[i] == "/api/info") {
+        String info = getInfo();
         webSocket.sendTXT(i, info);
       }
     }
   }
-  oldInfo = info;
 }
 
-void sendSensorData(bool force) {
-  if (force) {
-    oldSensor = "";
-  }
-  String sensor;
-  if ((webSocket.connectedClients() > 0)) {
-    sensor = getSensor();
-  }
-  if (webSocket.connectedClients() > 0 && oldSensor != sensor) {
+void sendSensorData() {
+  if (webSocket.connectedClients() > 0) {
     for (uint8_t i = 0;
          i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
       if (websocketConnection[i] == "/main" ||
           websocketConnection[i] == "/settings") {
+        String sensor = getSensor();
         webSocket.sendTXT(i, sensor);
       }
     }
   }
-  oldSensor = sensor;
 }
 
 void sendConfig() {
@@ -794,7 +785,7 @@ void checkScenario(Scenario &s) {
       D_println(s.url);
       if (s.type == "post") {
         http::post(http2, espClient, s.url, s.message);
-      } else if (isIOScenario(s.type)) {
+      } else if (isIoScenario(s.type)) {
         const uint8_t pin = ioScenarioPin(s.type);
         pinMode(pin, OUTPUT);
         digitalWrite(pin, ioScenarioLevel(s.type));
@@ -867,7 +858,7 @@ void setupWifi() {
   wifiManager.setAPCallback(configModeCallback);
   // Config menu timeout 180 seconds.
   wifiManager.setConfigPortalTimeout(180);
-  WiFi.hostname(identifier);
+  WiFi.hostname(wifiSsid);
   // set custom ip for portal
   wifiManager.setAPStaticIPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
 
@@ -876,7 +867,7 @@ void setupWifi() {
   wifiManager.setShowInfoErase(false);
   wifiManager.setMenu(wm_menu);
   wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");
-  if (!wifiManager.autoConnect(identifier, "TeHyBug123")) {
+  if (!wifiManager.autoConnect(wifiSsid, wifiPassword)) {
     Serial.println(F("Setup: Wifi failed to connect and hit timeout"));
     delay(3000);
     // Reset and try again, or maybe put it to deep sleep
@@ -890,7 +881,7 @@ void setupWifi() {
   
   if(tehybug.device.configMode)
   {
-    WiFi.softAP(identifier, "TeHyBug123");
+    WiFi.softAP(wifiSsid, wifiPassword);
   }
   else
   {
@@ -1086,13 +1077,24 @@ void turnLedOn() {
 void setupMode() {
   delay(100);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+
   if (digitalRead(BUTTON_PIN) == LOW) {
+    unsigned long pressed = millis();
+    bool toggled = false;
     delay(300);
     if (digitalRead(BUTTON_PIN) == LOW) {
-      toggleConfigMode();
-      turnLedOn();
       while (digitalRead(BUTTON_PIN) == LOW) {
+        if(!toggled)
+        {
+          toggled = true;
+          toggleConfigMode();
+          turnLedOn();
+        }
         delay(10);
+        if((millis() - pressed) >= 20000)
+        {
+          handleFactoryReset();
+        }
       }
     }
   }
@@ -1107,7 +1109,7 @@ void updateMqttClient() {
 
 void setup() {
   pinMode(SIGNAL_LED_PIN, OUTPUT);
-  snprintf(identifier, sizeof(identifier), "TEHYBUG-%X", ESP.getChipId());
+  snprintf(wifiSsid, sizeof(wifiSsid), "TEHYBUG-%X", ESP.getChipId());
   Serial.begin(115200);
   while (!Serial) {
     delay(10);

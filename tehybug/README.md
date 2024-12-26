@@ -23,7 +23,7 @@ This firmware is compatible with tehybug universal boards (without display) like
 - Reset: forces TeHyBug to reboot/restart
 - Mode button: activates the configuration mode after reset during the device boot
 
-## Modes
+## Device Modes
 - Live mode: when your device is configured to serve data (via http/mqtt) and you enable the powersaving deep sleep and deactivate the config mode in the system settings. <img width="402" alt="Bildschirmfoto 2023-11-04 um 16 26 51" src="https://github.com/gumslone/tehybug/assets/12110353/2b2524da-0643-447a-abb0-873b50236c4e">
 
 - Config mode: TeHyBug serves a web interface at http://tehybug.local where you can configure everything.
@@ -91,3 +91,10 @@ Demo web configuration page: https://tehybug.com/tehybug/v1/html/demo.html
 - TeHyBug will connect to your network and boot in a configuration mode with solid blue LED light
 - open with your browser http://tehybug.local/ and the configuration page should open. (if this didnt work. Find out the TeHyBug IP Addres from your router and open it with yoour browser)
 - Follow the instructions on the configuration page.
+
+## Factory reset
+To delete the all the configs and reset wifi configuration.
+
+1. hit the RESET button
+2. after that push and hold the MODE button for 20 seconnds untill the LED turns red
+3. release the MODE button.

@@ -11,12 +11,13 @@ class TeHyBug {
     Calibration calibration{};
     Sensor sensor{};
     Device device{};
+    Peripherals peripherals{};
     DataServ serveData{};
     Scenarios scenarios{};
     DynamicJsonDocument sensorData;
     TeHyBugConfig conf;
 
-    TeHyBug(DHTesp & dht): sensorData(1024), m_dht(dht), conf(calibration, sensor, device, serveData, scenarios) {
+    TeHyBug(DHTesp & dht): sensorData(1024), m_dht(dht), conf(calibration, sensor, peripherals, device, serveData, scenarios) {
     }
 
     String replacePlaceholders(String text) {
@@ -76,7 +77,7 @@ class TeHyBug {
         key = generateDeviceKey();
         setDeviceKey(key);
       }
-      D_println(F("key: "));
+      D_print(F("key: "));
       D_println(key);
     }
 
@@ -98,11 +99,14 @@ class TeHyBug {
               tickerStart = true;
             }
           }
+          if (json.containsKey("setConfig") && root["setConfig"]) {
+              conf.setConfig(root);
+          }
       }  
     }
 
-    bool tickerStop = false;
-    bool tickerStart = false;
+    bool tickerStop{false};
+    bool tickerStart{false};
     
   private:
     DHTesp & m_dht;

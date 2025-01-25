@@ -8,9 +8,10 @@
 class TeHyBugConfig {
   public:
 
-    TeHyBugConfig(Calibration & calibration, Sensor & sensor, Device & device, DataServ & serveData, Scenarios & scenarios) :
+    TeHyBugConfig(Calibration & calibration, Sensor & sensor, Peripherals & peripherals, Device & device, DataServ & serveData, Scenarios & scenarios) :
       m_calibration(calibration),
       m_sensor(sensor),
+      m_peripherals(peripherals),
       m_device(device),
       m_serveData(serveData),
       m_scenarios(scenarios)
@@ -18,9 +19,9 @@ class TeHyBugConfig {
     void saveConfigCallback() {
       m_shouldSaveConfig = true;
     }
-    void saveConfig() {
+    void saveConfig(bool force = false) {
       // save the custom parameters to FS
-      if (m_shouldSaveConfig) {
+      if (m_shouldSaveConfig || force) {
         DynamicJsonDocument json(4096);
 
         json["mqttActive"] = m_serveData.mqtt.active;
@@ -137,15 +138,14 @@ class TeHyBugConfig {
         }
       } else {
         D_println(F("No configfile found, create a new file"));
-        saveConfigCallback();
-        saveConfig();
+        m_firstStart = true; //probably the device was factory reset or new
+        saveConfig(true);
       }
     }
 
     void setConfig(JsonObject &json) {
       setConfigParameters(json);
-      saveConfigCallback();
-      saveConfig();
+      saveConfig(true);
 
       if (json.containsKey("reboot") && json["reboot"]) {
         delay(1000);
@@ -170,15 +170,30 @@ class TeHyBugConfig {
 
       }
     }
+    bool firstStart()
+    {
+      return m_firstStart;
+    }
+
+    bool rtcActive()
+    {
+      return m_peripherals.ds3231; 
+    }
+    bool eepromActive()
+    {
+      return m_peripherals.eeprom; 
+    }
 
   private:
 
     bool m_shouldSaveConfig{false};
+    bool m_firstStart{false};
     Calibration & m_calibration;
     Sensor & m_sensor;
     Device & m_device;
     DataServ & m_serveData;
     Scenarios & m_scenarios;
+    Peripherals & m_peripherals;
 
     void setConfigParameters(const JsonObject &json) {
       D_println("Config:");

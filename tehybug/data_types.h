@@ -23,6 +23,10 @@ struct Sensor {
   bool ds18b20_2{false};
   bool adc{false};
 } __attribute__((packed));
+struct Peripherals {
+  bool eeprom{false};
+  bool ds3231{false};
+} __attribute__((packed));
 struct Calibration {
   bool active{false};
   float temp{0};
@@ -66,8 +70,8 @@ struct MqttDataServ {
   int frequency{900};
   uint8_t retryCounter{0};
   uint8_t maxRetries{99};
-  long lastReconnectAttempt{0};
-  long reconnectWait{10000}; // wait 10 seconds and try to reconnect again
+  unsigned long lastReconnectAttempt{0};
+  unsigned long reconnectWait{10000}; // wait 10 seconds and try to reconnect again
 };
 struct HaDataServ {
   bool active{false};

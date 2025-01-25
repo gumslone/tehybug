@@ -3,14 +3,14 @@
 namespace i2cScanner {
 
 String addresses;
+uint8_t devicesFound{0};
 
 // scan i2c devices
 void scan() {
   // i2c scanner begin
   uint8_t error, address;
-  int nDevices;
   D_println("Scanning...");
-  nDevices = 0;
+  devicesFound = 0;
   for (address = 1; address < 127; address++) {
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
@@ -18,7 +18,7 @@ void scan() {
     Wire.beginTransmission(address);
     error = Wire.endTransmission();
     if (error == 0) {
-      D_println("I2C device found at address 0x");
+      D_print("I2C device found at address 0x");
       addresses = addresses + "0x";
       if (address < 16) {
         D_print("0");
@@ -27,7 +27,7 @@ void scan() {
 
       D_println(address, HEX);
       addresses = addresses + String(address, HEX) + ",";
-      nDevices++;
+      devicesFound++;
     } else if (error == 4) {
       D_print("Unknown error at address 0x");
       if (address < 16)
@@ -35,10 +35,14 @@ void scan() {
       D_println(address, HEX);
     }
   }
-  if (nDevices == 0)
+  if (devicesFound == 0)
+  {
     D_println("No I2C devices found\n");
+  }
   else
+  {
     D_println("I2C scan is finished\n");
+  }
 
   // i2c scanner end
 }

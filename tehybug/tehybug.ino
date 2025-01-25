@@ -50,6 +50,7 @@ DHTesp dht;
 TeHyBug tehybug(dht);
 #include "http_request.h"
 #include "ha.h"
+#include "time.h"
 
 #if defined(ARDUINO_ESP8266_GENERIC)
 #define PIXEL_ACTIVE 0
@@ -94,7 +95,6 @@ AHT20 AHT;
 #endif
 
 AM2320_asukiaaa am2320;
-
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 2
 
@@ -172,7 +172,43 @@ ESP8266HTTPUpdateServer httpUpdater;
 String websocketConnection[10];
 
 TickerScheduler ticker(5);
+/////////////////////////////////////////////////////////////////////
+#pragma region
+#if !defined(ARDUINO_ESP8266_GENERIC)
+void setPixel(uint8_t r=0, uint8_t g=0, uint8_t b=255, uint8_t brightness=50) {
+    if (PIXEL_ACTIVE) {
+      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+      pixel.setPixelColor(0, pixel.Color(r, g, b));
+      pixel.setBrightness(brightness);
+      pixel.show(); // Initialize all pixels to 'on'
+    }
+}
+#endif
+void led_on(uint8_t r=0, uint8_t g=0, uint8_t b=255, uint8_t brightness=50) {
+  D_println("Led on");
+  if (SIGNAL_LED_PIN == 1) {
+    pinMode(SIGNAL_LED_PIN, OUTPUT);
+    digitalWrite(SIGNAL_LED_PIN, LOW); // on
+  } else {
+    digitalWrite(SIGNAL_LED_PIN, HIGH); // on
+#if !defined(ARDUINO_ESP8266_GENERIC)
+    setPixel(r, g, b, brightness);
+#endif
+  }
+}
 
+void led_off() {
+  D_println("Led off");
+  if (SIGNAL_LED_PIN == 10) {
+    digitalWrite(SIGNAL_LED_PIN, HIGH); // off
+  } else {
+#if !defined(ARDUINO_ESP8266_GENERIC)
+    setPixel(0, 0, 0, 0);
+#endif
+    digitalWrite(SIGNAL_LED_PIN, LOW); // off
+  }
+}
+#pragma endregion
 /////////////////////////////////////////////////////////////////////
 #pragma region
 /* HTTP API */
@@ -230,10 +266,7 @@ void handleGetIp() {
 void handleFactoryReset() {
 #if !defined(ARDUINO_ESP8266_GENERIC)
     if (PIXEL_ACTIVE) {
-      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-      pixel.setPixelColor(0, pixel.Color(255, 0, 0));
-      pixel.setBrightness(50);
-      pixel.show(); // Initialize all pixels to 'on'
+      led_on(255, 0, 0);
     }
 #endif
   File configFile = SPIFFS.open("/config.json", "w");
@@ -440,10 +473,10 @@ void startDeepSleep(int freq) {
 }
 // HTTP REQUESTS
 void httpPost() {
-  http::post(http1, espClient, tehybug.serveData.post.url, tehybug.serveData.post.message);
+  http::post(http1, espClient, tehybug.serveData.post.url, tehybug.replacePlaceholders(tehybug.serveData.post.message));
 }
 void httpGet() {
-  http::get(http1, espClient, tehybug.serveData.get.url);
+  http::get(http1, espClient, tehybug.replacePlaceholders(tehybug.serveData.get.url));
 }
 // SENSOR
 
@@ -615,6 +648,7 @@ void read_ds18b20(void) {
   delay(100);
   read_ds18b20_custom(ds18b20_sensors, "temp");
 }
+
 #if !defined(ARDUINO_ESP8266_GENERIC)
 void read_second_ds18b20(void) {
   pinMode(SECOND_ONE_WIRE_BUS, INPUT_PULLUP);
@@ -803,48 +837,13 @@ void serve_scenario() {
   checkScenario(tehybug.scenarios.scenario3);
 }
 
-void led_on() {
-  D_println("Led on");
-  if (SIGNAL_LED_PIN == 1) {
-    pinMode(SIGNAL_LED_PIN, OUTPUT);
-    digitalWrite(SIGNAL_LED_PIN, LOW); // on
-  } else {
-    digitalWrite(SIGNAL_LED_PIN, HIGH); // on
-#if !defined(ARDUINO_ESP8266_GENERIC)
-    if (PIXEL_ACTIVE) {
-      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-      pixel.setPixelColor(0, pixel.Color(0, 0, 255));
-      pixel.setBrightness(50);
-      pixel.show(); // Initialize all pixels to 'on'
-    }
-#endif
-  }
-}
-
-void led_off() {
-  D_println("Led off");
-  if (SIGNAL_LED_PIN == 10) {
-    digitalWrite(SIGNAL_LED_PIN, HIGH); // off
-  } else {
-#if !defined(ARDUINO_ESP8266_GENERIC)
-    if (PIXEL_ACTIVE) {
-      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-      pixel.setPixelColor(0,
-                          pixel.Color(0, 0, 0)); //  Set pixel's color (in RAM)
-      pixel.setBrightness(0);
-      pixel.show();
-    }
-#endif
-    digitalWrite(SIGNAL_LED_PIN, LOW); // off
-  }
-}
-
 void configModeCallback(WiFiManager *myWiFiManager) {
   led_on();
   D_println("Entered wifi config mode");
   D_println(WiFi.softAPIP());
   D_println(myWiFiManager->getConfigPortalSSID());
 }
+
 void saveConfigCallback() {
   tehybug.conf.saveConfigCallback();
 }
@@ -928,9 +927,6 @@ void findI2Csensors() {
   if (i2cScanner::addressExists("0x5c")) {
     tehybug.sensor.am2320 = true;
   }
-  if (i2cScanner::addressExists("0x58")) {
-    // sgp30
-  }
   if (i2cScanner::addressExists("0x77")) {
     tehybug.sensor.bme680 = true;
   }
@@ -939,6 +935,12 @@ void findI2Csensors() {
   }
   if (i2cScanner::addressExists("0x38")) {
     tehybug.sensor.aht20 = true;
+  }
+  if (i2cScanner::addressExists("0x50")) {
+    tehybug.peripherals.eeprom = true;
+  }
+  if (i2cScanner::addressExists("0x68")) {
+    tehybug.peripherals.ds3231 = true;
   }
 }
 
@@ -1074,7 +1076,7 @@ void turnLedOn() {
     led_off();
   }
 }
-void setupMode() {
+void checkModeButton() {
   delay(100);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
@@ -1107,6 +1109,22 @@ void updateMqttClient() {
   }
 }
 
+void firstStart()
+{
+  // test mode for first start
+  if(tehybug.conf.firstStart())
+  {
+    findI2Csensors();
+    if(i2cScanner::devicesFound > 0)
+    {
+      // show green color when sensors are found on first start
+      // required for testing the mini board
+      led_on(0, 255, 0);
+      delay(5000);
+    }
+  }
+}
+
 void setup() {
   pinMode(SIGNAL_LED_PIN, OUTPUT);
   snprintf(wifiSsid, sizeof(wifiSsid), "TEHYBUG-%X", ESP.getChipId());
@@ -1123,17 +1141,22 @@ void setup() {
   } else {
     D_println(F("Failed to mount FS"));
   }
+  
   // should be called after the fs mount
   tehybug.getDeviceKey();
+  
+  // run a small first start test
+  firstStart();
+  
+  setupWifi();
 
   // force config when no data serving mode is selected
-  if (!tehybug.serveData.get.active && !tehybug.serveData.post.active && !tehybug.serveData.mqtt.active && !tehybug.serveData.ha.active) {
+  if (tehybug.conf.firstStart() || (!tehybug.serveData.get.active && !tehybug.serveData.post.active && !tehybug.serveData.mqtt.active && !tehybug.serveData.ha.active)) {
     tehybug.device.configMode = true;
-    D_println("Data serving mode not selected");
+    D_println("Data serving mode not selected or first start");
   }
 
-  setupWifi();
-  setupMode();
+  checkModeButton();
 
   if (tehybug.device.configMode) {
     D_println(F("Starting config mode"));

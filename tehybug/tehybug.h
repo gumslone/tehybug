@@ -1,9 +1,9 @@
 #pragma once
-#include <Arduino.h>
-#include <ArduinoJson.h>
 #include "data_types.h"
 #include "configuration.h"
 #include "UUID.h"
+#include "eeprom.h"
+#include "time.h"
 #ifndef _TeHyBug_HEADER_
 #define _TeHyBug_HEADER_
 class TeHyBug {
@@ -16,8 +16,10 @@ class TeHyBug {
     Scenarios scenarios{};
     DynamicJsonDocument sensorData;
     TeHyBugConfig conf;
+    TeHyBugEeprom eeprom;
+    RtcTime time;
 
-    TeHyBug(DHTesp & dht): sensorData(1024), m_dht(dht), conf(calibration, sensor, peripherals, device, serveData, scenarios) {
+    TeHyBug(DHTesp & dht): sensorData(1024), m_dht(dht), conf(calibration, sensor, peripherals, device, serveData, scenarios), time(conf) {
     }
 
     String replacePlaceholders(String text) {
@@ -53,14 +55,7 @@ class TeHyBug {
     }
 
     void addSensorData(const String & key, float value) {
-
-      if (key == "temp" || key == "temp2") {
-        value = calibrateValue("temp", value);
-      } else if (key == "humi" || key == "humi2") {
-        value = calibrateValue("humi", value);
-      } else if (key == "qfe") {
-        value = calibrateValue("qfe", value);
-      }
+      value = calibrateValue(key, value);
       sensorData[key] = String(value, 1);
       // calculate imperial temperature also heat index and the dew point
       additionalSensorData(key, value);
@@ -120,16 +115,16 @@ class TeHyBug {
       m_uuid.generate();
       return String(m_uuid.toCharArray());
     }
-    float calibrateValue(const String & _n, float _v) {
+    float calibrateValue(const String & key, float value) {
       if (calibration.active) {
-        if (_n == "temp")
-          _v += calibration.temp;
-        else if (_n == "humi")
-          _v += calibration.humi;
-        else if (_n == "qfe")
-          _v += calibration.qfe;
+        if (key == "temp" || key == "temp2")
+          value += calibration.temp;
+        else if (key == "humi" || key == "humi2")
+          value += calibration.humi;
+        else if (key == "qfe")
+          value += calibration.qfe;
       }
-      return _v;
+      return value;
     }
 };
 

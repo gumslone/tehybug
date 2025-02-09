@@ -4,8 +4,11 @@
 #define _Zifra_Time_
 class RtcTime {
   public:
-    RtcTime(TeHyBugConfig & conf): m_conf(conf) {
-        DS3231_init(DS3231_CONTROL_INTCN);
+    RtcTime(TeHyBugConfig & conf): m_conf(conf) {  
+    }
+    void setup()
+    {
+      DS3231_init(DS3231_CONTROL_INTCN);
     }
     uint8_t getHours() {
       return m_rtcTime.hour;

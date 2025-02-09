@@ -5,8 +5,7 @@ String get(HTTPClient &http, WiFiClient & espClient, String url) {
   D_println(url);
   url = tehybug.replacePlaceholders(url);
   http.begin(espClient, url); // Specify request destination
-  http.setURL(url);
-  http.addHeader("Content-Type", "text/plain"); // Specify content-type header
+  http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
 
   const int httpCode = http.GET(); // Send the request
   String payload{};
@@ -16,6 +15,10 @@ String get(HTTPClient &http, WiFiClient & espClient, String url) {
     payload = http.getString(); // Get the response
     // payload
     D_println(payload); // Print request response payload
+  }
+  else if(httpCode < 0)
+  {
+    D_println(http.errorToString(httpCode));
   }
   http.end(); // Close connection
   return payload;
@@ -35,6 +38,10 @@ String post(HTTPClient &http, WiFiClient & espClient, String url, String post_js
     String payload = http.getString(); // Get the response
     // payload
     D_println(payload); // Print request response payload
+  }
+  else if(httpCode < 0)
+  {
+    D_println(http.errorToString(httpCode));
   }
   http.end(); // Close connection
   return payload;

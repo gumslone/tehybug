@@ -19,7 +19,10 @@
 #include <PubSubClient.h> // Attention in the lib the #define MQTT_MAX_PACKET_SIZE must be increased to 4000!
 #include <TickerScheduler.h>
 #include <WebSocketsServer.h>
-#include <WiFiClient.h>
+//#include <WiFiClient.h>
+//#include <WiFiClientSecure.h>
+
+#include <WiFiClientSecureBearSSL.h>
 #include <WiFiManager.h>
 
 #include <OneWire.h>
@@ -50,7 +53,6 @@ DHTesp dht;
 TeHyBug tehybug(dht);
 #include "http_request.h"
 #include "ha.h"
-#include "time.h"
 
 #if defined(ARDUINO_ESP8266_GENERIC)
 #define PIXEL_ACTIVE 0
@@ -160,6 +162,10 @@ const String version = String(COMPILE_SHORT_YEAR) + IntFormat(COMPILE_MONTH) +
                        IntFormat(COMPILE_MINUTE);
 
 WiFiClient espClient;
+//WiFiClientSecure espClient; 
+//std::unique_ptr<BearSSL::WiFiClientSecure> espClient(new BearSSL::WiFiClientSecure);
+BearSSL::WiFiClientSecure espClient_ssl;
+
 PubSubClient client(espClient);
 WiFiManager wifiManager;
 ESP8266WebServer server(80);
@@ -468,15 +474,26 @@ void toggleConfigMode() {
 void startDeepSleep(int freq) {
   D_println("Going to deep sleep...");
   led_off();
+  pinMode(I2C_SDA, OUTPUT);
+  pinMode(I2C_SCL, OUTPUT);
   ESP.deepSleep(freq * 1000000);
   yield();
 }
+
 // HTTP REQUESTS
+WiFiClient & getClient(String & url)
+{
+  if(url.substring(0,5) == "https")
+    return espClient_ssl;
+  else
+    return espClient;
+}
+
 void httpPost() {
-  http::post(http1, espClient, tehybug.serveData.post.url, tehybug.replacePlaceholders(tehybug.serveData.post.message));
+  http::post(http1, getClient(tehybug.serveData.post.url), tehybug.serveData.post.url, tehybug.replacePlaceholders(tehybug.serveData.post.message));
 }
 void httpGet() {
-  http::get(http1, espClient, tehybug.replacePlaceholders(tehybug.serveData.get.url));
+  http::get(http1, getClient(tehybug.serveData.get.url), tehybug.replacePlaceholders(tehybug.serveData.get.url));
 }
 // SENSOR
 
@@ -574,8 +591,7 @@ void read_max44009() {
 #if !defined(ARDUINO_ESP8266_GENERIC)
 void read_aht20() {
   float humidity, temperature;
-  const bool ret = AHT.getSensor(&humidity, &temperature);
-
+  bool ret = AHT.getSensor(&humidity, &temperature);
   if (ret) // GET DATA OK
   {
     tehybug.addTempHumi("temp", temperature, "humi", (humidity * 100.0F));
@@ -818,13 +834,13 @@ void checkScenario(Scenario &s) {
       D_println("condition met");
       D_println(s.url);
       if (s.type == "post") {
-        http::post(http2, espClient, s.url, s.message);
+        http::post(http2, getClient(s.url), s.url, s.message);
       } else if (isIoScenario(s.type)) {
         const uint8_t pin = ioScenarioPin(s.type);
         pinMode(pin, OUTPUT);
         digitalWrite(pin, ioScenarioLevel(s.type));
       } else {
-        http::get(http2, espClient, s.url);
+        http::get(http2, getClient(s.url), s.url);
       }
     }
     // delay(1000);
@@ -1060,6 +1076,13 @@ void setupSensors() {
     pinMode(13, INPUT_PULLUP);
     dht2.setup(13, DHTesp::DHT22); // Connect DHT sensor to GPIO 13
   }
+  
+  if (tehybug.peripherals.eeprom) {
+    tehybug.eeprom.setup();
+  }
+  if (tehybug.peripherals.ds3231) {
+    tehybug.time.setup();
+  }
 #endif
   if (tehybug.sensor.am2320) {
     am2320.setWire(&Wire);
@@ -1132,6 +1155,10 @@ void setup() {
   while (!Serial) {
     delay(10);
   }
+
+  // reduce buffer size and ignore certificate verrification
+  espClient_ssl.setBufferSizes(256, 256);
+  espClient_ssl.setInsecure();
 
   // Mounting FileSystem
   D_println(F("Mounting file system..."));

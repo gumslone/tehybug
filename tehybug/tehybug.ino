@@ -19,8 +19,6 @@
 #include <PubSubClient.h> // Attention in the lib the #define MQTT_MAX_PACKET_SIZE must be increased to 4000!
 #include <TickerScheduler.h>
 #include <WebSocketsServer.h>
-//#include <WiFiClient.h>
-//#include <WiFiClientSecure.h>
 
 #include <WiFiClientSecureBearSSL.h>
 #include <WiFiManager.h>
@@ -162,11 +160,9 @@ const String version = String(COMPILE_SHORT_YEAR) + IntFormat(COMPILE_MONTH) +
                        IntFormat(COMPILE_MINUTE);
 
 WiFiClient espClient;
-//WiFiClientSecure espClient; 
-//std::unique_ptr<BearSSL::WiFiClientSecure> espClient(new BearSSL::WiFiClientSecure);
 BearSSL::WiFiClientSecure espClient_ssl;
 
-PubSubClient client(espClient);
+PubSubClient MqttClient(espClient);
 WiFiManager wifiManager;
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
@@ -242,8 +238,13 @@ void handleSetConfig() {
     JsonObject object = json.as<JsonObject>();
     tehybug.conf.setConfig(object);
     server.send(200, "application/json", "{\"response\":\"OK\"}");
-    delay(500);
-    // ESP.restart();
+    yield();
+    // restart the module when reboot is requested in save config
+    if (object.containsKey("reboot") && object["reboot"]) {
+      led_off();
+      delay(1000);
+      ESP.restart();
+    }
   } else {
     server.send(406, "application/json", "{\"response\":\"Not Acceptable\"}");
   }
@@ -301,10 +302,10 @@ void callback(char *topic, byte *payload, unsigned int length) {
     Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
         ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
-      client.publish((tehybug.serveData.mqtt.topic + "info").c_str(),
+      MqttClient.publish((tehybug.serveData.mqtt.topic + "info").c_str(),
                      getInfo().c_str());
     } else if (channel.equals("getConfig")) {
-      client.publish((tehybug.serveData.mqtt.topic + "config").c_str(),
+      MqttClient.publish((tehybug.serveData.mqtt.topic + "config").c_str(),
                      tehybug.conf.getConfig().c_str());
     } else if (channel.equals("setConfig")) {
       // extract the data
@@ -347,8 +348,13 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             // extract the data
             JsonObject object = json.as<JsonObject>();
             tehybug.conf.setConfig(object);
-            // delay(500);
-            // ESP.restart();
+            yield();
+            // restart the module when reboot is requested in save config
+            if (object.containsKey("reboot") && object["reboot"]) {
+              led_off();
+              delay(1000);
+              ESP.restart();
+            }
           }
         }
         break;
@@ -386,16 +392,16 @@ String getSensor() {
 
 /////////////////////////////////////////////////////////////////////
 void haSendData() {
-  if (client.connected()) {
-    ha::publishAutoConfig(client, version, tehybug.sensorData);
-    ha::publishState(client, tehybug.sensorData);
+  if (MqttClient.connected()) {
+    ha::publishAutoConfig(MqttClient, version, tehybug.sensorData);
+    ha::publishState(MqttClient, tehybug.sensorData);
     Log(F("HomeAssistant"), F("MqttSendData"));
   } else
     mqttReconnect();
 }
 void mqttSendData() {
-  if (client.connected()) {
-    client.publish((tehybug.serveData.mqtt.topic).c_str(), tehybug.serveData.data,
+  if (MqttClient.connected()) {
+    MqttClient.publish((tehybug.serveData.mqtt.topic).c_str(), tehybug.serveData.data,
                    tehybug.serveData.mqtt.retained);
     String payload = tehybug.replacePlaceholders(tehybug.serveData.mqtt.message);
     payload.toCharArray(tehybug.serveData.data, (payload.length() + 1));
@@ -406,7 +412,7 @@ void mqttSendData() {
 
 void mqttReconnect() {
   // Loop until we're reconnected
-  while (!client.connected() &&
+  while (!MqttClient.connected() &&
          tehybug.serveData.mqtt.retryCounter < tehybug.serveData.mqtt.maxRetries) {
     bool connected = false;
     if (tehybug.serveData.mqtt.user != NULL && tehybug.serveData.mqtt.user.length() > 0 &&
@@ -414,13 +420,13 @@ void mqttReconnect() {
         tehybug.serveData.mqtt.password.length() > 0) {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
-      connected = client.connect(
+      connected = MqttClient.connect(
                     ("tehybug_" + GetChipID()).c_str(), tehybug.serveData.mqtt.user.c_str(),
                     tehybug.serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
-      connected = client.connect(("tehybug_" + GetChipID()).c_str(), "state", 0,
+      connected = MqttClient.connect(("tehybug_" + GetChipID()).c_str(), "state", 0,
                                  true, "disconnected");
     }
 
@@ -1128,7 +1134,7 @@ void checkModeButton() {
 
 void updateMqttClient() {
   if (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active) {
-    client.setServer(tehybug.serveData.mqtt.server.c_str(), tehybug.serveData.mqtt.port);
+    MqttClient.setServer(tehybug.serveData.mqtt.server.c_str(), tehybug.serveData.mqtt.port);
   }
 }
 
@@ -1209,9 +1215,9 @@ void setup() {
   // setup homeassistant
   if (tehybug.device.configMode == false && (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active)) {
     updateMqttClient();
-    client.setKeepAlive(10);
-    client.setCallback(callback);
-    client.setBufferSize(4000);
+    MqttClient.setKeepAlive(10);
+    MqttClient.setCallback(callback);
+    MqttClient.setBufferSize(4000);
     if (tehybug.serveData.ha.active)
     {
       ha::setupHandle(tehybug.device);

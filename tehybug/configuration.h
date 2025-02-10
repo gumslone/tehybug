@@ -146,11 +146,6 @@ class TeHyBugConfig {
     void setConfig(JsonObject &json) {
       setConfigParameters(json);
       saveConfig(true);
-
-      if (json.containsKey("reboot") && json["reboot"]) {
-        delay(1000);
-        ESP.restart();
-      }
     }
 
     String getConfig() {

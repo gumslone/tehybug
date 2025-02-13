@@ -1,9 +1,10 @@
 #pragma once
 #include "data_types.h"
+#include "pixel.h"
 #include "configuration.h"
 #include "UUID.h"
-#include "eeprom.h"
 #include "time.h"
+#include "eeprom.h"
 #ifndef _TeHyBug_HEADER_
 #define _TeHyBug_HEADER_
 class TeHyBug {
@@ -16,10 +17,11 @@ class TeHyBug {
     Scenarios scenarios{};
     DynamicJsonDocument sensorData;
     TeHyBugConfig conf;
-    TeHyBugEeprom eeprom;
     RtcTime time;
+    TeHyBugEeprom eeprom;
+    TeHyBugPixel pixel;
 
-    TeHyBug(DHTesp & dht): sensorData(1024), m_dht(dht), conf(calibration, sensor, peripherals, device, serveData, scenarios), time(conf) {
+    TeHyBug(DHTesp & dht): sensorData(1024), m_dht(dht), conf(calibration, sensor, peripherals, device, serveData, scenarios, pixel), time(conf), eeprom(time) {
     }
 
     String replacePlaceholders(String text) {

@@ -8,13 +8,14 @@
 class TeHyBugConfig {
   public:
 
-    TeHyBugConfig(Calibration & calibration, Sensor & sensor, Peripherals & peripherals, Device & device, DataServ & serveData, Scenarios & scenarios) :
+    TeHyBugConfig(Calibration & calibration, Sensor & sensor, Peripherals & peripherals, Device & device, DataServ & serveData, Scenarios & scenarios, TeHyBugPixel & pixel) :
       m_calibration(calibration),
       m_sensor(sensor),
       m_peripherals(peripherals),
       m_device(device),
       m_serveData(serveData),
-      m_scenarios(scenarios)
+      m_scenarios(scenarios),
+      m_pixel(pixel)
     {}
     void saveConfigCallback() {
       m_shouldSaveConfig = true;
@@ -146,6 +147,14 @@ class TeHyBugConfig {
     void setConfig(JsonObject &json) {
       setConfigParameters(json);
       saveConfig(true);
+      
+      // restart the module when reboot is requested in save config
+      if (json.containsKey("reboot") && json["reboot"]) {
+        m_pixel.off();
+        yield();
+        delay(1000);
+        ESP.restart();
+      }
     }
 
     String getConfig() {
@@ -189,6 +198,7 @@ class TeHyBugConfig {
     DataServ & m_serveData;
     Scenarios & m_scenarios;
     Peripherals & m_peripherals;
+    TeHyBugPixel & m_pixel;
 
     void setConfigParameters(const JsonObject &json) {
       D_println("Config:");

@@ -3,7 +3,6 @@
 #include "Max44009.h"
 #include "bsec.h"
 #include <AM2320_asukiaaa.h>
-#include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
@@ -40,6 +39,16 @@
 #define D_println(...)
 #endif
 
+#if defined(ARDUINO_ESP8266_GENERIC)
+#define PIXEL_ACTIVE 0
+#define SIGNAL_LED_PIN 1
+#define I2C_SDA 2
+#define I2C_SCL 0
+#else
+#define I2C_SDA 0
+#define I2C_SCL 2
+#endif
+
 // tehybug stuff
 #include "common_functions.h"
 #include "Webinterface.h"
@@ -52,28 +61,6 @@ TeHyBug tehybug(dht);
 #include "http_request.h"
 #include "ha.h"
 
-#if defined(ARDUINO_ESP8266_GENERIC)
-#define PIXEL_ACTIVE 0
-#define SIGNAL_LED_PIN 1
-#define I2C_SDA 2
-#define I2C_SCL 0
-#else
-#define I2C_SDA 0
-#define I2C_SCL 2
-#endif
-
-#ifndef PIXEL_ACTIVE
-#define PIXEL_ACTIVE 1
-#define PIXEL_COUNT 1 // Number of NeoPixels
-#define PIXEL_PIN 12  // Digital IO pin connected to the NeoPixels.
-
-Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
-#endif
-
-// set pin 4 HIGH to turn on the pixel
-#ifndef SIGNAL_LED_PIN
-#define SIGNAL_LED_PIN 4
-#endif
 char wifiSsid[16];
 const char *wifiPassword = "TeHyBug123";
 // sensors
@@ -176,43 +163,6 @@ String websocketConnection[10];
 TickerScheduler ticker(5);
 /////////////////////////////////////////////////////////////////////
 #pragma region
-#if !defined(ARDUINO_ESP8266_GENERIC)
-void setPixel(uint8_t r=0, uint8_t g=0, uint8_t b=255, uint8_t brightness=50) {
-    if (PIXEL_ACTIVE) {
-      pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-      pixel.setPixelColor(0, pixel.Color(r, g, b));
-      pixel.setBrightness(brightness);
-      pixel.show(); // Initialize all pixels to 'on'
-    }
-}
-#endif
-void led_on(uint8_t r=0, uint8_t g=0, uint8_t b=255, uint8_t brightness=50) {
-  D_println("Led on");
-  if (SIGNAL_LED_PIN == 1) {
-    pinMode(SIGNAL_LED_PIN, OUTPUT);
-    digitalWrite(SIGNAL_LED_PIN, LOW); // on
-  } else {
-    digitalWrite(SIGNAL_LED_PIN, HIGH); // on
-#if !defined(ARDUINO_ESP8266_GENERIC)
-    setPixel(r, g, b, brightness);
-#endif
-  }
-}
-
-void led_off() {
-  D_println("Led off");
-  if (SIGNAL_LED_PIN == 10) {
-    digitalWrite(SIGNAL_LED_PIN, HIGH); // off
-  } else {
-#if !defined(ARDUINO_ESP8266_GENERIC)
-    setPixel(0, 0, 0, 0);
-#endif
-    digitalWrite(SIGNAL_LED_PIN, LOW); // off
-  }
-}
-#pragma endregion
-/////////////////////////////////////////////////////////////////////
-#pragma region
 /* HTTP API */
 void handleGetMainPage() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
@@ -238,13 +188,6 @@ void handleSetConfig() {
     JsonObject object = json.as<JsonObject>();
     tehybug.conf.setConfig(object);
     server.send(200, "application/json", "{\"response\":\"OK\"}");
-    yield();
-    // restart the module when reboot is requested in save config
-    if (object.containsKey("reboot") && object["reboot"]) {
-      led_off();
-      delay(1000);
-      ESP.restart();
-    }
   } else {
     server.send(406, "application/json", "{\"response\":\"Not Acceptable\"}");
   }
@@ -271,20 +214,17 @@ void handleGetIp() {
 }
 
 void handleFactoryReset() {
-#if !defined(ARDUINO_ESP8266_GENERIC)
-    if (PIXEL_ACTIVE) {
-      led_on(255, 0, 0);
-    }
-#endif
+  tehybug.pixel.on(255, 0, 0);
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
     Log("handleFactoryReset", "Failed to open config file for reset");
   }
+
+  D_println("Factory reset!");
   configFile.println("");
   configFile.close();
   wifiManager.resetSettings();
-  ESP.restart();
-  delay(300);
+  yield();
   ESP.restart();
 }
 
@@ -348,13 +288,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
             // extract the data
             JsonObject object = json.as<JsonObject>();
             tehybug.conf.setConfig(object);
-            yield();
-            // restart the module when reboot is requested in save config
-            if (object.containsKey("reboot") && object["reboot"]) {
-              led_off();
-              delay(1000);
-              ESP.restart();
-            }
           }
         }
         break;
@@ -479,7 +412,7 @@ void toggleConfigMode() {
 
 void startDeepSleep(int freq) {
   D_println("Going to deep sleep...");
-  led_off();
+  tehybug.pixel.off();
   pinMode(I2C_SDA, OUTPUT);
   pinMode(I2C_SCL, OUTPUT);
   ESP.deepSleep(freq * 1000000);
@@ -789,9 +722,7 @@ void serve_data() {
     delay(1000);
     if (tehybug.device.sleepMode) {
       startDeepSleep(tehybug.serveData.get.frequency);
-    } /* else {
-       delay(httpGetFrequency * 1000);
-     }*/
+    }
   }
 
   if (tehybug.serveData.post.active) {
@@ -799,9 +730,7 @@ void serve_data() {
     delay(1000);
     if (tehybug.device.sleepMode) {
       startDeepSleep(tehybug.serveData.post.frequency);
-    } /* else {
-       delay(httpPostFrequency * 1000);
-     }*/
+    }
   }
 
   if (tehybug.serveData.mqtt.active) {
@@ -809,9 +738,7 @@ void serve_data() {
     delay(1000);
     if (tehybug.device.sleepMode) {
       startDeepSleep(tehybug.serveData.mqtt.frequency);
-    } /* else {
-       delay(mqttFrequency * 1000);
-     }*/
+    }
   }
 
   if (tehybug.serveData.ha.active) {
@@ -819,9 +746,7 @@ void serve_data() {
     delay(1000);
     if (tehybug.device.sleepMode) {
       startDeepSleep(tehybug.serveData.mqtt.frequency);
-    } /* else {
-       delay(mqttFrequency * 1000);
-     }*/
+    }
   }
 }
 
@@ -860,7 +785,7 @@ void serve_scenario() {
 }
 
 void configModeCallback(WiFiManager *myWiFiManager) {
-  led_on();
+  tehybug.pixel.on();
   D_println("Entered wifi config mode");
   D_println(WiFi.softAPIP());
   D_println(myWiFiManager->getConfigPortalSSID());
@@ -1100,9 +1025,9 @@ void setupSensors() {
 
 void turnLedOn() {
   if (tehybug.device.configMode) {
-    led_on();
+    tehybug.pixel.on();
   } else {
-    led_off();
+    tehybug.pixel.off();
   }
 }
 void checkModeButton() {
@@ -1129,6 +1054,7 @@ void checkModeButton() {
       }
     }
   }
+  
   turnLedOn();
 }
 
@@ -1148,14 +1074,13 @@ void firstStart()
     {
       // show green color when sensors are found on first start
       // required for testing the mini board
-      led_on(0, 255, 0);
+      tehybug.pixel.on(0, 255, 0);
       delay(5000);
     }
   }
 }
 
 void setup() {
-  pinMode(SIGNAL_LED_PIN, OUTPUT);
   snprintf(wifiSsid, sizeof(wifiSsid), "TEHYBUG-%X", ESP.getChipId());
   Serial.begin(115200);
   while (!Serial) {
@@ -1309,13 +1234,13 @@ void loop() {
   {
     tehybug.tickerStop = false;
     ticker.disableAll();
-    led_on();
+    tehybug.pixel.on();
   }
   if (tehybug.tickerStart && !tehybug.device.configMode)
   {
     tehybug.tickerStart = false;
     ticker.enableAll();
-    led_off();
+    tehybug.pixel.off();
   }
   // update ticker for the non-deep-sleep mode
   ticker.update();

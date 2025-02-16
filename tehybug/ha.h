@@ -1,47 +1,54 @@
 #pragma once
+#define AVAILABILITY_ONLINE "online"
+#define AVAILABILITY_OFFLINE "offline"
+
 namespace ha {
-  char identifier[24];
-  char MQTT_TOPIC_STATE[128];
+  char identifier[16];
+  char MQTT_TOPIC_STATE[64];
+  char MQTT_TOPIC_AVAILABILITY[64];
+  //char MQTT_TOPIC_COMMAND[64];
   
 void setupHandle(const Device &device) {
   const String deviceName = "TEHYBUG";
   snprintf(identifier, sizeof(identifier), "%s-%X", deviceName.c_str(), ESP.getChipId());
-  snprintf(MQTT_TOPIC_STATE, 127, "%s/%s/state", deviceName.c_str(), identifier);
+  snprintf(MQTT_TOPIC_STATE, 63, "%s/%s/state", deviceName.c_str(), identifier);
+  snprintf(MQTT_TOPIC_AVAILABILITY, 63, "%s/%s/status", deviceName.c_str(),
+           identifier);
+  //snprintf(MQTT_TOPIC_COMMAND, 63, "%s/%s/command", deviceName.c_str(),
+  //         identifier);
 }
 
  void publishAutoConfig(PubSubClient & mqttClient, const String & version, DynamicJsonDocument & sensorData) {
   
-  char mqttPayload[2048];
+  char mqttPayload[1024];
   DynamicJsonDocument device(256);
   DynamicJsonDocument autoconfPayload(1024);
   StaticJsonDocument<64> identifiersDoc;
   JsonArray identifiers = identifiersDoc.to<JsonArray>();
   identifiers.add(identifier);
   
-  const String wifitopic = "homeassistant/sensor/"+String(identifier)+"/"+String(identifier)+"_wifi/config";
-
   device["identifiers"] = identifiers;
   device["manufacturer"] = "TeHyBug";
   device["model"] = "TeHyBug Universal/Mini";
   device["name"] = identifier;
   device["sw_version"] = version;
-    
-  autoconfPayload["device"] = device.as<JsonObject>();
-  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["name"] = "WiFi";
-  autoconfPayload["value_template"] = "{{value_json.wifi.rssi}}";
-  autoconfPayload["unique_id"] = String(identifier) + "_wifi";
-  autoconfPayload["unit_of_measurement"] = "dBm";
-  autoconfPayload["json_attributes_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["json_attributes_template"] = "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": \"{{value_json.wifi.ip}}\"}";
-  autoconfPayload["icon"] = "mdi:wifi";
-
-  serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(wifitopic.c_str(), &mqttPayload[0],
-                     true);
-
-  autoconfPayload.clear();
-
+  
+  {
+    const String wifiTopic = "homeassistant/sensor/"+String(identifier)+"/"+String(identifier)+"_wifi/config";  
+    autoconfPayload["device"] = device.as<JsonObject>();
+    autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
+    autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
+    autoconfPayload["name"] = "WiFi";
+    autoconfPayload["value_template"] = "{{value_json.wifi.rssi}}";
+    autoconfPayload["unique_id"] = String(identifier) + "_wifi";
+    autoconfPayload["unit_of_measurement"] = "dBm";
+    autoconfPayload["json_attributes_topic"] = MQTT_TOPIC_STATE;
+    autoconfPayload["json_attributes_template"] = "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": \"{{value_json.wifi.ip}}\"}";
+    autoconfPayload["icon"] = "mdi:wifi";
+    serializeJson(autoconfPayload, mqttPayload);
+    mqttClient.publish(wifiTopic.c_str(), &mqttPayload[0], true);
+    autoconfPayload.clear();
+  }
   const JsonObject root = sensorData.as<JsonObject>();
   for (JsonPair keyValue : root) {
     const String k = keyValue.key().c_str();
@@ -51,12 +58,13 @@ void setupHandle(const Device &device) {
     const String topic = "homeassistant/sensor/"+String(identifier)+"/"+String(identifier)+"_"+k+"/config";
   
     autoconfPayload["device"] = device.as<JsonObject>();
+    autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
+    autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
     autoconfPayload["name"] = key2name(k);
     autoconfPayload["value_template"] = "{{value_json." + k + "}}";
     autoconfPayload["unit_of_measurement"] = key2unit(k);
     autoconfPayload["icon"] = key2icon(k);
     autoconfPayload["unique_id"] = String(identifier) + "_sensor_" + k;
-    autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
     serializeJson(autoconfPayload, mqttPayload);
     mqttClient.publish(topic.c_str(), &mqttPayload[0], true);
     autoconfPayload.clear();
@@ -65,7 +73,7 @@ void setupHandle(const Device &device) {
 
 void publishState(PubSubClient & mqttClient, DynamicJsonDocument & sensorData) {
   DynamicJsonDocument wifiJson(192);
-  DynamicJsonDocument stateJson(604);
+  DynamicJsonDocument stateJson(512);
   char payload[256];
 
   wifiJson["ssid"] = WiFi.SSID();
@@ -79,8 +87,7 @@ void publishState(PubSubClient & mqttClient, DynamicJsonDocument & sensorData) {
     const String k = keyValue.key().c_str();
     if(k == "key")
      continue;
-    const String v = keyValue.value();
-    stateJson[k] = v;
+    stateJson[k] = keyValue.value().as<double>();
   }
 
   serializeJson(stateJson, payload);

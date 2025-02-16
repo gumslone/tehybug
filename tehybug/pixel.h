@@ -9,10 +9,10 @@
 #define PIXEL_COUNT 1 // Number of NeoPixels
 #define PIXEL_PIN 12  // Digital IO pin connected to the NeoPixels.
 #endif
-#include <Adafruit_NeoPixel.h>
 
 #ifndef _TeHyBugPixel_HEADER_
 #define _TeHyBugPixel_HEADER_
+#include <Adafruit_NeoPixel.h>
 class TeHyBugPixel
 {
 public:  

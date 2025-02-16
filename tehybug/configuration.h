@@ -23,7 +23,7 @@ class TeHyBugConfig {
     void saveConfig(bool force = false) {
       // save the custom parameters to FS
       if (m_shouldSaveConfig || force) {
-        DynamicJsonDocument json(4096);
+        DynamicJsonDocument json(2048);
 
         json["mqttActive"] = m_serveData.mqtt.active;
         json["mqttRetained"] = m_serveData.mqtt.retained;
@@ -112,7 +112,7 @@ class TeHyBugConfig {
         if (configFile) {
           D_println(F("opened config file"));
 
-          DynamicJsonDocument json(4096);
+          DynamicJsonDocument json(2048);
           const auto error = deserializeJson(json, configFile);
 
           if (!error) {
@@ -165,7 +165,7 @@ class TeHyBugConfig {
         std::unique_ptr<char[]> buf(new char[size]);
 
         configFile.readBytes(buf.get(), size);
-        DynamicJsonDocument root(4096);
+        DynamicJsonDocument root(2048);
 
         if (DeserializationError::Ok == deserializeJson(root, buf.get())) {}
         String json;

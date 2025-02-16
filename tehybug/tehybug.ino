@@ -25,7 +25,7 @@
 #include <OneWire.h>
 #include <Wire.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -149,7 +149,7 @@ const String version = String(COMPILE_SHORT_YEAR) + IntFormat(COMPILE_MONTH) +
 WiFiClient espClient;
 BearSSL::WiFiClientSecure espClient_ssl;
 
-PubSubClient MqttClient(espClient);
+PubSubClient mqttClient(espClient);
 WiFiManager wifiManager;
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
@@ -179,7 +179,7 @@ void handleNotFound() {
 }
 
 void handleSetConfig() {
-  DynamicJsonDocument json(1024);
+  DynamicJsonDocument json(2048);
   const auto error = deserializeJson(json, server.arg("plain"));
   server.sendHeader("Connection", "close");
   if (!error) {
@@ -232,7 +232,7 @@ void handleFactoryReset() {
 
 #pragma region
 /* MQTT */
-void callback(char *topic, byte *payload, unsigned int length) {
+void mqttCallback(char *topic, byte *payload, unsigned int length) {
   if (payload[0] == '{') {
     payload[length] = '\0';
     String channel = String(topic);
@@ -242,10 +242,10 @@ void callback(char *topic, byte *payload, unsigned int length) {
     Log("MQTT_callback", "Incoming Json length to topic " + String(topic) +
         ": " + String(measureJson(json)));
     if (channel.equals("getInfo")) {
-      MqttClient.publish((tehybug.serveData.mqtt.topic + "info").c_str(),
+      mqttClient.publish((tehybug.serveData.mqtt.topic + "info").c_str(),
                      getInfo().c_str());
     } else if (channel.equals("getConfig")) {
-      MqttClient.publish((tehybug.serveData.mqtt.topic + "config").c_str(),
+      mqttClient.publish((tehybug.serveData.mqtt.topic + "config").c_str(),
                      tehybug.conf.getConfig().c_str());
     } else if (channel.equals("setConfig")) {
       // extract the data
@@ -325,46 +325,64 @@ String getSensor() {
 
 /////////////////////////////////////////////////////////////////////
 void haSendData() {
-  if (MqttClient.connected()) {
-    ha::publishAutoConfig(MqttClient, version, tehybug.sensorData);
-    ha::publishState(MqttClient, tehybug.sensorData);
-    Log(F("HomeAssistant"), F("MqttSendData"));
+  if (mqttClient.connected()) {
+    ha::publishAutoConfig(mqttClient, version, tehybug.sensorData);
+    ha::publishState(mqttClient, tehybug.sensorData);
+    Log(F("HomeAssistant"), F("haSendData"));
+    // Make sure to subscribe after polling the status so that we never
+    // execute commands with the default data
+    // mqttClient.subscribe(ha::MQTT_TOPIC_COMMAND);
   } else
     mqttReconnect();
 }
+
 void mqttSendData() {
-  if (MqttClient.connected()) {
-    MqttClient.publish((tehybug.serveData.mqtt.topic).c_str(), tehybug.serveData.data,
+  if (mqttClient.connected()) {
+    mqttClient.publish((tehybug.serveData.mqtt.topic).c_str(), tehybug.serveData.data,
                    tehybug.serveData.mqtt.retained);
     String payload = tehybug.replacePlaceholders(tehybug.serveData.mqtt.message);
     payload.toCharArray(tehybug.serveData.data, (payload.length() + 1));
-    Log(F("MqttSendData"), payload);
+    Log(F("mqttSendData"), payload);
   } else
     mqttReconnect();
 }
 
 void mqttReconnect() {
   // Loop until we're reconnected
-  while (!MqttClient.connected() &&
+  while (!mqttClient.connected() &&
          tehybug.serveData.mqtt.retryCounter < tehybug.serveData.mqtt.maxRetries) {
     bool connected = false;
+
+    char availabilityTopic[64];
+    if(tehybug.serveData.ha.active)
+    {
+      snprintf(availabilityTopic, 63, "%s", ha::MQTT_TOPIC_AVAILABILITY);
+    }
+    else
+    { 
+      snprintf(availabilityTopic, 63, "%s", "state");
+    } 
+    
     if (tehybug.serveData.mqtt.user != NULL && tehybug.serveData.mqtt.user.length() > 0 &&
         tehybug.serveData.mqtt.password != NULL &&
         tehybug.serveData.mqtt.password.length() > 0) {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
-      connected = MqttClient.connect(
-                    ("tehybug_" + GetChipID()).c_str(), tehybug.serveData.mqtt.user.c_str(),
-                    tehybug.serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
+      connected = mqttClient.connect(
+                    wifiSsid, tehybug.serveData.mqtt.user.c_str(),
+                    tehybug.serveData.mqtt.password.c_str(), availabilityTopic, 1, true, AVAILABILITY_OFFLINE);
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
-      connected = MqttClient.connect(("tehybug_" + GetChipID()).c_str(), "state", 0,
-                                 true, "disconnected");
+      connected = mqttClient.connect(wifiSsid, availabilityTopic, 1,
+                                 true, AVAILABILITY_OFFLINE);
     }
 
     // Attempt to connect
     if (connected) {
+      // publish availability
+      mqttClient.publish(availabilityTopic, AVAILABILITY_ONLINE, true);
+      
       Log(F("MqttReconnect"), F("MQTT connected!"));
       tehybug.serveData.mqtt.retryCounter = 0;
       // ... and publish
@@ -376,6 +394,7 @@ void mqttReconnect() {
       {
         mqttSendData();
       }
+      
     } else {
       Log(F("MqttReconnect"), F("MQTT not connected!"));
       Log(F("MqttReconnect"), F("Wait 5 seconds before retrying...."));
@@ -737,6 +756,7 @@ void serve_data() {
     mqttSendData();
     delay(1000);
     if (tehybug.device.sleepMode) {
+      mqttClient.disconnect();
       startDeepSleep(tehybug.serveData.mqtt.frequency);
     }
   }
@@ -745,6 +765,7 @@ void serve_data() {
     haSendData();
     delay(1000);
     if (tehybug.device.sleepMode) {
+      mqttClient.disconnect();
       startDeepSleep(tehybug.serveData.mqtt.frequency);
     }
   }
@@ -821,10 +842,20 @@ void setupWifi() {
     startDeepSleep(9000);
     delay(5000);
   }
-
   D_println(F("Wifi successfully connected!"));
   tehybug.conf.saveConfig();
-  
+}
+
+void loadConfig()
+{
+  // Mounting FileSystem
+  D_println(F("Mounting file system..."));
+  if (SPIFFS.begin()) {
+    D_println(F("File system successfully mounted."));
+    tehybug.conf.loadConfig();
+  } else {
+    D_println(F("Failed to mount FS"));
+  }
   if(tehybug.device.configMode)
   {
     WiFi.softAP(wifiSsid, wifiPassword);
@@ -1060,7 +1091,7 @@ void checkModeButton() {
 
 void updateMqttClient() {
   if (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active) {
-    MqttClient.setServer(tehybug.serveData.mqtt.server.c_str(), tehybug.serveData.mqtt.port);
+    mqttClient.setServer(tehybug.serveData.mqtt.server.c_str(), tehybug.serveData.mqtt.port);
   }
 }
 
@@ -1086,27 +1117,22 @@ void setup() {
   while (!Serial) {
     delay(10);
   }
+  
+  setupWifi();
+  D_println(wifiSsid);
+  // call after wifi setup
+  loadConfig();
 
-  // reduce buffer size and ignore certificate verrification
-  espClient_ssl.setBufferSizes(256, 256);
-  espClient_ssl.setInsecure();
-
-  // Mounting FileSystem
-  D_println(F("Mounting file system..."));
-  if (SPIFFS.begin()) {
-    D_println(F("File system successfully mounted."));
-    tehybug.conf.loadConfig();
-  } else {
-    D_println(F("Failed to mount FS"));
-  }
   
   // should be called after the fs mount
   tehybug.getDeviceKey();
   
   // run a small first start test
   firstStart();
-  
-  setupWifi();
+
+  // reduce buffer size and ignore certificate verrification
+  espClient_ssl.setBufferSizes(256, 256);
+  espClient_ssl.setInsecure();
 
   // force config when no data serving mode is selected
   if (tehybug.conf.firstStart() || (!tehybug.serveData.get.active && !tehybug.serveData.post.active && !tehybug.serveData.mqtt.active && !tehybug.serveData.ha.active)) {
@@ -1140,9 +1166,9 @@ void setup() {
   // setup homeassistant
   if (tehybug.device.configMode == false && (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active)) {
     updateMqttClient();
-    MqttClient.setKeepAlive(10);
-    MqttClient.setCallback(callback);
-    MqttClient.setBufferSize(4000);
+    mqttClient.setKeepAlive(10);
+    mqttClient.setCallback(mqttCallback);
+    mqttClient.setBufferSize(4000);
     if (tehybug.serveData.ha.active)
     {
       ha::setupHandle(tehybug.device);
@@ -1244,4 +1270,10 @@ void loop() {
   }
   // update ticker for the non-deep-sleep mode
   ticker.update();
+  
+  if ((!tehybug.device.configMode && !tehybug.device.sleepMode) && (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active)) {
+    // call loop() regularly to allow the library to send MQTT keep alives which
+    // avoids being disconnected by the broker
+    mqttClient.loop();
+  }
 }

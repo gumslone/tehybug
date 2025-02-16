@@ -73,13 +73,6 @@ String Utf8ToAscii(String _str) {
 }
 
 /// <summary>
-/// Returns the chip id
-/// </summary>
-String GetChipID() {
-  return String(ESP.getChipId());
-}
-
-/// <summary>
 /// Convert RSSI to percentage quality
 /// </summary>
 int GetRSSIasQuality(int rssi) {

@@ -608,7 +608,7 @@ void read_bme680() {
   
 }
 
-void co2_ampel(int val) {
+void co2_ampel(float val) {
   if (val > 1500) {
     colorWipe(strip.Color(255, 0, 0), 90); // red
   } else if (val > 1000) {
@@ -650,7 +650,7 @@ if (millis() - last_measurenment >= 5000) // 5 seconds
         
         D_println();
     
-        co2_ampel(sensorData["co2"].as<int>());
+        co2_ampel(co2);
       }
       else
         D_print("CO2 NULL!!"); 

@@ -1,8 +1,5 @@
 #pragma once
 namespace ha {
-  char identifier[24];
-  char MQTT_TOPIC_STATE[128];
-  char MQTT_TOPIC_AVAILABILITY[128];
   
 String key2unit(const String & key)
 {
@@ -23,7 +20,7 @@ String key2unit(const String & key)
   if (key == "adc")
     return "ADC";
 
-  return "";
+  return " ";
 }
 String key2name(const String & key)
 {
@@ -49,6 +46,8 @@ String key2name(const String & key)
     return "Altitude";
   if (key == "eco2")
     return "CO2 equivalent";
+  if (key == "co2")
+    return "CO2";
   if (key == "bvoc")
     return "breath VOC equivalent";
   if (key == "uv")
@@ -74,7 +73,13 @@ String key2icon(const String & key)
     return "mdi:water-thermometer";
   if (key == "hi" || key == "hi_imp")
     return "mdi:sun-thermometer";
-  return "";
+  if (key == "air")
+    return "mdi:resistor";
+  if (key == "co2"||key == "eco2")
+    return "mdi:molecule-co2";
+  if(key == "iaq")
+    return "mdi:airballoon-outline";
+  return "mdi:help";
 }
 
 void setupHandle(String deviceName) {
@@ -93,11 +98,10 @@ void setupHandle(String deviceName) {
   JsonArray identifiers = identifiersDoc.to<JsonArray>();
   identifiers.add(identifier);
   
-  const String wifitopic = "homeassistant/sensor/"+String(identifier)+"/"+String(identifier)+"_wifi/config";
+  const String wifitopic = "homeassistant/sensor/" + String(FIRMWARE_PREFIX) +"/"+String(identifier)+"_wifi/config";
 
   device["identifiers"] = identifiers;
   device["manufacturer"] = "TeHyBug";
-  device["model"] = "TeHyBug Universal/Mini";
   device["name"] = identifier;
   device["sw_version"] = version;
     
@@ -124,7 +128,7 @@ void setupHandle(String deviceName) {
     if(k == "key")
      continue;
     const String v = keyValue.value();
-    const String topic = "homeassistant/sensor/"+String(identifier)+"/"+String(identifier)+"_"+k+"/config";
+    const String topic = "homeassistant/sensor/" + String(FIRMWARE_PREFIX) +"/"+String(identifier)+"_"+k+"/config";
   
     autoconfPayload["device"] = device.as<JsonObject>();
     autoconfPayload["name"] = key2name(k);
@@ -155,8 +159,7 @@ void publishState(PubSubClient & mqttClient, DynamicJsonDocument & sensorData) {
     const String k = keyValue.key().c_str();
     if(k == "key")
      continue;
-    const String v = keyValue.value();
-    stateJson[k] = v;
+    stateJson[k] = keyValue.value().as<double>();
   }
 
   serializeJson(stateJson, payload);

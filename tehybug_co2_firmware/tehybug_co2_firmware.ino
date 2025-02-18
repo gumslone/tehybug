@@ -10,6 +10,7 @@
 #include <WiFiManager.h>
 
 #include "AHT20.h"
+#include "bsec.h"
 #include "Button2.h"
 #include "Config.h"
 #include "SparkFun_SCD4x_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_SCD4x
@@ -21,6 +22,29 @@
 #include <ErriezBMX280.h>
 #include <TickerScheduler.h>
 #include <Wire.h>
+
+#define DEBUG 1
+
+#if DEBUG
+#define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
+#define D_print(...) Serial.print(__VA_ARGS__)
+#define D_write(...) Serial.write(__VA_ARGS__)
+#define D_println(...) Serial.println(__VA_ARGS__)
+#else
+#define D_SerialBegin(...)
+#define D_print(...)
+#define D_write(...)
+#define D_println(...)
+#endif
+
+
+
+
+
+
+const String version = "16.02.2025";
+
+
 
 // dns
 const byte DNS_PORT = 53;
@@ -66,6 +90,9 @@ ErriezBMX280 bmx280 = ErriezBMX280(0x76);
 ErriezBMX280 bmp280 = ErriezBMX280(0x77);
 bool bmx_sensor = false; // in the setup the i2c scanner searches for the sensor
 
+Bsec bme680;
+bool bme680_sensor = false;
+
 AHT20 AHT;
 bool aht20_sensor =
     false; // in the setup the i2c scanner searches for the sensor
@@ -82,10 +109,8 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
 boolean oldState = HIGH;
-int mode = 0; // Currently-active animation mode, 0-9
 
-String key, temp, temp_imp, humi, dew, qfe, qfe_imp, qnh, alt, air, aiq, lux,
-    uv, adc, tvoc, co2;
+DynamicJsonDocument sensorData(1023);
 
 String i2c_addresses = "";
 
@@ -146,28 +171,44 @@ char MQTT_TOPIC_AVAILABILITY[128];
 char MQTT_TOPIC_STATE[128];
 char MQTT_TOPIC_COMMAND[128];
 
-char MQTT_TOPIC_AUTOCONF_T_SENSOR[128];
-char MQTT_TOPIC_AUTOCONF_H_SENSOR[128];
-char MQTT_TOPIC_AUTOCONF_P_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_SENSOR[128];
+
+#include "ha.h"
+
 
 bool shouldSaveConfig = false;
 
 void saveConfigCallback() { shouldSaveConfig = true; }
 
+float temp2Imp(const float & value) {
+  return (1.8 * value + 32);
+}
+void additionalSensorData(const String & key, float & value) {
+
+  if (key == "temp" || key == "temp2") {
+    addSensorData(key + "_imp", temp2Imp(value));
+  }
+}
+void addSensorData(const String & key, float value) {
+      sensorData[key] = String(value, 1);
+      // calculate imperial temperature also heat index and the dew point
+      additionalSensorData(key, value);
+}
+
 String getSensor() {
 
   DynamicJsonDocument root(1024);
-  root["co2"] = co2;
 
-  root["temperature"] = Config::imperial_temp ? temp_imp : temp;
-
-  root["humidity"] = humi;
-  root["pressure"] = qfe;
-  root["altitude"] = alt;
   root["devices"] = i2c_addresses;
   root["ip"] = WiFi.localIP().toString();
+
+  const JsonObject js = sensorData.as<JsonObject>();
+  for (JsonPair keyValue : js) {
+    const String k = keyValue.key().c_str();
+    root[k] = keyValue.value().as<double>();
+  }
+  
   String json;
   serializeJson(root, json);
   return json;
@@ -221,7 +262,7 @@ void setupHandle() {
   Serial.printf("Reset reason: %s\n", ESP.getResetReason().c_str());
 
   delay(3000);
-
+  ha::setupHandle(FIRMWARE_PREFIX);
   snprintf(identifier, sizeof(identifier), "TEHYBUG-CO2-%X", ESP.getChipId());
   snprintf(MQTT_TOPIC_AVAILABILITY, 127, "%s/%s/status", FIRMWARE_PREFIX,
            identifier);
@@ -235,12 +276,6 @@ void setupHandle() {
   snprintf(MQTT_TOPIC_AUTOCONF_WIFI_SENSOR, 127,
            "homeassistant/sensor/%s/%s_wifi/config", FIRMWARE_PREFIX,
            identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_T_SENSOR, 127,
-           "homeassistant/sensor/%s/%s_t/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_H_SENSOR, 127,
-           "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127,
-           "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
   WiFi.hostname(identifier);
 
   setupWifi();
@@ -455,8 +490,6 @@ void mqttReconnect() {
                            MQTT_TOPIC_AVAILABILITY, 1, true,
                            AVAILABILITY_OFFLINE)) {
       mqttClient.publish(MQTT_TOPIC_AVAILABILITY, AVAILABILITY_ONLINE, true);
-      publishAutoConfig();
-
       // Make sure to subscribe after polling the status so that we never
       // execute commands with the default data
       mqttClient.subscribe(MQTT_TOPIC_COMMAND);
@@ -468,127 +501,9 @@ void mqttReconnect() {
 
 bool isMqttConnected() { return mqttClient.connected(); }
 
-void publishState() {
-  DynamicJsonDocument wifiJson(192);
-  DynamicJsonDocument stateJson(604);
-  char payload[256];
-
-  wifiJson["ssid"] = WiFi.SSID();
-  wifiJson["ip"] = WiFi.localIP().toString();
-  wifiJson["rssi"] = WiFi.RSSI();
-
-  stateJson["co2"] = co2;
-  if (Config::imperial_temp == true) {
-    stateJson["temperature"] = temp_imp;
-  } else {
-    stateJson["temperature"] = temp;
-  }
-  stateJson["humidity"] = humi;
-  stateJson["pressure"] = qfe;
-
-  stateJson["wifi"] = wifiJson.as<JsonObject>();
-
-  serializeJson(stateJson, payload);
-  mqttClient.publish(&MQTT_TOPIC_STATE[0], &payload[0], true);
-}
-
 void mqttCallback(char *topic, uint8_t *payload, unsigned int length) {}
 
-void publishAutoConfig() {
-  char mqttPayload[2048];
-  DynamicJsonDocument device(256);
-  DynamicJsonDocument autoconfPayload(1024);
-  StaticJsonDocument<64> identifiersDoc;
-  JsonArray identifiers = identifiersDoc.to<JsonArray>();
 
-  identifiers.add(identifier);
-
-  device["identifiers"] = identifiers;
-  device["manufacturer"] = "TeHyBug";
-  device["model"] = "FreshAirMakesSense";
-  device["name"] = identifier;
-  device["sw_version"] = "2024.04.01";
-
-  autoconfPayload["device"] = device.as<JsonObject>();
-  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
-  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["name"] = identifier + String(" WiFi");
-  autoconfPayload["value_template"] = "{{value_json.wifi.rssi}}";
-  autoconfPayload["unique_id"] = identifier + String("_wifi");
-  autoconfPayload["unit_of_measurement"] = "dBm";
-  autoconfPayload["json_attributes_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["json_attributes_template"] =
-      "{\"ssid\": \"{{value_json.wifi.ssid}}\", \"ip\": "
-      "\"{{value_json.wifi.ip}}\"}";
-  autoconfPayload["icon"] = "mdi:wifi";
-
-  serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[0], &mqttPayload[0],
-                     true);
-
-  autoconfPayload.clear();
-
-  autoconfPayload["device"] = device.as<JsonObject>();
-  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
-  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["name"] = identifier + String(" CO2");
-  autoconfPayload["unit_of_measurement"] = "ppm";
-  autoconfPayload["value_template"] = "{{value_json.co2}}";
-  autoconfPayload["unique_id"] = identifier + String("_co2");
-  autoconfPayload["icon"] = "mdi:air-filter";
-
-  serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_SENSOR[0], &mqttPayload[0], true);
-
-  autoconfPayload.clear();
-
-  autoconfPayload["device"] = device.as<JsonObject>();
-  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
-  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["name"] = identifier + String(" Temperature");
-  autoconfPayload["unit_of_measurement"] = "°C";
-  if (Config::imperial_temp == true) {
-    autoconfPayload["unit_of_measurement"] = "°F";
-  } else {
-    autoconfPayload["unit_of_measurement"] = "°C";
-  }
-  autoconfPayload["value_template"] = "{{value_json.temperature}}";
-  autoconfPayload["unique_id"] = identifier + String("_temperature");
-  autoconfPayload["icon"] = "mdi:thermometer";
-
-  serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_T_SENSOR[0], &mqttPayload[0], true);
-
-  autoconfPayload.clear();
-
-  autoconfPayload["device"] = device.as<JsonObject>();
-  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
-  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["name"] = identifier + String(" Humidity");
-  autoconfPayload["unit_of_measurement"] = "%RH";
-  autoconfPayload["value_template"] = "{{value_json.humidity}}";
-  autoconfPayload["unique_id"] = identifier + String("_humidity");
-  autoconfPayload["icon"] = "mdi:water-percent";
-
-  serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_H_SENSOR[0], &mqttPayload[0], true);
-
-  autoconfPayload.clear();
-
-  autoconfPayload["device"] = device.as<JsonObject>();
-  autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
-  autoconfPayload["state_topic"] = MQTT_TOPIC_STATE;
-  autoconfPayload["name"] = identifier + String(" Barometric air pressure");
-  autoconfPayload["unit_of_measurement"] = "hpa";
-  autoconfPayload["value_template"] = "{{value_json.pressure}}";
-  autoconfPayload["unique_id"] = identifier + String("_pressure");
-  autoconfPayload["icon"] = "mdi:gauge";
-
-  serializeJson(autoconfPayload, mqttPayload);
-  mqttClient.publish(&MQTT_TOPIC_AUTOCONF_P_SENSOR[0], &mqttPayload[0], true);
-
-  autoconfPayload.clear();
-}
 
 // Fill strip pixels one after another with a color. Strip is NOT cleared
 // first; anything there will be covered pixel by pixel. Pass in color
@@ -604,29 +519,27 @@ void colorWipe(uint32_t color, int wait) {
 }
 
 void read_bmx280() {
-  temp = String((bmx280.readTemperature()));
-  temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-  temp_imp = String(temp_imp);
   Serial.print(F("Temperature: "));
-  Serial.print(temp);
+  Serial.print((bmx280.readTemperature()));
   Serial.println(" C");
   if (bmx280.getChipID() == CHIP_ID_BME280) {
-    humi = String((bmx280.readHumidity()));
     Serial.print(F("Humidity:    "));
-    Serial.print(humi);
+    Serial.print(bmx280.readHumidity());
     Serial.println(" %");
+    addSensorData("humi", bmx280.readHumidity());
   }
 
-  qfe = String((bmx280.readPressure() / 100.0F), 0);
   Serial.print(F("Pressure:    "));
-  Serial.print(qfe);
+  Serial.print(String((bmx280.readPressure() / 100.0F), 0));
   Serial.println(" hPa");
 
-  alt = String(bmx280.readAltitude(SEA_LEVEL_PRESSURE_HPA));
   Serial.print(F("Altitude:    "));
-  Serial.print(alt);
+  Serial.print(bmx280.readAltitude(SEA_LEVEL_PRESSURE_HPA));
   Serial.println(" m");
   Serial.println();
+  addSensorData("temp", (bmx280.readTemperature()));
+  addSensorData("qfe", (bmx280.readPressure() / 100.0F));
+  addSensorData("alt", bmx280.readAltitude(SEA_LEVEL_PRESSURE_HPA));
 }
 void read_aht20() {
   float humidity, temperature;
@@ -635,17 +548,63 @@ void read_aht20() {
   if (ret) // GET DATA OK
   {
     Serial.print("humidity: ");
-    humi = String((humidity * 100), 0);
-    Serial.print(humi);
+    Serial.print((humidity * 100));
     Serial.print("%\t temperature: ");
-    temp = String(temperature, 1);
-    temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-    temp_imp = String(temp_imp);
-    Serial.println(temp);
+    Serial.println(temperature);
+    addSensorData("temp", temperature);
+    addSensorData("humi", (humidity * 100));
   } else // GET DATA FAIL
   {
     Serial.println("GET DATA FROM AHT20 FAIL");
   }
+}
+// Helper function definitions
+void checkIaqSensorStatus(void) {
+  if (bme680.status != BSEC_OK) {
+    if (bme680.status < BSEC_OK) {
+      D_println("BSEC error code : " + String(bme680.status));
+      for (;;)
+        delay(1); /* Halt in case of failure */
+    } else {
+      D_println("BSEC warning code : " + String(bme680.status));
+    }
+  }
+
+  if (bme680.bme680Status != BME680_OK) {
+    if (bme680.bme680Status < BME680_OK) {
+      D_println("BME680 error code : " + String(bme680.bme680Status));
+      for (;;)
+        delay(1); /* Halt in case of failure */
+    } else {
+      D_println("BME680 warning code : " + String(bme680.bme680Status));
+    }
+  }
+}
+void read_bme680() {
+
+  if (!bme680.run()) { // If no data is available
+    checkIaqSensorStatus();
+    return;
+  }
+
+  D_print(String(bme680.rawTemperature));
+  D_print(", " + String(bme680.pressure / 100.0));
+  D_print(", " + String(bme680.rawHumidity));
+  D_print(", " + String(bme680.gasResistance));
+  D_print(", " + String(bme680.iaq));
+  D_print(", " + String(bme680.iaqAccuracy));
+  D_print(", " + String(bme680.temperature));
+  D_print(", " + String(bme680.humidity));
+  D_print(", " + String(bme680.staticIaq));
+  D_print(", " + String(bme680.co2Equivalent));
+  D_println(", " + String(bme680.breathVocEquivalent));
+
+  addSensorData("temp", bme680.temperature);
+  addSensorData("humi", (bme680.humidity));
+  addSensorData("qfe", bme680.pressure / 100.0);
+  addSensorData("iaq", bme680.iaq);
+  addSensorData("air", (bme680.gasResistance / 1000.0F));
+  
 }
 
 void co2_ampel(int val) {
@@ -663,28 +622,30 @@ void read_scd4x() {
   if (mySensor.readMeasurement()) // readMeasurement will return true when fresh
                                   // data is available
   {
-    Serial.println();
-    co2 = String(mySensor.getCO2());
-    Serial.print(F("CO2(ppm):"));
-    Serial.print(co2);
-
-    Serial.print(F("\tTemperature(C):"));
-    Serial.print(mySensor.getTemperature(), 1);
-
-    Serial.print(F("\tHumidity(%RH):"));
-    Serial.print(mySensor.getHumidity(), 1);
-
-    Serial.println();
-
     if (aht20_sensor == false && bmx_sensor == false) {
-      temp = String(mySensor.getTemperature(), 1);
-      humi = String(mySensor.getHumidity(), 1);
-
-      temp_imp = (int)round(1.8 * temp.toFloat() + 32);
-      temp_imp = String(temp_imp);
+      addSensorData("temp", mySensor.getTemperature());
+      addSensorData("humi", mySensor.getHumidity());
     }
+    else
+    {
+      addSensorData("temp2", mySensor.getTemperature());
+      addSensorData("humi2", mySensor.getHumidity());  
+    }
+    addSensorData("co2", mySensor.getCO2());
 
-    co2_ampel(co2.toInt());
+    D_println();
+    D_print(F("CO2(ppm):"));
+    D_print(sensorData["co2"].as<String>());
+
+    D_print(F("\tTemperature(C):"));
+    D_print(sensorData["temp"].as<String>());
+
+    D_print(F("\tHumidity(%RH):"));
+    D_print(sensorData["humi"].as<String>());
+
+    D_println();
+
+    co2_ampel(sensorData["co2"].as<int>());
   }
 
   if (Config::scd40_single_shot)
@@ -698,12 +659,13 @@ void read_s8() {
     // printf("Millis: %lu\n", millis());
 
     // Get CO2 measure
-    co2 = String(sensor_S8->get_co2());
-    Serial.println();
-    Serial.print(F("CO2(ppm):"));
-    Serial.print(co2);
-    Serial.println();
-    co2_ampel(co2.toInt());
+    addSensorData("co2", sensor_S8->get_co2());
+    
+    D_println();
+    D_print(F("CO2(ppm):"));
+    D_print(sensorData["co2"].as<String>());
+    D_println();
+    co2_ampel(sensorData["co2"].as<int>());
     // Serial.printf("/*%u*/\n", sensor.co2);   // Format to use with Serial
     // Studio program
 
@@ -789,22 +751,22 @@ void update_display() {
 
     String line1, line2, line3, line4;
 
-    if (co2 != "") {
-      line1 = "CO2: " + String(co2);
+    if (sensorData.containsKey("co2")) {
+      line1 = "CO2: " + sensorData["co2"].as<String>();
     }
 
-    if (temp != "") {
+    if (sensorData.containsKey("temp")) {
       if (Config::imperial_temp == true) {
-        line2 = "T: " + (temp_imp) + (char)247 + "F";
+        line2 = "T: " + sensorData["temp_imp"].as<String>() + (char)247 + "F";
       } else {
-        line2 = "T: " + (temp) + (char)247 + "C";
+        line2 = "T: " + sensorData["temp"].as<String>() + (char)247 + "C";
       }
     }
-    if (humi != "") {
-      line3 = "RH: " + (humi) + "%";
+    if (sensorData.containsKey("humi")) {
+      line3 = "RH: " + sensorData["humi"].as<String>() + "%";
     }
-    if (qfe != "") {
-      line4 = "P: " + qfe + "hPa";
+    if (sensorData.containsKey("qfe")) {
+      line4 = "P: " + sensorData["qfe"].as<String>() + "hPa";
     }
     if (line1 == "" && line2 == "" && line3 == "") {
       line1 = "Reading";
@@ -816,13 +778,6 @@ void update_display() {
 }
 
 void read_sensors() {
-  if (bmx_sensor) {
-    read_bmx280();
-  }
-
-  if (aht20_sensor) {
-    read_aht20();
-  }
 
   if (s8_sensor) {
     read_s8();
@@ -830,6 +785,18 @@ void read_sensors() {
 
   if (scd4x_sensor) {
     read_scd4x();
+  }
+
+  if (bmx_sensor) {
+    read_bmx280();
+  }
+
+  if (bme680_sensor) {
+    read_bme680();
+  }
+
+  if (aht20_sensor) {
+    read_aht20();
   }
 
   update_oled_display = true;
@@ -983,6 +950,40 @@ void setupDevices()
     }
   }
 
+  if (bme680_sensor) {
+    D_println(F("BME680 test"));
+
+    bme680.begin(BME680_I2C_ADDR_SECONDARY, Wire);
+
+    D_print("BSEC library version " + String(bme680.version.major) + ".");
+    D_print(String(bme680.version.minor) + ".");
+    D_print(String(bme680.version.major_bugfix) + ".");
+    D_println(String(bme680.version.minor_bugfix));
+
+    checkIaqSensorStatus();
+    bsec_virtual_sensor_t sensorList[10] = {
+      BSEC_OUTPUT_RAW_TEMPERATURE,
+      BSEC_OUTPUT_RAW_PRESSURE,
+      BSEC_OUTPUT_RAW_HUMIDITY,
+      BSEC_OUTPUT_RAW_GAS,
+      BSEC_OUTPUT_IAQ,
+      BSEC_OUTPUT_STATIC_IAQ,
+      BSEC_OUTPUT_CO2_EQUIVALENT,
+      BSEC_OUTPUT_BREATH_VOC_EQUIVALENT,
+      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+      BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY,
+    };
+
+    bme680.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
+    checkIaqSensorStatus();
+    // Print the header
+    D_println(
+      "Timestamp [ms], raw temperature [°C], pressure [hPa], raw "
+      "relative humidity [%], gas [Ohm], IAQ, IAQ accuracy, temperature "
+      "[°C], relative humidity [%], Static IAQ, CO2 equivalent, breath "
+      "VOC equivalent");
+  }
+
   if (s8_sensor) {
     // First message, we are alive
     Serial.println("");
@@ -1060,6 +1061,28 @@ void setupDevices()
 
 }
 
+void connectToWiFi()
+{
+  int tryCount = 0;
+  while ( WiFi.status() != WL_CONNECTED )
+  {
+    tryCount++;
+    WiFi.reconnect();
+    yield();
+    if ( tryCount == 10 )
+    {
+      ESP.restart();
+    }
+  }
+  //WiFi.onEvent( WiFiEvent );
+} // void connectToWiFi()
+void checkWifi()
+{
+  if ( !wifiClient.connected() || !WiFi.status() == WL_CONNECTED || WiFi.localIP().toString() == "0.0.0.0") {
+    connectToWiFi();
+  }
+}
+
 void setup() {
   /*
     WiFi.mode(WIFI_OFF);
@@ -1085,7 +1108,9 @@ void setup() {
   } else if (strContains(i2c_addresses.c_str(), "0x76") == 1) {
     bmx_sensor = true;
   }
-
+  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
+    bme680_sensor = true;
+  }
   if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
     aht20_sensor = true;
   }
@@ -1157,13 +1182,14 @@ void loop() {
     MDNS.update();
     yield();
     server.handleClient();
-
+    checkWifi();
     const uint32_t currentMillis = millis();
     if (currentMillis - statusPublishPreviousMillis >= statusPublishInterval) {
       statusPublishPreviousMillis = currentMillis;
 
       printf("Publish state\n");
-      publishState();
+      ha::publishAutoConfig(mqttClient, version, sensorData);
+      ha::publishState(mqttClient, sensorData);
     }
 
     if (!mqttClient.connected() &&

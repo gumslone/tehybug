@@ -69,7 +69,7 @@ struct MqttDataServ {
   int port{1883};
   int frequency{900};
   uint8_t retryCounter{0};
-  uint8_t maxRetries{99};
+  uint8_t maxRetries{10};
   unsigned long lastReconnectAttempt{0};
   unsigned long reconnectWait{10000}; // wait 10 seconds and try to reconnect again
 };

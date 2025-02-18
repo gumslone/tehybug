@@ -103,9 +103,12 @@ class TeHyBugConfig {
         freq = maxDS;
       }
     }
+    bool configExists() {
+      return SPIFFS.exists("/config.json");
+    }
 
     void loadConfig() {
-      if (SPIFFS.exists("/config.json")) {
+      if (configExists()) {
         // file exists, reading and loading
         File configFile = SPIFFS.open("/config.json", "r");
 

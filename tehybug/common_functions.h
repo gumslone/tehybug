@@ -25,54 +25,6 @@ boolean isIP(String _str) {
 }
 
 /// <summary>
-/// Convert UTF8 byte to ASCII
-/// </summary>
-byte Utf8ToAscii(byte _ascii) {
-  static byte _thisByte;
-
-  if (_ascii < 128) {
-    _thisByte = 0;
-    return (_ascii);
-  }
-
-  byte last = _thisByte;
-  _thisByte = _ascii;
-  byte _result = 0;
-
-  switch (last) {
-    case 0xC2:
-      _result = _ascii - 34;
-      break;
-    case 0xC3:
-      _result = (_ascii | 0xC0) - 34;
-      break;
-    case 0x82:
-      if (_ascii == 0xAC) {
-        _result = (0xEA);
-      }
-      break;
-  }
-  return _result;
-}
-
-/// <summary>
-/// Convert UTF8 Chars to ASCII
-/// </summary>
-String Utf8ToAscii(String _str) {
-  String _result = "";
-  char _thisChar;
-
-  for (int i = 0; i < _str.length(); i++) {
-    _thisChar = Utf8ToAscii(_str.charAt(i));
-
-    if (_thisChar != 0) {
-      _result += _thisChar;
-    }
-  }
-  return _result;
-}
-
-/// <summary>
 /// Convert RSSI to percentage quality
 /// </summary>
 int GetRSSIasQuality(int rssi) {
@@ -98,50 +50,6 @@ String join(int *arr, String separator, int len) {
   }
   return out;
 }
-// time
-// Time
-int Year, Month, Day, Hour, Minute, Second;
-
-int year() {
-  return 0;
-}
-int month() {
-  return 0;
-}
-int day() {
-  return 0;
-}
-int hour() {
-  return 0;
-}
-int minute() {
-  return 0;
-}
-int second() {
-  return 0;
-}
-
-void createDateElements(const char *str) {
-  sscanf(str, "%d-%d-%dT%d:%d", year(), month(), day(), hour(), minute());
-}
-void createWeekdaysElements(const char *str, int *arr) {
-  sscanf(str, "%d,%d,%d,%d,%d,%d,%d", &arr[0], &arr[1], &arr[2], &arr[3],
-         &arr[4], &arr[5], &arr[6]);
-}
-//================================================================================
-// Begin dayOfWeek( D, M, Y)
-//================================================================================
-uint8_t dayOfWeek(uint8_t y, uint8_t m,
-                  uint8_t d) // 1 <= m <= 12,  y > 1752 (in the U.K.)
-{ // https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week
-  static int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
-  y -= m < 3;
-  return (y + y / 4 - y / 100 + y / 400 + t[m - 1] + d) %
-         7; // Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
-}
-//================================================================================
-// End dayOfWeek( D, M, Y)
-//================================================================================
 
 float temp2Imp(const float & value) {
   return (1.8 * value + 32);

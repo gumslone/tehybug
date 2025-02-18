@@ -5,7 +5,6 @@
 #include <AM2320_asukiaaa.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
 #include <DallasTemperature.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266HTTPUpdateServer.h>
@@ -25,7 +24,7 @@
 #include <OneWire.h>
 #include <Wire.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -51,7 +50,7 @@
 
 // tehybug stuff
 #include "common_functions.h"
-#include "Webinterface.h"
+#include "webinterface.h"
 #include "i2cscanner.h"
 
 #include "tehybug.h"
@@ -110,9 +109,7 @@ DallasTemperature second_ds18b20_sensors(&secondOneWire);
 #define BUTTON_PIN 0
 
 // dns
-const byte DNS_PORT = 53;
 const IPAddress apIP(192, 168, 4, 1);
-DNSServer dnsServer;
 // HTTP Config
 HTTPClient http1;
 HTTPClient http2;
@@ -406,6 +403,10 @@ void mqttReconnect() {
   if (tehybug.serveData.mqtt.retryCounter >= tehybug.serveData.mqtt.maxRetries) {
     Log(F("MqttReconnect"),
         F("No connection to MQTT-Server, MQTT temporarily deactivated!"));
+        if (!tehybug.device.sleepMode)
+        {
+          ESP.restart();
+        }
   }
 }
 /////////////////////////////////////////////////////////////////////
@@ -815,6 +816,28 @@ void configModeCallback(WiFiManager *myWiFiManager) {
 void saveConfigCallback() {
   tehybug.conf.saveConfigCallback();
 }
+////
+void connectToWiFi()
+{
+  int tryCount = 0;
+  while ( WiFi.status() != WL_CONNECTED )
+  {
+    tryCount++;
+    WiFi.reconnect();
+    yield();
+    if ( tryCount == 10 )
+    {
+      ESP.restart();
+    }
+  }
+  //WiFi.onEvent( WiFiEvent );
+} // void connectToWiFi()
+void checkWifi()
+{
+  if ( !espClient.connected() || !WiFi.status() == WL_CONNECTED || WiFi.localIP().toString() == "0.0.0.0") {
+    connectToWiFi();
+  }
+}
 
 void setupWifi() {
   D_println("Setup WIFI");
@@ -1098,13 +1121,13 @@ void updateMqttClient() {
 void firstStart()
 {
   // test mode for first start
-  if(tehybug.conf.firstStart())
+  if(SPIFFS.begin() && !tehybug.conf.configExists())
   {
     findI2Csensors();
     if(i2cScanner::devicesFound > 0)
     {
       // show green color when sensors are found on first start
-      // required for testing the mini board
+      // required for testing the mini board after flashing
       tehybug.pixel.on(0, 255, 0);
       delay(5000);
     }
@@ -1112,6 +1135,7 @@ void firstStart()
 }
 
 void setup() {
+  firstStart();
   snprintf(wifiSsid, sizeof(wifiSsid), "TEHYBUG-%X", ESP.getChipId());
   Serial.begin(115200);
   while (!Serial) {
@@ -1126,9 +1150,7 @@ void setup() {
   
   // should be called after the fs mount
   tehybug.getDeviceKey();
-  
-  // run a small first start test
-  firstStart();
+
 
   // reduce buffer size and ignore certificate verrification
   espClient_ssl.setBufferSizes(256, 256);
@@ -1239,6 +1261,8 @@ void setup() {
   }
 }
 
+
+
 void loop() {
   // config mode
   if (tehybug.device.configMode) {
@@ -1262,6 +1286,7 @@ void loop() {
     ticker.disableAll();
     tehybug.pixel.on();
   }
+  
   if (tehybug.tickerStart && !tehybug.device.configMode)
   {
     tehybug.tickerStart = false;
@@ -1271,9 +1296,13 @@ void loop() {
   // update ticker for the non-deep-sleep mode
   ticker.update();
   
-  if ((!tehybug.device.configMode && !tehybug.device.sleepMode) && (tehybug.serveData.mqtt.active || tehybug.serveData.ha.active)) {
-    // call loop() regularly to allow the library to send MQTT keep alives which
-    // avoids being disconnected by the broker
-    mqttClient.loop();
+  if (!tehybug.device.configMode && !tehybug.device.sleepMode) {
+    // reconnect if connection lost
+    checkWifi();
+    if(tehybug.serveData.mqtt.active || tehybug.serveData.ha.active) {
+      // call loop() regularly to allow the library to send MQTT keep alives which
+      // avoids being disconnected by the broker
+      mqttClient.loop();
+    }
   }
 }

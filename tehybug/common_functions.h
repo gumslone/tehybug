@@ -135,6 +135,12 @@ String key2icon(const String & key)
     return "mdi:water-thermometer";
   if (key == "hi" || key == "hi_imp")
     return "mdi:sun-thermometer";
+  if (key == "air")
+    return "mdi:resistor";
+  if (key == "co2"||key == "eco2")
+    return "mdi:molecule-co2";
+  if(key == "iaq")
+    return "mdi:airballoon-outline";
   return "";
 }
 #endif

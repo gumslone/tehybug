@@ -7,7 +7,7 @@ String key2unit(const String & key)
     return "°C";
   if (key == "temp_imp" || key == "temp2_imp" || key == "dew_imp" || key == "hi_imp")
     return "°F";
-  if (key == "humi")
+  if (key == "humi"||key == "humi2")
     return "%RH";
   if (key == "air")
     return "kOhm";
@@ -30,6 +30,8 @@ String key2name(const String & key)
     return "Temperature2";
   if (key == "humi")
     return "Humidity";
+  if (key == "humi2")
+    return "Humidity2";
   if (key == "dew")
     return "Dew point";
   if (key == "dew_imp")
@@ -63,7 +65,7 @@ String key2icon(const String & key)
 {
   if (key == "temp" || key == "temp2" || key == "temp_imp" || key == "temp2_imp")
     return "mdi:thermometer";
-  if (key == "humi")
+  if (key == "humi"||key == "humi2")
     return "mdi:water-percent";
   if (key == "qfe")
     return "mdi:gauge";

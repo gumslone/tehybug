@@ -1141,7 +1141,7 @@ void setup() {
   while (!Serial) {
     delay(10);
   }
-  
+
   setupWifi();
   D_println(wifiSsid);
   // call after wifi setup

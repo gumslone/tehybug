@@ -603,6 +603,7 @@ void read_bme680() {
   addSensorData("humi", (bme680.humidity));
   addSensorData("qfe", bme680.pressure / 100.0);
   addSensorData("iaq", bme680.iaq);
+  addSensorData("eco2", bme680.co2Equivalent);
   addSensorData("air", (bme680.gasResistance / 1000.0F));
   
 }
@@ -624,30 +625,35 @@ if (millis() - last_measurenment >= 5000) // 5 seconds
     if (mySensor.readMeasurement()) // readMeasurement will return true when fresh
                                     // data is available
     {
-      
-      addSensorData("co2", mySensor.getCO2());
-      D_println();
-      D_print(F("CO2(ppm):"));
-      D_print(sensorData["co2"].as<String>());
-      
-      if (aht20_sensor == false && bmx_sensor == false && bme680_sensor == false) {
-        addSensorData("temp", mySensor.getTemperature());
-        addSensorData("humi", mySensor.getHumidity());
+      float co2 = mySensor.getCO2();
+      if(co2 > 0 )
+      {
+        addSensorData("co2", co2);
+        D_println();
+        D_print(F("CO2(ppm):"));
+        D_print(co2);
+        
+        if (aht20_sensor == false && bmx_sensor == false && bme680_sensor == false) {
+          addSensorData("temp", mySensor.getTemperature());
+          addSensorData("humi", mySensor.getHumidity());
+        }
+        else
+        {
+          addSensorData("temp2", mySensor.getTemperature());
+          addSensorData("humi2", mySensor.getHumidity()); 
+          D_print(F("\tTemperature(C):"));
+          D_print(sensorData["temp2"].as<String>());
+    
+          D_print(F("\tHumidity(%RH):"));
+          D_print(sensorData["humi2"].as<String>()); 
+        }
+        
+        D_println();
+    
+        co2_ampel(sensorData["co2"].as<int>());
       }
       else
-      {
-        addSensorData("temp2", mySensor.getTemperature());
-        addSensorData("humi2", mySensor.getHumidity()); 
-        D_print(F("\tTemperature(C):"));
-        D_print(sensorData["temp2"].as<String>());
-  
-        D_print(F("\tHumidity(%RH):"));
-        D_print(sensorData["humi2"].as<String>()); 
-      }
-      
-      D_println();
-  
-      co2_ampel(sensorData["co2"].as<int>());
+        D_print("CO2 NULL!!"); 
     }
   
     if (Config::scd40_single_shot)

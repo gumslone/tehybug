@@ -80,7 +80,7 @@ SoftwareSerial S8_serial(S8_RX_PIN, S8_TX_PIN);
 S8_UART *sensor_S8;
 S8_sensor sensor;
 bool s8_sensor = false;
-unsigned long s8_last_measurenment = 0;
+unsigned long last_measurenment = 0;
 
 // Adjust sea level for altitude calculation
 #define SEA_LEVEL_PRESSURE_HPA 1026.25
@@ -619,42 +619,47 @@ void co2_ampel(int val) {
 }
 
 void read_scd4x() {
-  if (mySensor.readMeasurement()) // readMeasurement will return true when fresh
-                                  // data is available
+if (millis() - last_measurenment >= 5000) // 5 seconds
   {
-    
-    addSensorData("co2", mySensor.getCO2());
-    D_println();
-    D_print(F("CO2(ppm):"));
-    D_print(sensorData["co2"].as<String>());
-    
-    if (aht20_sensor == false && bmx_sensor == false && bme680_sensor == false) {
-      addSensorData("temp", mySensor.getTemperature());
-      addSensorData("humi", mySensor.getHumidity());
-    }
-    else
+    if (mySensor.readMeasurement()) // readMeasurement will return true when fresh
+                                    // data is available
     {
-      addSensorData("temp2", mySensor.getTemperature());
-      addSensorData("humi2", mySensor.getHumidity()); 
-      D_print(F("\tTemperature(C):"));
-      D_print(sensorData["temp2"].as<String>());
-
-      D_print(F("\tHumidity(%RH):"));
-      D_print(sensorData["humi2"].as<String>()); 
+      
+      addSensorData("co2", mySensor.getCO2());
+      D_println();
+      D_print(F("CO2(ppm):"));
+      D_print(sensorData["co2"].as<String>());
+      
+      if (aht20_sensor == false && bmx_sensor == false && bme680_sensor == false) {
+        addSensorData("temp", mySensor.getTemperature());
+        addSensorData("humi", mySensor.getHumidity());
+      }
+      else
+      {
+        addSensorData("temp2", mySensor.getTemperature());
+        addSensorData("humi2", mySensor.getHumidity()); 
+        D_print(F("\tTemperature(C):"));
+        D_print(sensorData["temp2"].as<String>());
+  
+        D_print(F("\tHumidity(%RH):"));
+        D_print(sensorData["humi2"].as<String>()); 
+      }
+      
+      D_println();
+  
+      co2_ampel(sensorData["co2"].as<int>());
     }
-    
-    D_println();
-
-    co2_ampel(sensorData["co2"].as<int>());
-  }
-
-  if (Config::scd40_single_shot)
-  {
-    mySensor.measureSingleShot(); // Request fresh data (should take 5 seconds)
+  
+    if (Config::scd40_single_shot)
+    {
+      mySensor.measureSingleShot(); // Request fresh data (should take 5 seconds)
+    }
+    // Wait 5 second for next measure
+    last_measurenment = millis();
   }
 }
 void read_s8() {
-  if (millis() - s8_last_measurenment >= 5000) // 5 seconds
+  if (millis() - last_measurenment >= 5000) // 5 seconds
   {
     // printf("Millis: %lu\n", millis());
 
@@ -675,7 +680,7 @@ void read_s8() {
     // 2000.0);
 
     // Wait 5 second for next measure
-    s8_last_measurenment = millis();
+    last_measurenment = millis();
   }
 }
 

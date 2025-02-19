@@ -37,14 +37,7 @@
 #define D_println(...)
 #endif
 
-
-
-
-
-
-const String version = "16.02.2025";
-
-
+const String version = "20.02.2025";
 
 // dns
 const byte DNS_PORT = 53;
@@ -80,6 +73,7 @@ SoftwareSerial S8_serial(S8_RX_PIN, S8_TX_PIN);
 S8_UART *sensor_S8;
 S8_sensor sensor;
 bool s8_sensor = false;
+bool read_co2_sensor = false;
 unsigned long last_measurenment = 0;
 
 // Adjust sea level for altitude calculation
@@ -111,6 +105,7 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 boolean oldState = HIGH;
 
 DynamicJsonDocument sensorData(1023);
+// Creating a map of arrays
 
 String i2c_addresses = "";
 
@@ -181,16 +176,16 @@ bool shouldSaveConfig = false;
 
 void saveConfigCallback() { shouldSaveConfig = true; }
 
-float temp2Imp(const float & value) {
+float temp2Imp(float value) {
   return (1.8 * value + 32);
 }
-void additionalSensorData(const String & key, float & value) {
+void additionalSensorData(String key, float value) {
 
   if (key == "temp" || key == "temp2") {
     addSensorData(key + "_imp", temp2Imp(value));
   }
 }
-void addSensorData(const String & key, float value) {
+void addSensorData(String key, float value) {
       sensorData[key] = String(value, 1);
       // calculate imperial temperature also heat index and the dew point
       additionalSensorData(key, value);
@@ -626,6 +621,8 @@ if (millis() - last_measurenment >= 5000) // 5 seconds
                                     // data is available
     {
       float co2 = mySensor.getCO2();
+      float temp = mySensor.getTemperature();
+      float humi = mySensor.getHumidity();
       if(co2 > 0 )
       {
         addSensorData("co2", co2);
@@ -633,20 +630,29 @@ if (millis() - last_measurenment >= 5000) // 5 seconds
         D_print(F("CO2(ppm):"));
         D_print(co2);
         
+        D_print(F("\tTemperature(C):"));
+        D_print(temp);
+  
+        D_print(F("\tHumidity(%RH):"));
+        D_print(humi); 
         if (aht20_sensor == false && bmx_sensor == false && bme680_sensor == false) {
-          addSensorData("temp", mySensor.getTemperature());
-          addSensorData("humi", mySensor.getHumidity());
+          addSensorData("temp", temp);
+          addSensorData("humi", humi);
         }
         else
         {
-          addSensorData("temp2", mySensor.getTemperature());
-          addSensorData("humi2", mySensor.getHumidity()); 
+          
+          addSensorData("temp2", temp);
+          addSensorData("humi2", humi); 
+        }
+          D_print(F("\tCO2(ppm):"));
+          D_print(sensorData["co2"].as<String>());
+        
           D_print(F("\tTemperature(C):"));
           D_print(sensorData["temp2"].as<String>());
     
           D_print(F("\tHumidity(%RH):"));
           D_print(sensorData["humi2"].as<String>()); 
-        }
         
         D_println();
     
@@ -790,29 +796,41 @@ void update_display() {
 
 void read_sensors() {
 
-  if (s8_sensor) {
-    read_s8();
+  if(read_co2_sensor)
+  {
+    if (s8_sensor) {
+      read_s8();
+    }
+  
+    if (scd4x_sensor) {
+      read_scd4x();
+    }
+  }
+  else
+  {  
+
+    if (bmx_sensor) {
+      read_bmx280();
+    }
+  
+    if (bme680_sensor) {
+      read_bme680();
+    }
+  
+    if (aht20_sensor) {
+      read_aht20();
+    }
+    
   }
 
-  if (scd4x_sensor) {
-    read_scd4x();
-  }
-
-  if (bmx_sensor) {
-    read_bmx280();
-  }
-
-  if (bme680_sensor) {
-    read_bme680();
-  }
-
-  if (aht20_sensor) {
-    read_aht20();
-  }
+  
+  read_co2_sensor = !read_co2_sensor;
 
   update_oled_display = true;
 
   update_display();
+
+  sensorData.garbageCollect();
 }
 
 void i2c_scanner() {
@@ -1030,6 +1048,7 @@ void setupDevices()
 
   
   if (scd4x_sensor) {
+    Config::scd40_single_shot = false;
     if (Config::scd40_single_shot)
     {
       Serial.println(F("SCD4X single shot measurement"));
@@ -1174,7 +1193,7 @@ void setup() {
   }
   
   ticker.add(
-      0, 10033, [&](void *) { read_sensors(); }, nullptr, true);
+      0, 5001, [&](void *) { read_sensors(); }, nullptr, true);
 }
 
 void loop() {

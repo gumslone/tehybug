@@ -67,6 +67,14 @@ class TeHyBug {
       addSensorData(key_humi, humi);
     }
 
+    void sensorDataGarbageCollect()
+    {
+       if(!device.sleepMode)
+       {
+          sensorData.garbageCollect();
+       }
+    }
+
     void getDeviceKey() {
       // UUID – is a 36-character alphanumeric string
       String key = device.key;

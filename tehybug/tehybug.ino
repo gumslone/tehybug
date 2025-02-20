@@ -54,6 +54,7 @@
 #include "i2cscanner.h"
 
 #include "tehybug.h"
+//#include "sensor_data.h"
 
 DHTesp dht;
 TeHyBug tehybug(dht);
@@ -677,6 +678,7 @@ void read_sensors() {
     read_second_ds18b20();
   }
 #endif
+  tehybug.sensorDataGarbageCollect();
 }
 // end of sensor
 void sendDeviceInfo() {

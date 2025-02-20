@@ -143,6 +143,7 @@ void setupHandle(String deviceName) {
     mqttClient.publish(topic.c_str(), &mqttPayload[0], true);
     autoconfPayload.clear();
   }
+  device.clear();
 }
 
 void publishState(PubSubClient & mqttClient, DynamicJsonDocument & sensorData) {
@@ -166,6 +167,7 @@ void publishState(PubSubClient & mqttClient, DynamicJsonDocument & sensorData) {
 
   serializeJson(stateJson, payload);
   mqttClient.publish(&MQTT_TOPIC_STATE[0], &payload[0], true);
+  wifiJson.clear();
   stateJson.clear();
 }
 

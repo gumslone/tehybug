@@ -490,7 +490,7 @@ void mqttReconnect() {
       mqttClient.subscribe(MQTT_TOPIC_COMMAND);
       break;
     }
-    delay(5000);
+    delay(1000);
   }
 }
 
@@ -1182,6 +1182,7 @@ void setup() {
     colorWipe(strip.Color(0, 0, 255), 90); // Blue
     strip.show();
     setupHandle();
+    WiFi.softAPdisconnect(true);
 
   } else {
     colorWipe(strip.Color(0, 0, 0), 90); // off
@@ -1207,12 +1208,12 @@ void loop() {
   yield();
   if (Config::offline_mode == false) {
     // ArduinoOTA.handle();
+    checkWifi();
     mqttClient.loop();
     yield();
     MDNS.update();
     yield();
     server.handleClient();
-    checkWifi();
     const uint32_t currentMillis = millis();
     if (currentMillis - statusPublishPreviousMillis >= statusPublishInterval) {
       statusPublishPreviousMillis = currentMillis;

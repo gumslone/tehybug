@@ -83,6 +83,8 @@ String key2unit(const String & key)
     return "Lux";
   if (key == "adc")
     return "ADC";
+  if (key == "co2")
+    return "ppm";
 
   return "";
 }
@@ -110,6 +112,8 @@ String key2name(const String & key)
     return "Altitude";
   if (key == "eco2")
     return "CO2 equivalent";
+  if (key == "co2")
+    return "CO2";
   if (key == "bvoc")
     return "breath VOC equivalent";
   if (key == "uv")
@@ -141,6 +145,6 @@ String key2icon(const String & key)
     return "mdi:molecule-co2";
   if(key == "iaq")
     return "mdi:airballoon-outline";
-  return "";
+  return "mdi:help";
 }
 #endif

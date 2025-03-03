@@ -1052,6 +1052,7 @@ void setupSensors() {
     Max44009Lux.setAutomaticMode();
   }
   if (tehybug.sensor.dht) {
+    pinMode(2, INPUT_PULLUP);
     dht.setup(2, DHTesp::DHT22); // Connect DHT sensor to GPIO 2
   }
 #if !defined(ARDUINO_ESP8266_GENERIC)
@@ -1306,5 +1307,6 @@ void loop() {
       // avoids being disconnected by the broker
       mqttClient.loop();
     }
+    delay(150); // reduce power consumption
   }
 }

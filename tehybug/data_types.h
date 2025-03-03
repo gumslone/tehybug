@@ -22,6 +22,7 @@ struct Sensor {
   bool ds18b20{false};
   bool ds18b20_2{false};
   bool adc{false};
+  bool scd4x{false};
 } __attribute__((packed));
 struct Peripherals {
   bool eeprom{false};

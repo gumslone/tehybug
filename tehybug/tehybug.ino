@@ -562,17 +562,22 @@ void read_aht20() {
 }
 #endif
 void read_dht_custom(DHTesp &dht, const String &&temp, const String &&humi) {
-  TempAndHumidity tehy{};
-
-  for (int i = 0; i < 5; i++) {
+  TempAndHumidity prev = dht.getTempAndHumidity(); // first read
+  for (int i = 0; i < 10; i++) {
     delay(dht.getMinimumSamplingPeriod());
-    tehy = dht.getTempAndHumidity();
+    TempAndHumidity tehy = dht.getTempAndHumidity();
     // Check if any reads failed and exit early (to try again).
     if (isnan(tehy.temperature) || isnan(tehy.humidity)) {
       continue;
     }
     if(dht.getStatusString() == "OK")
     {
+      if(isnan(prev.temperature) || isnan(prev.humidity) || abs(tehy.temperature - prev.temperature) >= 1)
+      {
+        prev.temperature = tehy.temperature;
+        prev.humidity = tehy.humidity;
+        continue;
+      }
       tehybug.addTempHumi(temp, tehy.temperature, humi, tehy.humidity);
       break;
     }

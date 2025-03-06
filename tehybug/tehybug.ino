@@ -563,6 +563,11 @@ void read_aht20() {
 #endif
 void read_dht_custom(DHTesp &dht, const String &&temp, const String &&humi) {
   TempAndHumidity prev = dht.getTempAndHumidity(); // first read
+  if (tehybug.device.configMode)
+  {
+    tehybug.addTempHumi(temp, prev.temperature, humi, prev.humidity);
+    return;
+  }
   for (int i = 0; i < 10; i++) {
     delay(dht.getMinimumSamplingPeriod());
     TempAndHumidity tehy = dht.getTempAndHumidity();
@@ -572,7 +577,7 @@ void read_dht_custom(DHTesp &dht, const String &&temp, const String &&humi) {
     }
     if(dht.getStatusString() == "OK")
     {
-      if(isnan(prev.temperature) || isnan(prev.humidity) || abs(tehy.temperature - prev.temperature) >= 1)
+      if(isnan(prev.temperature) || isnan(prev.humidity) || fabs(tehy.temperature - prev.temperature) >= 0.5)
       {
         prev.temperature = tehy.temperature;
         prev.humidity = tehy.humidity;

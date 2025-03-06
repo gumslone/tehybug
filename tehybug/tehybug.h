@@ -45,14 +45,22 @@ class TeHyBug {
         const String num = atoi(key.c_str()) > 0 ? String(atoi(key.c_str())) : "";
 
         const float hi = m_dht.computeHeatIndex(sensorData["temp" + num].as<float>(),
-                                                sensorData[key + num].as<float>());
+                                                value);
         addSensorData("hi" + num, hi);
         addSensorData("hi_imp" + num, temp2Imp(hi));
 
         const float dew = m_dht.computeDewPoint(sensorData["temp" + num].as<float>(),
-                                                sensorData[key + num].as<float>());
+                                                value);
         addSensorData("dew" + num, dew);
         addSensorData("dew_imp" + num, temp2Imp(dew));
+
+        const float ah = m_dht.computeAbsoluteHumidity(sensorData["temp" + num].as<float>(), value);
+        addSensorData("ah" + num, ah);
+        
+        ComfortState cs;
+        const float cr = m_dht.getComfortRatio(cs, sensorData["temp" + num].as<float>(), value);
+        addSensorData("cr" + num, cr);
+        addSensorData("cs" + num, (int)cs);
       }
     }
 
@@ -61,6 +69,9 @@ class TeHyBug {
       sensorData[key] = String(value, 1);
       // calculate imperial temperature also heat index and the dew point
       additionalSensorData(key, value);
+    }
+    void addSensorData(const String & key, int value) {
+      sensorData[key] = String(value);
     }
     void addTempHumi(const String & key_temp, float temp, const String & key_humi, float humi) {
       addSensorData(key_temp, temp);

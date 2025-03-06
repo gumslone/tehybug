@@ -62,7 +62,8 @@ void setupHandle(const Device &device) {
     autoconfPayload["availability_topic"] = MQTT_TOPIC_AVAILABILITY;
     autoconfPayload["name"] = key2name(k);
     autoconfPayload["value_template"] = "{{value_json." + k + "}}";
-    autoconfPayload["unit_of_measurement"] = key2unit(k);
+    if(k != "cs" && k != "cs2")
+      autoconfPayload["unit_of_measurement"] = key2unit(k);
     autoconfPayload["icon"] = key2icon(k);
     autoconfPayload["unique_id"] = String(identifier) + "_sensor_" + k;
     serializeJson(autoconfPayload, mqttPayload);
@@ -89,7 +90,10 @@ void publishState(PubSubClient & mqttClient, DynamicJsonDocument & sensorData) {
     const String k = keyValue.key().c_str();
     if(k == "key")
      continue;
-    stateJson[k] = keyValue.value().as<double>();
+    if(k == "cs"||k == "cs2")
+      stateJson[k] = cf2name(keyValue.value().as<int>());
+    else
+      stateJson[k] = keyValue.value().as<double>();
   }
 
   serializeJson(stateJson, payload);

@@ -73,6 +73,8 @@ String key2unit(const String & key)
     return "°F";
   if (key == "humi")
     return "%RH";
+  if (key == "ah")
+    return "g/m³";
   if (key == "air")
     return "kOhm";
   if (key == "qfe")
@@ -85,8 +87,35 @@ String key2unit(const String & key)
     return "ADC";
   if (key == "co2")
     return "ppm";
+  if (key == "cr")
+    return "%";
 
   return "";
+}
+String cf2name(int cs)
+{
+  switch(cs) {
+    case Comfort_OK:
+      return "OK";
+    case Comfort_TooHot:
+      return "Too hot";
+    case Comfort_TooCold:
+      return "Too cold";
+    case Comfort_TooDry:
+      return "Too dry";
+    case Comfort_TooHumid:
+      return "Too humid";
+    case Comfort_HotAndHumid:
+      return "Hot and humid";
+    case Comfort_HotAndDry:
+      return "Hot and dry";
+    case Comfort_ColdAndHumid:
+      return "Cold and humid";
+    case Comfort_ColdAndDry:
+      return "Cold and dry";
+    default:
+      return "Unknown";
+  };
 }
 String key2name(const String & key)
 {
@@ -96,6 +125,12 @@ String key2name(const String & key)
     return "Temperature2";
   if (key == "humi")
     return "Humidity";
+  if (key == "ah")
+    return "Absolute humidity";
+  if (key == "cr")
+    return "Comfort ratio";
+  if (key == "cs")
+    return "Comfort status";
   if (key == "dew")
     return "Dew point";
   if (key == "dew_imp")
@@ -131,6 +166,12 @@ String key2icon(const String & key)
     return "mdi:thermometer";
   if (key == "humi")
     return "mdi:water-percent";
+  if (key == "ah")
+    return "mdi:water";
+  if (key == "cr")
+    return "mdi:sofa-outline";
+  if (key == "cs")
+    return "mdi:sofa-outline";
   if (key == "qfe")
     return "mdi:gauge";
   if (key == "alt")

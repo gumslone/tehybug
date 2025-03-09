@@ -121,6 +121,11 @@ class TeHyBug {
       }  
     }
 
+    bool sleepEnabled()
+    {
+      return device.sleepMode || device.lightSleepMode; 
+    }
+
     bool tickerStop{false};
     bool tickerStart{false};
     

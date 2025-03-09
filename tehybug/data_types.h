@@ -9,6 +9,7 @@ struct Device {
   String key;
   bool configMode{false};
   bool sleepMode{true};
+  bool lightSleepMode{true};
   RemoteControl remoteControl{};
 };
 struct Sensor {

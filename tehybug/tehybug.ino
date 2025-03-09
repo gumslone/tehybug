@@ -306,7 +306,7 @@ String getInfo() {
   root["freeHeap"] = ESP.getFreeHeap();
   root["chipID"] = ESP.getChipId();
   root["cpuFreqMHz"] = ESP.getCpuFreqMHz();
-  root["sleepModeActive"] = tehybug.device.sleepMode;
+  root["sleepModeActive"] = tehybug.sleepEnabled();
   root["deepSleepMax"] = (int)(ESP.deepSleepMax() / 1000000);
   root["key"] = tehybug.device.key;
   String json;
@@ -404,7 +404,7 @@ void mqttReconnect() {
   if (tehybug.serveData.mqtt.retryCounter >= tehybug.serveData.mqtt.maxRetries) {
     Log(F("MqttReconnect"),
         F("No connection to MQTT-Server, MQTT temporarily deactivated!"));
-        if (!tehybug.device.sleepMode)
+        if (!tehybug.sleepEnabled())
         {
           ESP.restart();
         }
@@ -431,6 +431,24 @@ void toggleConfigMode() {
   }
 }
 
+void callback() 
+{
+  D_println("Light sleep callback..."); 
+}
+
+void startLightSleep(int freq) 
+{
+  D_println("Going to light sleep...");
+  uint32_t sleep_time_in_ms = 1000 * freq;
+  wifi_set_opmode(NULL_MODE);
+  wifi_fpm_set_sleep_type(LIGHT_SLEEP_T);  //This worked better and resulted in low sleep currents (495uA) but followed by high load periods (65mA) equaling the sleep periods.
+  wifi_fpm_open();
+  wifi_fpm_set_wakeup_cb(callback);
+  wifi_fpm_do_sleep(freq * 1000000); //This function requires time in us.
+  delay(sleep_time_in_ms + 1);
+  ESP.restart();
+}
+
 void startDeepSleep(int freq) {
   D_println("Going to deep sleep...");
   tehybug.pixel.off();
@@ -438,6 +456,18 @@ void startDeepSleep(int freq) {
   pinMode(I2C_SCL, OUTPUT);
   ESP.deepSleep(freq * 1000000);
   yield();
+}
+
+void startSleep(int freq)
+{
+  if(tehybug.device.sleepMode)
+  {
+    startDeepSleep(freq);
+  }
+  if(tehybug.device.lightSleepMode)
+  {
+    startLightSleep(freq);
+  }
 }
 
 // HTTP REQUESTS
@@ -762,34 +792,34 @@ void serve_data() {
   if (tehybug.serveData.get.active) {
     httpGet();
     delay(1000);
-    if (tehybug.device.sleepMode) {
-      startDeepSleep(tehybug.serveData.get.frequency);
+    if (tehybug.sleepEnabled()) {
+      startSleep(tehybug.serveData.get.frequency);
     }
   }
 
   if (tehybug.serveData.post.active) {
     httpPost();
     delay(1000);
-    if (tehybug.device.sleepMode) {
-      startDeepSleep(tehybug.serveData.post.frequency);
+    if (tehybug.sleepEnabled()) {
+      startSleep(tehybug.serveData.post.frequency);
     }
   }
 
   if (tehybug.serveData.mqtt.active) {
     mqttSendData();
     delay(1000);
-    if (tehybug.device.sleepMode) {
+    if (tehybug.sleepEnabled()) {
       mqttClient.disconnect();
-      startDeepSleep(tehybug.serveData.mqtt.frequency);
+      startSleep(tehybug.serveData.mqtt.frequency);
     }
   }
 
   if (tehybug.serveData.ha.active) {
     haSendData();
     delay(1000);
-    if (tehybug.device.sleepMode) {
+    if (tehybug.sleepEnabled()) {
       mqttClient.disconnect();
-      startDeepSleep(tehybug.serveData.mqtt.frequency);
+      startSleep(tehybug.serveData.mqtt.frequency);
     }
   }
 }
@@ -884,7 +914,7 @@ void setupWifi() {
     delay(3000);
     // Reset and try again, or maybe put it to deep sleep
     // ESP.reset();
-    startDeepSleep(9000);
+    startSleep(9000);
     delay(5000);
   }
   D_println(F("Wifi successfully connected!"));
@@ -1019,7 +1049,7 @@ void setupSensors() {
       //  - pressure ×1, temperature ×1, humidity ×1
       //  - filter off
       BMX280_Mode_e sampling = BMX280_MODE_NORMAL; // SLEEP, FORCED, NORMAL
-      if (tehybug.device.sleepMode)
+      if (tehybug.sleepEnabled())
       {
         sampling = BMX280_MODE_SLEEP;
       }
@@ -1205,6 +1235,7 @@ void setup() {
     webSocket.onEvent(webSocketEvent);
     Log(F("Setup"), F("Webserver started"));
   } else {
+    WiFi.softAPdisconnect(true);
     D_println(F("Starting live mode"));
   }
 
@@ -1230,7 +1261,7 @@ void setup() {
   }
   
   // setup tickers for non-deep-sleep mode
-  if (!tehybug.device.configMode && !tehybug.device.sleepMode) {
+  if (!tehybug.device.configMode && !tehybug.sleepEnabled()) {
 
     uint8_t ticker_num = 0;
     if (tehybug.serveData.get.active) {
@@ -1295,7 +1326,7 @@ void loop() {
     webSocket.loop();
   }
   // deep sleep mode
-  else if (tehybug.device.sleepMode) {
+  else if (tehybug.sleepEnabled()) {
     read_sensors();
     yield();
     serve_scenario();
@@ -1319,7 +1350,7 @@ void loop() {
   // update ticker for the non-deep-sleep mode
   ticker.update();
   
-  if (!tehybug.device.configMode && !tehybug.device.sleepMode) {
+  if (!tehybug.device.configMode && !tehybug.sleepEnabled()) {
     // reconnect if connection lost
     checkWifi();
     if(tehybug.serveData.mqtt.active || tehybug.serveData.ha.active) {

@@ -53,6 +53,7 @@ class TeHyBugConfig {
 
         json["configModeActive"] = m_device.configMode;
         json["sleepModeActive"] = m_device.sleepMode;
+        json["lightSleepModeActive"] = m_device.lightSleepMode;
 
         json["key"] = m_device.key;
         json["dht_sensor"] = m_sensor.dht;
@@ -253,6 +254,7 @@ class TeHyBugConfig {
       setData(json, "calibrationTemp", m_calibration.temp);
       setData(json, "calibrationHumi", m_calibration.humi);
       setData(json, "calibrationQfe", m_calibration.qfe);
+      setData(json, "lightSleepModeActive", m_device.lightSleepMode);
       setData(json, "sleepModeActive", m_device.sleepMode);
       setData(json, "dht_sensor", m_sensor.dht);
       setData(json, "second_dht_sensor", m_sensor.dht_2);

@@ -451,15 +451,15 @@ void startLightSleep(int freq)
 
 void startDeepSleep(int freq) {
   D_println("Going to deep sleep...");
-  tehybug.pixel.off();
-  pinMode(I2C_SDA, OUTPUT);
-  pinMode(I2C_SCL, OUTPUT);
   ESP.deepSleep(freq * 1000000);
   yield();
 }
 
 void startSleep(int freq)
 {
+  tehybug.pixel.off();
+  pinMode(I2C_SDA, OUTPUT);
+  pinMode(I2C_SCL, OUTPUT);
   if(tehybug.device.sleepMode)
   {
     startDeepSleep(freq);

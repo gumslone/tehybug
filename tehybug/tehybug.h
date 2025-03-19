@@ -58,7 +58,7 @@ class TeHyBug {
         addSensorData("ah" + num, ah);
         
         ComfortState cs;
-        const float cr = m_dht.getComfortRatio(cs, sensorData["temp" + num].as<float>(), value);
+        const float cr = m_dht.getComfortRatio(cs, sensorData["temp" + num].as<float>(), value,  false);
         addSensorData("cr" + num, cr);
         addSensorData("cs" + num, (int)cs);
       }

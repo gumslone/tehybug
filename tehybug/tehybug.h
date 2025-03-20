@@ -42,7 +42,9 @@ class TeHyBug {
       // humi should be always set after temp so the following calculation will work
       else if (key == "humi" || key == "humi2") {
 
-        const String num = atoi(key.c_str()) > 0 ? String(atoi(key.c_str())) : "";
+        int atoinum = atoi(key.c_str());
+        
+        const String num = atoinum > 0 ? String(atoinum) : "";
 
         const float hi = m_dht.computeHeatIndex(sensorData["temp" + num].as<float>(),
                                                 value);

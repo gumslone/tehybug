@@ -24,7 +24,7 @@
 #include <OneWire.h>
 #include <Wire.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -177,7 +177,7 @@ void handleNotFound() {
 }
 
 void handleSetConfig() {
-  DynamicJsonDocument json(2048);
+  DynamicJsonDocument json(3072);
   const auto error = deserializeJson(json, server.arg("plain"));
   server.sendHeader("Connection", "close");
   if (!error) {
@@ -217,6 +217,7 @@ void handleFactoryReset() {
   if (!configFile) {
     Log("handleFactoryReset", "Failed to open config file for reset");
   }
+  SPIFFS.format();
 
   D_println("Factory reset!");
   configFile.println("");

@@ -23,72 +23,81 @@ class TeHyBugConfig {
     void saveConfig(bool force = false) {
       // save the custom parameters to FS
       if (m_shouldSaveConfig || force) {
-        DynamicJsonDocument json(2048);
 
-        json["mqttActive"] = m_serveData.mqtt.active;
-        json["mqttRetained"] = m_serveData.mqtt.retained;
-        json["mqttUser"] = m_serveData.mqtt.user;
-        json["mqttPassword"] = m_serveData.mqtt.password;
-        json["mqttServer"] = m_serveData.mqtt.server;
-        json["mqttMasterTopic"] = m_serveData.mqtt.topic;
-        json["mqttMessage"] = m_serveData.mqtt.message;
-        json["mqttPort"] = m_serveData.mqtt.port;
-        json["mqttFrequency"] = m_serveData.mqtt.frequency;
+        Calibration calibration{};
+        Sensor sensor{};
+        Device device{};
+        DataServ serveData{};
+        Scenarios scenarios{};  
 
-        json["haActive"] = m_serveData.ha.active;
-
-        json["httpGetURL"] = m_serveData.get.url;
-        json["httpGetActive"] = m_serveData.get.active;
-        json["httpGetFrequency"] = m_serveData.get.frequency;
-
-        json["httpPostURL"] = m_serveData.post.url;
-        json["httpPostActive"] = m_serveData.post.active;
-        json["httpPostFrequency"] = m_serveData.post.frequency;
-        json["httpPostJson"] = m_serveData.post.message;
-
-        json["calibrationActive"] = m_calibration.active;
-        json["calibrationTemp"] = m_calibration.temp;
-        json["calibrationHumi"] = m_calibration.humi;
-        json["calibrationQfe"] = m_calibration.qfe;
-
-        json["configModeActive"] = m_device.configMode;
-        json["sleepModeActive"] = m_device.sleepMode;
-        json["lightSleepModeActive"] = m_device.lightSleepMode;
+        DynamicJsonDocument json(3072);
 
         json["key"] = m_device.key;
-        json["dht_sensor"] = m_sensor.dht;
-        json["second_dht_sensor"] = m_sensor.dht_2;
 
-        json["ds18b20_sensor"] = m_sensor.ds18b20;
-        json["second_ds18b20_sensor"] = m_sensor.ds18b20_2;
-        json["adc_sensor"] = m_sensor.adc;
+        setIfNotDefault(json, "mqttActive", m_serveData.mqtt.active, serveData.mqtt.active);
+        setIfNotDefault(json, "mqttRetained", m_serveData.mqtt.retained, serveData.mqtt.active);
+        setIfNotDefault(json, "mqttUser", m_serveData.mqtt.user, serveData.mqtt.user);
+        setIfNotDefault(json, "mqttPassword", m_serveData.mqtt.password, serveData.mqtt.password);
+        setIfNotDefault(json, "mqttServer", m_serveData.mqtt.server, serveData.mqtt.server);
+        setIfNotDefault(json, "mqttMasterTopic", m_serveData.mqtt.topic, serveData.mqtt.topic);
+        setIfNotDefault(json, "mqttMessage", m_serveData.mqtt.message,  serveData.mqtt.message);
+        setIfNotDefault(json, "mqttPort", m_serveData.mqtt.port, serveData.mqtt.port);
+        setIfNotDefault(json, "mqttFrequency", m_serveData.mqtt.frequency, m_serveData.mqtt.frequency);
 
-        json["sc1_active"] = m_scenarios.scenario1.active;
-        json["sc1_type"] = m_scenarios.scenario1.type;
-        json["sc1_url"] = m_scenarios.scenario1.url;
-        json["sc1_data"] = m_scenarios.scenario1.data;
-        json["sc1_condition"] = m_scenarios.scenario1.condition;
-        json["sc1_value"] = m_scenarios.scenario1.value;
-        json["sc1_message"] = m_scenarios.scenario1.message;
+        setIfNotDefault(json, "haActive", m_serveData.ha.active, serveData.ha.active);
 
-        json["sc2_active"] = m_scenarios.scenario2.active;
-        json["sc2_type"] = m_scenarios.scenario2.type;
-        json["sc2_url"] = m_scenarios.scenario2.url;
-        json["sc2_data"] = m_scenarios.scenario2.data;
-        json["sc2_condition"] = m_scenarios.scenario2.condition;
-        json["sc2_value"] = m_scenarios.scenario2.value;
-        json["sc2_message"] = m_scenarios.scenario2.message;
+        setIfNotDefault(json, "httpGetURL", m_serveData.get.url,  serveData.get.url);
+        setIfNotDefault(json, "httpGetActive", m_serveData.get.active, serveData.get.active);
+        setIfNotDefault(json, "httpGetFrequency", m_serveData.get.frequency, serveData.get.frequency);
 
-        json["sc3_active"] = m_scenarios.scenario3.active;
-        json["sc3_type"] = m_scenarios.scenario3.type;
-        json["sc3_url"] = m_scenarios.scenario3.url;
-        json["sc3_data"] = m_scenarios.scenario3.data;
-        json["sc3_condition"] = m_scenarios.scenario3.condition;
-        json["sc3_value"] = m_scenarios.scenario3.value;
-        json["sc3_message"] = m_scenarios.scenario3.message;
+        setIfNotDefault(json, "httpPostURL", m_serveData.post.url, serveData.post.url);
+        setIfNotDefault(json, "httpPostActive", m_serveData.post.active, serveData.post.active);
+        setIfNotDefault(json, "httpPostFrequency", m_serveData.post.frequency, serveData.post.frequency);
+        setIfNotDefault(json, "httpPostJson", m_serveData.post.message, serveData.post.message);
 
-        json["rc_active"] = m_device.remoteControl.active;
-        json["rc_url"] = m_device.remoteControl.url;
+        setIfNotDefault(json, "calibrationActive", m_calibration.active, calibration.active);
+        setIfNotDefault(json, "calibrationTemp",  m_calibration.temp, calibration.temp);
+        setIfNotDefault(json, "calibrationHumi", m_calibration.humi, calibration.humi);
+        setIfNotDefault(json, "calibrationQfe", m_calibration.qfe, calibration.qfe);
+
+        setIfNotDefault(json, "configModeActive", m_device.configMode, device.configMode); // true by default
+        setIfNotDefault(json, "sleepModeActive", m_device.sleepMode, device.sleepMode);
+        setIfNotDefault(json, "lightSleepModeActive", m_device.lightSleepMode, device.lightSleepMode);
+        
+        setIfNotDefault(json, "dht_sensor", m_sensor.dht, sensor.dht);
+        setIfNotDefault(json, "second_dht_sensor", m_sensor.dht_2, sensor.dht_2);
+
+        setIfNotDefault(json, "ds18b20_sensor", m_sensor.ds18b20, sensor.ds18b20);
+        setIfNotDefault(json, "second_ds18b20_sensor", m_sensor.ds18b20_2, sensor.ds18b20_2);
+        setIfNotDefault(json, "adc_sensor", m_sensor.adc, sensor.adc);
+
+        setIfNotDefault(json, "sc1_active", m_scenarios.scenario1.active, scenarios.scenario1.active);
+        setIfNotDefault(json, "sc1_type", m_scenarios.scenario1.type, scenarios.scenario1.type);
+        setIfNotDefault(json, "sc1_url", m_scenarios.scenario1.url, scenarios.scenario1.url);
+        setIfNotDefault(json, "sc1_data", m_scenarios.scenario1.data, scenarios.scenario1.data);
+        setIfNotDefault(json, "sc1_condition", m_scenarios.scenario1.condition, scenarios.scenario1.condition);
+        setIfNotDefault(json, "sc1_value", m_scenarios.scenario1.value, scenarios.scenario1.value);
+        setIfNotDefault(json, "sc1_message", m_scenarios.scenario1.message, scenarios.scenario1.message);
+
+        setIfNotDefault(json, "sc2_active", m_scenarios.scenario2.active, scenarios.scenario2.active);
+        setIfNotDefault(json, "sc2_type", m_scenarios.scenario2.type, scenarios.scenario2.type);
+        setIfNotDefault(json, "sc2_url", m_scenarios.scenario2.url, scenarios.scenario2.url);
+        setIfNotDefault(json, "sc2_data", m_scenarios.scenario2.data, scenarios.scenario2.data);
+        setIfNotDefault(json, "sc2_condition", m_scenarios.scenario2.condition, scenarios.scenario2.condition);
+        
+        setIfNotDefault(json, "sc2_value", m_scenarios.scenario2.value, scenarios.scenario2.value);
+        setIfNotDefault(json, "sc2_message", m_scenarios.scenario2.message, scenarios.scenario2.message);
+
+        setIfNotDefault(json, "sc3_active", m_scenarios.scenario3.active, scenarios.scenario3.active);
+        setIfNotDefault(json, "sc3_type", m_scenarios.scenario3.type, scenarios.scenario3.type);
+        setIfNotDefault(json, "sc3_url", m_scenarios.scenario3.url, scenarios.scenario3.url);
+        setIfNotDefault(json, "sc3_data", m_scenarios.scenario3.data, scenarios.scenario3.data);
+        setIfNotDefault(json, "sc3_condition", m_scenarios.scenario3.condition, scenarios.scenario3.condition);
+        setIfNotDefault(json, "sc3_value", m_scenarios.scenario3.value, scenarios.scenario3.value);
+        setIfNotDefault(json, "sc3_message", m_scenarios.scenario3.message, scenarios.scenario3.message);
+
+        setIfNotDefault(json, "rc_active", m_device.remoteControl.active, device.remoteControl.active);
+        setIfNotDefault(json, "rc_url", m_device.remoteControl.url, device.remoteControl.url);
 
         File configFile = SPIFFS.open("/config.json", "w");
         serializeJson(json, configFile);
@@ -116,7 +125,7 @@ class TeHyBugConfig {
         if (configFile) {
           D_println(F("opened config file"));
 
-          DynamicJsonDocument json(2048);
+          DynamicJsonDocument json(3072);
           const auto error = deserializeJson(json, configFile);
 
           if (!error) {
@@ -169,7 +178,7 @@ class TeHyBugConfig {
         std::unique_ptr<char[]> buf(new char[size]);
 
         configFile.readBytes(buf.get(), size);
-        DynamicJsonDocument root(2048);
+        DynamicJsonDocument root(3072);
 
         if (DeserializationError::Ok == deserializeJson(root, buf.get())) {}
         String json;
@@ -298,8 +307,15 @@ class TeHyBugConfig {
         var = json[key].as<T>();
       }
     }
-    
 
+    template<typename T>
+    void setIfNotDefault(DynamicJsonDocument &json, const String& key, T & var, T & defaultVar)
+    {
+      if(var != defaultVar)
+      {
+        json[key] = var;
+      }
+    }
 
 }; // class Config
 

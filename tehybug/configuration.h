@@ -42,7 +42,7 @@ class TeHyBugConfig {
         setIfNotDefault(json, "mqttMasterTopic", m_serveData.mqtt.topic, serveData.mqtt.topic);
         setIfNotDefault(json, "mqttMessage", m_serveData.mqtt.message,  serveData.mqtt.message);
         setIfNotDefault(json, "mqttPort", m_serveData.mqtt.port, serveData.mqtt.port);
-        setIfNotDefault(json, "mqttFrequency", m_serveData.mqtt.frequency, m_serveData.mqtt.frequency);
+        setIfNotDefault(json, "mqttFrequency", m_serveData.mqtt.frequency, serveData.mqtt.frequency);
 
         setIfNotDefault(json, "haActive", m_serveData.ha.active, serveData.ha.active);
 

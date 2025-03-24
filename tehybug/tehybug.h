@@ -56,7 +56,6 @@ class TeHyBug {
         addSensorData("dew" + num, dew);
         addSensorData("dew_imp" + num, temp2Imp(dew));
 
-        m_dht.setupComfortProfile(); // required
         const float ah = m_dht.computeAbsoluteHumidity(sensorData["temp" + num].as<float>(), value);
         addSensorData("ah" + num, ah);
         

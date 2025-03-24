@@ -940,7 +940,7 @@ void loadConfig()
   {
     WiFi.softAPdisconnect(true);
   }
-  Serial.println("Setup IP : " + WiFi.localIP().toString());
+  //D_println("IP : " + WiFi.localIP().toString());
   D_println("Setup " + WiFi.gatewayIP().toString());
   D_println("Setup " + WiFi.subnetMask().toString());
 
@@ -1105,6 +1105,10 @@ void setupSensors() {
   if (tehybug.sensor.dht) {
     pinMode(2, INPUT_PULLUP);
     dht.setup(2, DHTesp::DHT22); // Connect DHT sensor to GPIO 2
+  }
+  else
+  {
+    dht.setupComfortProfile(); // required for nondht sensors
   }
 #if !defined(ARDUINO_ESP8266_GENERIC)
   if (tehybug.sensor.aht20) {

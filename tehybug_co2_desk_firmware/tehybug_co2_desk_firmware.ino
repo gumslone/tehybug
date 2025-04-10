@@ -197,6 +197,7 @@ void addSensorData(String key, float value) {
       sensorData[key] = String(value, 1);
       // calculate imperial temperature also heat index and the dew point
       additionalSensorData(key, value);
+      sensorData.garbageCollect();
 }
 
 String getSensor() {

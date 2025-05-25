@@ -814,7 +814,7 @@ void read_sensors() {
     }
   
     if (bme680_sensor) {
-      read_bme680();
+      //read_bme680();
     }
   
     if (aht20_sensor) {

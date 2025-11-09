@@ -1320,8 +1320,6 @@ void setup() {
   }
 }
 
-
-
 void loop() {
   // config mode
   if (tehybug.device.configMode) {

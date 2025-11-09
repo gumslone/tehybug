@@ -69,7 +69,7 @@ bool aht20_sensor =
     false; // in the setup the i2c scanner searches for the sensor
 
 // Declare our NeoPixel strip object:
-Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_RGBW + NEO_KHZ800);
 // Argument 1 = Number of pixels in NeoPixel strip
 // Argument 2 = Arduino pin number (most are valid)
 // Argument 3 = Pixel type flags, add together as needed:
@@ -578,10 +578,10 @@ void mqttCallback(char *topic, uint8_t *payload, unsigned int length) {
   if (strcmp(topic, MQTT_TOPIC_LEDS_COMMAND) == 0) {
     Light::state = msg;
     if (msg == "OFF") {
-      colorWipe(strip.Color(0, 0, 0), 0); // Blue
+      colorWipe(strip.Color(0, 0, 0, 0), 0); // black
       strip.show();
     } else {
-      colorWipe(strip.Color(Light::r, Light::g, Light::b), 0); // Blue
+      colorWipe(strip.Color(Light::r, Light::g, Light::b, 0), 0); // Blue
       strip.show();
     }
   }
@@ -742,7 +742,6 @@ void publishAutoConfig() {
 
   serializeJson(autoconfPayload, mqttPayload);
   mqttClient.publish(&MQTT_TOPIC_LEDS_AUTOCONF[0], &mqttPayload[0], true);
-
   autoconfPayload.clear();
 
   autoconfPayload["device"] = device.as<JsonObject>();
@@ -1174,12 +1173,12 @@ void setup() {
   */
 
   if (Config::offline_mode == false) {
-    colorWipe(strip.Color(0, 0, 255), 90); // Blue
+    colorWipe(strip.Color(0, 0, 255, 0), 90); // Blue
     strip.show();
     setupHandle();
 
   } else {
-    colorWipe(strip.Color(0, 0, 0), 90); // off
+    colorWipe(strip.Color(0, 0, 0, 0), 90); // off
     strip.show();
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
@@ -1197,7 +1196,7 @@ void setup() {
       2, 1000, [&](void *) { read_pin_sensors(); }, nullptr, true);
 
   strip.setBrightness(Light::brightness);
-  colorWipe(strip.Color(Light::r, Light::g, Light::b), 100); // Blue
+  colorWipe(strip.Color(Light::r, Light::g, Light::b, 0), 100); // Blue
   strip.show();
 }
 
@@ -1218,6 +1217,7 @@ void loop() {
 
     if (statusPublishInterval.expired(true)) {
       printf("Publish state\n");
+      publishAutoConfig();
       publishState();
     }
 

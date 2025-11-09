@@ -1139,7 +1139,7 @@ void setup() {
     bmx_sensor = true;
   }
   if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
-    bme680_sensor = true;
+    bme680_sensor = false;
   }
   if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
     aht20_sensor = true;

@@ -20,7 +20,15 @@
 #include <PubSubClient.h>
 #include <TickerScheduler.h>
 #include <WiFiManager.h>
+#include <SensirionI2cSps30.h>
 #include <Wire.h>
+
+// macro definitions
+// make sure that we use the proper definition of NO_ERROR
+#ifdef NO_ERROR
+#undef NO_ERROR
+#endif
+#define NO_ERROR 0
 
 // include library, include base class, make path known
 #include <GxEPD.h>
@@ -95,6 +103,11 @@ Button2 button_mode;
 SCD4x mySensor;
 bool scd4x_sensor = false;
 unsigned long last_measurenment = 0;
+
+SensirionI2cSps30 particleSensor;
+static char particleSensorErrorMessage[64];
+static int16_t particleSensorError;
+bool sps30_sensor = false;
 
 // Adjust sea level for altitude calculation
 #define SEA_LEVEL_PRESSURE_HPA 1026.25
@@ -173,6 +186,7 @@ char MQTT_TOPIC_COMMAND[128];
 char MQTT_TOPIC_AUTOCONF_T_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_H_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_P_SENSOR[128];
+char MQTT_TOPIC_AUTOCONF_PM25_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[128];
 char MQTT_TOPIC_AUTOCONF_SENSOR[128];
 
@@ -270,6 +284,8 @@ void setupHandle() {
            "homeassistant/sensor/%s/%s_h/config", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_AUTOCONF_P_SENSOR, 127,
            "homeassistant/sensor/%s/%s_p/config", FIRMWARE_PREFIX, identifier);
+  snprintf(MQTT_TOPIC_AUTOCONF_PM25_SENSOR, 127,
+           "homeassistant/sensor/%s/%s_pm25/config", FIRMWARE_PREFIX, identifier);
   WiFi.hostname(identifier);
 
   setupWifi();
@@ -634,6 +650,73 @@ void co2_ampel(float val) {
     colorWipe(strip.Color(0, 255, 0), 90); // Green
   }
   strip.show();
+}
+
+
+void read_sps30() {
+
+    uint16_t dataReadyFlag = 0;
+    uint16_t mc1p0 = 0;
+    uint16_t mc2p5 = 0;
+    uint16_t mc4p0 = 0;
+    uint16_t mc10p0 = 0;
+    uint16_t nc0p5 = 0;
+    uint16_t nc1p0 = 0;
+    uint16_t nc2p5 = 0;
+    uint16_t nc4p0 = 0;
+    uint16_t nc10p0 = 0;
+    uint16_t typicalParticleSize = 0;
+    delay(1000);
+    particleSensorError = particleSensor.readDataReadyFlag(dataReadyFlag);
+    if (particleSensorError != NO_ERROR) {
+        Serial.print("Error trying to execute readDataReadyFlag(): ");
+        errorToString(particleSensorError, particleSensorErrorMessage, sizeof particleSensorErrorMessage);
+        Serial.println(particleSensorErrorMessage);
+        return;
+    }
+    Serial.print("dataReadyFlag: ");
+    Serial.print(dataReadyFlag);
+    Serial.println();
+    particleSensorError = particleSensor.readMeasurementValuesUint16(mc1p0, mc2p5, mc4p0, mc10p0,
+                                               nc0p5, nc1p0, nc2p5, nc4p0,
+                                               nc10p0, typicalParticleSize);
+    if (particleSensorError != NO_ERROR) {
+        Serial.print("Error trying to execute readMeasurementValuesUint16(): ");
+        errorToString(particleSensorError, particleSensorErrorMessage, sizeof particleSensorErrorMessage);
+        Serial.println(particleSensorErrorMessage);
+        return;
+    }
+    Serial.print("PM 1.0 mc1p0: ");
+    Serial.print(mc1p0); // PM 1.0
+    Serial.print("\t");
+    Serial.print("PM 2.5 mc2p5: ");
+    Serial.print(mc2p5); // PM 2.5
+    addSensorData("pm25", mc2p5); 
+    Serial.print("\t");
+    Serial.print("PM 4.0 mc4p0: ");
+    Serial.print(mc4p0);
+    Serial.print("\t");
+    Serial.print("PM 10 mc10p0: ");
+    Serial.print(mc10p0);
+    Serial.print("\t");
+    Serial.print("nc0p5: ");
+    Serial.print(nc0p5);
+    Serial.print("\t");
+    Serial.print("nc1p0: ");
+    Serial.print(nc1p0);
+    Serial.print("\t");
+    Serial.print("nc2p5: ");
+    Serial.print(nc2p5);
+    Serial.print("\t");
+    Serial.print("nc4p0: ");
+    Serial.print(nc4p0);
+    Serial.print("\t");
+    Serial.print("nc10p0: ");
+    Serial.print(nc10p0);
+    Serial.print("\t");
+    Serial.print("typicalParticleSize: ");
+    Serial.print(typicalParticleSize);
+    Serial.println();
 }
 
 
@@ -1031,7 +1114,34 @@ void update_display() {
       display.setCursor(174, 44);
       display.println("RH");
     }
-    if (sensorData.containsKey("co2")) {
+
+    if (sensorData.containsKey("co2") && sensorData.containsKey("pm25")) {
+        String pm25 = String(sensorData["pm25"].as<float>(), 0);
+        display.setTextSize(1);
+        display.setFont(&FreeSans24pt7b);
+        display.getTextBounds(pm25, 0, 0, &tbx, &tby, &tbw, &tbh);
+        display.setCursor(tbx, 120);
+        display.println(pm25);
+        display.setTextSize(1);
+        display.setCursor(0, 146);
+        display.setFont(&FreeSans9pt7b);
+        display.println("PM2.5");
+
+        String co2 = String(sensorData["co2"].as<float>(), 0);
+        display.setTextSize(1);
+        display.setFont(&FreeSans24pt7b);
+        display.getTextBounds(co2, 0, 0, &tbx, &tby, &tbw, &tbh);
+        // center the bounding box by transposition of the origin:
+        x = (display.width() - 6 - tbw);
+        // y = ((display.height() - tbh) / 2) - tby;
+        display.setCursor(x, 120);
+        display.println(co2);
+        display.setTextSize(1);
+        display.setCursor(120, 146);
+        display.setFont(&FreeSans9pt7b);
+        display.println("CO2 PPM");
+    }
+    else if (sensorData.containsKey("co2")) {
       String co2 = String(sensorData["co2"].as<float>(), 0);
       display.setTextSize(2);
       display.setFont(&FreeSansBold18pt7b);
@@ -1090,9 +1200,14 @@ void read_sensors() {
     read_scd4x();
   }
 
+  if(sps30_sensor) {
+    read_sps30();
+  }
+  
   if(remote_sensor){
     read_remote();
   }
+
 
   update_epaper_display = true;
   update_display();
@@ -1147,6 +1262,10 @@ void setup() {
 
   if (strContains(i2c_addresses.c_str(), "0x62") == 1) {
     scd4x_sensor = true;
+  }
+
+  if (strContains(i2c_addresses.c_str(), "0x69") == 1) {
+    sps30_sensor = true;
   }
 
   if(i2c_addresses == "")
@@ -1223,6 +1342,25 @@ void setup() {
       while (1)
         ;
     }
+  }
+
+  if(sps30_sensor)
+  {
+    particleSensor.begin(Wire, SPS30_I2C_ADDR_69);
+
+    particleSensor.stopMeasurement();
+    int8_t serialNumber[32] = {0};
+    int8_t productType[8] = {0};
+    particleSensor.readSerialNumber(serialNumber, 32);
+    Serial.print("serialNumber: ");
+    Serial.print((const char*)serialNumber);
+    Serial.println();
+    particleSensor.readProductType(productType, 8);
+    Serial.print("productType: ");
+    Serial.print((const char*)productType);
+    Serial.println();
+    particleSensor.startMeasurement(SPS30_OUTPUT_FORMAT_OUTPUT_FORMAT_UINT16);
+    delay(100);
   }
 
   setupButtons();

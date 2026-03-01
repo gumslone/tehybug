@@ -19,6 +19,8 @@ String key2unit(const String & key)
     return "Lux";
   if (key == "adc")
     return "ADC";
+  if (key == "pm25")
+    return "ug/m3";
 
   return " ";
 }
@@ -58,6 +60,8 @@ String key2name(const String & key)
     return "Ambient light";
   if (key == "adc")
     return "ADC";
+  if (key == "pm25")
+    return "PM2.5";
 
   return "";
 }
@@ -80,7 +84,7 @@ String key2icon(const String & key)
   if (key == "co2"||key == "eco2")
     return "mdi:molecule-co2";
   if(key == "iaq")
-    return "mdi:airballoon-outline";
+    return "mdi:weather-dust";
   return "mdi:help";
 }
 

@@ -337,78 +337,94 @@ void haSendData() {
 
 void mqttSendData() {
   if (mqttClient.connected()) {
-    mqttClient.publish((tehybug.serveData.mqtt.topic).c_str(), tehybug.serveData.data,
-                   tehybug.serveData.mqtt.retained);
     String payload = tehybug.replacePlaceholders(tehybug.serveData.mqtt.message);
     payload.toCharArray(tehybug.serveData.data, (payload.length() + 1));
-    Log(F("mqttSendData"), payload);
-  } else
+    
+    Log(F("mqttSendData"), String(F("Topic: ")) + tehybug.serveData.mqtt.topic);
+    Log(F("mqttSendData"), String(F("Payload: ")) + payload);
+    
+    bool published = mqttClient.publish((tehybug.serveData.mqtt.topic).c_str(), 
+                                        tehybug.serveData.data,
+                                        tehybug.serveData.mqtt.retained);
+    
+    if (published) {
+      Log(F("mqttSendData"), F("Published successfully"));
+    } else {
+      Log(F("mqttSendData"), F("Publish failed!"));
+    }
+  } else {
+    Log(F("mqttSendData"), F("Not connected, reconnecting..."));
     mqttReconnect();
+  }
 }
 
 void mqttReconnect() {
+  if (mqttClient.connected()) {
+    return; // Already connected
+  }
+  
   // Loop until we're reconnected
   while (!mqttClient.connected() &&
          tehybug.serveData.mqtt.retryCounter < tehybug.serveData.mqtt.maxRetries) {
-    bool connected = false;
-
-    char availabilityTopic[64];
-    if(tehybug.serveData.ha.active)
-    {
-      snprintf(availabilityTopic, 63, "%s", ha::MQTT_TOPIC_AVAILABILITY);
-    }
-    else
-    { 
-      snprintf(availabilityTopic, 63, "%s", "state");
-    } 
     
-    if (tehybug.serveData.mqtt.user != NULL && tehybug.serveData.mqtt.user.length() > 0 &&
-        tehybug.serveData.mqtt.password != NULL &&
+    Log(F("MqttReconnect"), F("Attempting connection..."));
+    
+    bool connected = false;
+    char availabilityTopic[64];
+    
+    if(tehybug.serveData.ha.active) {
+      snprintf(availabilityTopic, 63, "%s", ha::MQTT_TOPIC_AVAILABILITY);
+    } else { 
+      snprintf(availabilityTopic, 63, "%s", "state");
+    }
+    
+    if (tehybug.serveData.mqtt.user.length() > 0 &&
         tehybug.serveData.mqtt.password.length() > 0) {
-      Log(F("MqttReconnect"),
-          F("MQTT connect to server with User and Password"));
       connected = mqttClient.connect(
-                    wifiSsid, tehybug.serveData.mqtt.user.c_str(),
-                    tehybug.serveData.mqtt.password.c_str(), availabilityTopic, 1, true, AVAILABILITY_OFFLINE);
+        wifiSsid, 
+        tehybug.serveData.mqtt.user.c_str(),
+        tehybug.serveData.mqtt.password.c_str(), 
+        availabilityTopic, 
+        1, 
+        true, 
+        AVAILABILITY_OFFLINE
+      );
     } else {
-      Log(F("MqttReconnect"),
-          F("MQTT connect to server without User and Password"));
-      connected = mqttClient.connect(wifiSsid, availabilityTopic, 1,
-                                 true, AVAILABILITY_OFFLINE);
+      connected = mqttClient.connect(
+        wifiSsid, 
+        availabilityTopic, 
+        1,
+        true, 
+        AVAILABILITY_OFFLINE
+      );
     }
 
-    // Attempt to connect
     if (connected) {
-      // publish availability
       mqttClient.publish(availabilityTopic, AVAILABILITY_ONLINE, true);
-      
-      Log(F("MqttReconnect"), F("MQTT connected!"));
+      Log(F("MqttReconnect"), F("Connected!"));
       tehybug.serveData.mqtt.retryCounter = 0;
-      // ... and publish
-      if (tehybug.serveData.ha.active)
-      {
+      
+      if (tehybug.serveData.ha.active) {
         haSendData();
-      }
-      else
-      {
+      } else {
         mqttSendData();
       }
-      
+      break;
     } else {
-      Log(F("MqttReconnect"), F("MQTT not connected!"));
-      Log(F("MqttReconnect"), F("Wait 5 seconds before retrying...."));
       tehybug.serveData.mqtt.retryCounter++;
+      Log(F("MqttReconnect"), String(F("Failed, rc=")) + String(mqttClient.state()));
+      Log(F("MqttReconnect"), String(F("Retry ")) + String(tehybug.serveData.mqtt.retryCounter) + 
+          String(F("/")) + String(tehybug.serveData.mqtt.maxRetries));
+      delay(5000);
       updateMqttClient();
     }
   }
 
   if (tehybug.serveData.mqtt.retryCounter >= tehybug.serveData.mqtt.maxRetries) {
-    Log(F("MqttReconnect"),
-        F("No connection to MQTT-Server, MQTT temporarily deactivated!"));
-        if (!tehybug.sleepEnabled())
-        {
-          ESP.restart();
-        }
+    Log(F("MqttReconnect"), F("Max retries reached, MQTT deactivated"));
+    if (!tehybug.sleepEnabled()) {
+      ESP.restart();
+    }
   }
 }
 /////////////////////////////////////////////////////////////////////

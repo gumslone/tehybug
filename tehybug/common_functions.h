@@ -8,7 +8,6 @@ String IntFormat(int _int) {
   if (_int < 10) {
     return "0" + String(_int);
   }
-
   return String(_int);
 }
 
@@ -16,7 +15,7 @@ String IntFormat(int _int) {
 /// Checks if it is a valid IP address
 /// </summary>
 boolean isIP(String _str) {
-  for (char i = 0; i < _str.length(); i++) {
+  for (size_t i = 0; i < _str.length(); i++) {
     if (!(isDigit(_str.charAt(i)) || _str.charAt(i) == '.')) {
       return false;
     }
@@ -41,11 +40,11 @@ int GetRSSIasQuality(int rssi) {
 }
 
 String join(int *arr, String separator, int len) {
-  int i;
   String out = "";
-  for (i = 0; i < len; i++) {
-    if (i > 0) /* You do need this separate check, unfortunately. */
-      out = out + ",";
+  for (int i = 0; i < len; i++) {
+    if (i > 0) {
+      out = out + separator;
+    }
     out = out + String(arr[i]);
   }
   return out;
@@ -69,25 +68,25 @@ String key2unit(const String & key)
 {
   if (key == "temp" || key == "temp2" || key == "dew" || key == "hi")
     return "°C";
-  if (key == "temp_imp" || key == "temp2_imp" || key == "dew_imp" || key == "hi_imp")
+  else if (key == "temp_imp" || key == "temp2_imp" || key == "dew_imp" || key == "hi_imp")
     return "°F";
-  if (key == "humi")
+  else if (key == "humi")
     return "%RH";
-  if (key == "ah")
+  else if (key == "ah")
     return "g/m³";
-  if (key == "air")
+  else if (key == "air")
     return "kOhm";
-  if (key == "qfe")
+  else if (key == "qfe")
     return "hPa";
-  if (key == "alt")
+  else if (key == "alt")
     return "m";
-  if (key == "lux")
+  else if (key == "lux")
     return "Lux";
-  if (key == "adc")
+  else if (key == "adc")
     return "ADC";
-  if (key == "co2")
+  else if (key == "co2")
     return "ppm";
-  if (key == "cr")
+  else if (key == "cr")
     return "%";
 
   return "";
@@ -121,41 +120,39 @@ String key2name(const String & key)
 {
   if (key == "temp" || key == "temp_imp")
     return "Temperature";
-  if (key == "temp2" || key == "temp2_imp")
+  else if (key == "temp2" || key == "temp2_imp")
     return "Temperature2";
-  if (key == "humi")
+  else if (key == "humi")
     return "Humidity";
-  if (key == "ah")
+  else if (key == "ah")
     return "Absolute humidity";
-  if (key == "cr")
+  else if (key == "cr")
     return "Comfort ratio";
-  if (key == "cs")
+  else if (key == "cs")
     return "Comfort status";
-  if (key == "dew")
+  else if (key == "dew" || key == "dew_imp")
     return "Dew point";
-  if (key == "dew_imp")
-    return "Dew point";
-  if (key == "hi" || key == "hi_imp")
+  else if (key == "hi" || key == "hi_imp")
     return "Heat index";
-  if (key == "air")
+  else if (key == "air")
     return "Gas resistance";
-  if (key == "iaq")
+  else if (key == "iaq")
     return "Indoor air quality";
-  if (key == "qfe")
+  else if (key == "qfe")
     return "Atmospheric pressure";
-  if (key == "alt")
+  else if (key == "alt")
     return "Altitude";
-  if (key == "eco2")
+  else if (key == "eco2")
     return "CO2 equivalent";
-  if (key == "co2")
+  else if (key == "co2")
     return "CO2";
-  if (key == "bvoc")
+  else if (key == "bvoc")
     return "breath VOC equivalent";
-  if (key == "uv")
+  else if (key == "uv")
     return "UV index";
-  if (key == "lux")
+  else if (key == "lux")
     return "Ambient light";
-  if (key == "adc")
+  else if (key == "adc")
     return "ADC";
 
   return "";
@@ -164,28 +161,29 @@ String key2icon(const String & key)
 {
   if (key == "temp" || key == "temp2" || key == "temp_imp" || key == "temp2_imp")
     return "mdi:thermometer";
-  if (key == "humi")
+  else if (key == "humi")
     return "mdi:water-percent";
-  if (key == "ah")
+  else if (key == "ah")
     return "mdi:water";
-  if (key == "cr")
+  else if (key == "cr")
     return "mdi:sofa-outline";
-  if (key == "cs")
+  else if (key == "cs")
     return "mdi:sofa-outline";
-  if (key == "qfe")
+  else if (key == "qfe")
     return "mdi:gauge";
-  if (key == "alt")
+  else if (key == "alt")
     return "mdi:image-filter-hdr";
-  if (key == "dew"||key =="dew_imp")
+  else if (key == "dew" || key == "dew_imp")
     return "mdi:water-thermometer";
-  if (key == "hi" || key == "hi_imp")
+  else if (key == "hi" || key == "hi_imp")
     return "mdi:sun-thermometer";
-  if (key == "air")
+  else if (key == "air")
     return "mdi:resistor";
-  if (key == "co2"||key == "eco2")
+  else if (key == "co2" || key == "eco2")
     return "mdi:molecule-co2";
-  if(key == "iaq")
+  else if (key == "iaq")
     return "mdi:airballoon-outline";
+  
   return "mdi:help";
 }
 #endif

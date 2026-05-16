@@ -23,74 +23,116 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 
 <div class="container-fluid">
   <div class="row">
-    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-      <div class="position-sticky pt-3">
-        <ul class="nav flex-column">
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/">
-              <span data-feather="home"></span>
-              Dashboard
-            </a>
-          </li>
-          
+<!-- Sidebar Navigation -->
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">
+                            <span data-feather="home"></span>
+                            Dashboard
+                        </a>
+                    </li>
 
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'firststart', '#right-content');">
-              <span data-feather="play"></span>
-              First start
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'cloud_settings', '#right-content');">
-              <span data-feather="cloud"></span>
-              TeHyBug Cloud Service
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'ha_settings', '#right-content');">
-              <span data-feather="home"></span>
-              Home Assistant Service
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsensor', '#right-content');">
-              <span data-feather="sliders"></span>
-              Sensor settings
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'settings', '#right-content');">
-              <span data-feather="database"></span>
-              Data serving settings
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsystem', '#right-content');">
-              <span data-feather="tool"></span>
-              System settings
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'scenarios', '#right-content');">
-              <span data-feather="layers"></span>
-              Scenarios
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContentIframe(this, 'update', '#right-content');">
-              <span data-feather="upload"></span>
-              Firmware update
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://github.com/gumslone/tehybug/tree/master/tehybug" target="_blank">
-              <span data-feather="github"></span>
-              GitHub
-            </a>
-          </li>
-        </ul>
-      </div>
-    </nav>
+                    <li><hr class="dropdown-divider"></li>
+                    
+                    <!-- Quick Setup -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContent(this, 'firststart', '#right-content');">
+                            <span data-feather="play"></span>
+                            Quick Start Guide
+                        </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="nav-item">
+                        <small class="text-muted px-3">CLOUD SERVICES</small>
+                    </li>
+
+                    <!-- Cloud Services -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContent(this, 'cloud_settings', '#right-content');">
+                            <span data-feather="cloud"></span>
+                            TeHyBug Cloud
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContent(this, 'ha_settings', '#right-content');">
+                            <span data-feather="home"></span>
+                            Home Assistant
+                        </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="nav-item">
+                        <small class="text-muted px-3">CONFIGURATION</small>
+                    </li>
+
+                    <!-- Configuration -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContent(this, 'setsensor', '#right-content');">
+                            <span data-feather="sliders"></span>
+                            Sensor Settings
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContent(this, 'settings', '#right-content');">
+                            <span data-feather="database"></span>
+                            Data Serving
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContent(this, 'setsystem', '#right-content');">
+                            <span data-feather="settings"></span>
+                            System Settings
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContent(this, 'scenarios', '#right-content');">
+                            <span data-feather="layers"></span>
+                            Scenarios
+                        </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="nav-item">
+                        <small class="text-muted px-3">MAINTENANCE</small>
+                    </li>
+
+                    <!-- Maintenance -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0);" 
+                           onclick="ChangeContentIframe(this, 'update', '#right-content');">
+                            <span data-feather="upload"></span>
+                            Firmware Update
+                        </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+
+                    <!-- External Links -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://github.com/gumslone/tehybug/tree/master/tehybug" target="_blank">
+                            <span data-feather="github"></span>
+                            GitHub Repository
+                            <span data-feather="external-link" style="width: 14px; height: 14px;"></span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
 
     <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" id="right-content">
     <div class="col-md-12 row">

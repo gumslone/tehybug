@@ -876,6 +876,7 @@ void serve_scenario() {
 }
 
 void configModeCallback(WiFiManager *myWiFiManager) {
+  tehybug.device.configMode = true;
   tehybug.pixel.on();
   D_println("Entered wifi config mode");
   D_println(WiFi.softAPIP());
@@ -928,6 +929,7 @@ void setupWifi() {
   wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");
   if (!wifiManager.autoConnect(wifiSsid, wifiPassword)) {
     Serial.println(F("Setup: Wifi failed to connect and hit timeout"));
+    tehybug.device.configMode = false;
     delay(3000);
     // Reset and try again, or maybe put it to deep sleep
     // ESP.reset();

@@ -83,7 +83,7 @@ function connectionStart() {
     connection.onmessage = function (e) {
         // Debug
         console.log('WebSocket incomming message: ' + e.data);
-        RefershData(e.data)
+        RefreshData(e.data)
     }
 
     function KeepAlive() {
@@ -260,7 +260,7 @@ function sensorData(key, value)
 }
 
 
-function RefershData(input) {
+function RefreshData(input) {
     // validate json
     if (!input.startsWith("{")) {
         return;
@@ -282,6 +282,7 @@ function RefershData(input) {
             if (
                 pageName == 'settings' ||
                 pageName == 'ha_settings' ||
+                pageName == 'cloud_settings' ||
                 pageName == 'setsensor' ||
                 pageName == 'scenarios' ||
                 pageName == 'setsystem' 
@@ -295,7 +296,6 @@ function RefershData(input) {
             // SystemInfo Json
             else if (pageName == 'main' ||
                     pageName == 'firststart' ||
-                    //pageName == 'ha_settings' ||
                     pageName == 'cloud_settings') {
                 $("#" + key).html(val.toString());
                 if(key == 'key')
@@ -306,7 +306,6 @@ function RefershData(input) {
 
             if (pageName == 'settings' ||
                 pageName == 'cloud_settings' ||
-                //pageName == 'ha_settings' ||
                 pageName == 'main'){
                  sensorData(key, val.toString());
             }

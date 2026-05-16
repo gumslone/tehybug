@@ -1,74 +1,48 @@
 <?php
-$offset = 60 * 60 * 24 * 30; // Cache for a day
-header("Content-type: text/javascript");
-//header ("Cache-Control: max-age=" . $offset . ", must-revalidate");
-header ("Expires: " . gmdate ("D, d M Y H:i:s", time() - $offset) . " GMT");
-function compress($buffer) {
-	/* remove comments and empty lines */
-	//$buffer = preg_replace('!/\*.*?\*/!s', '', $buffer);
-	#$pattern = '/(?:(?:\/\*(?:[^*]|(?:\*+[^*\/]))*\*+\/)|(?:(?<!\:|\\\|\')\/\/.*))/';
-	#$buffer = preg_replace($pattern, '', $buffer);
-	//$buffer = preg_replace('/(?:(?:\/\*(?:[^*]|(?:\*+[^*\/]))*\*+\/)|(?:(?<!\:|\\\)\/\/[^"\'].*))/', '', $buffer);
-	//$buffer = preg_replace( "/(?:(?:\/\*(?:[^*]|(?:\*+[^*\/]))*\*+\/)|(?:(?<!\:)\/\/.*))/", "", $buffer ); //Yancharuk's code/regex
-	//$buffer = preg_replace("/\/\*[\s\S]*?\*\//", '', $buffer);
+/**
+ * JavaScript Asset Bundler
+ *
+ * This script concatenates multiple JavaScript files into a single response,
+ * handles GZIP compression, and sets appropriate caching headers.
+ */
 
-	//$buffer = preg_replace('/\/\*[*.\S\s]+[^*\/]/s', '', $buffer);
-	
-	$replace = array(
-    '#\'([^\n\']*?)/\*([^\n\']*)\'#' => "'\1/'+\'\'+'*\2'", // remove comments from ' strings
-    '#\"([^\n\"]*?)/\*([^\n\"]*)\"#' => '"\1/"+\'\'+"*\2"', // remove comments from " strings
-    '#/\*.*?\*/#s'            => "",      // strip C style comments
-    '#[\r\n]+#'               => "\n",    // remove blank lines and \r's
-    '#\n([ \t]*//.*?\n)*#s'   => "\n",    // strip line comments (whole line only)
-    '#([^\\])//([^\'"\n]*)\n#s' => "\\1\n",
-                                          // strip line comments
-                                          // (that aren't possibly in strings or regex's)
-    '#\n\s+#'                 => "\n",    // strip excess whitespace
-    '#\s+\n#'                 => "\n",    // strip excess whitespace
-    '#(//[^\n]*\n)#s'         => "\\1\n", // extra line feed after any comments left
-                                          // (important given later replacements)
-    '#/([\'"])\+\'\'\+([\'"])\*#' => "/*" // restore comments in strings
-  );
+// --- Configuration ---
 
-  #$search = array_keys( $replace );
-  #$buffer = preg_replace( $search, $replace, $buffer );
-	#$buffer = preg_replace("@/\*(.*?)\*/@s","\n",$buffer);
-	$buffer = preg_replace('(// .+)', '', $buffer);
-	$buffer = str_replace(array("//\r\n", "//\n", "\t"), '', $buffer);
-	$buffer = preg_replace('/\n\s*\n/', "\n", $buffer);
-	//$buffer = preg_replace('/\s+/', ' ', $buffer);
-	
-	return $buffer;
+// Define the list of JavaScript files to include.
+// The order is important as files are concatenated sequentially.
+$jsFiles = [
+    './files/bootstrap.min.js',
+    './files/jquery-3.6.0.min.js',
+    './files/jquery.weekline.min.js',
+    './files/gumboard.js',
+];
+
+// Set cache lifetime in seconds. 24 hours = 86400 seconds.
+$cacheDuration = 86400;
+
+// --- Asset Delivery ---
+
+// Set content type and caching headers.
+header("Content-type: text/javascript; charset=utf-8");
+header("Cache-Control: max-age=" . $cacheDuration . ", public");
+header("Expires: " . gmdate("D, d M Y H:i:s", time() + $cacheDuration) . " GMT");
+
+// Enable GZIP compression if supported by the client.
+if (isset($_SERVER['HTTP_ACCEPT_ENCODING']) && strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') !== false) {
+    header("Content-Encoding: gzip");
+    header("Vary: Accept-Encoding");
+    ob_start('ob_gzhandler');
+} else {
+    ob_start();
 }
-ob_start();
 
-include('./files/bootstrap.min.js');
-include('./files/jquery-3.6.0.min.js');
-
-include('./files/jquery.weekline.min.js');
-
-
-
-
-
-
-include('./files/gumboard.js');
-/*
-
-$files = glob($folder."./files/*.js"); // return array files
-foreach($files as $file){   
-     require_once($file); 
+// Concatenate and output the contents of the JavaScript files.
+foreach ($jsFiles as $file) {
+    if (file_exists($file)) {
+        readfile($file);
+        // Add a newline to prevent issues with files that don't end with one.
+        echo "\n";
+    }
 }
-*/
 
-$out = ob_get_contents();
-ob_end_clean();
-#$out = compress($out);
-if(strstr($_SERVER["HTTP_ACCEPT_ENCODING"],"gzip"))
-{
-	header("Content-Encoding: gzip");
-	header("Vary: Accept-Encoding");
-	ob_start('ob_gzhandler');
-}
-echo $out;
-?>
+ob_end_flush();

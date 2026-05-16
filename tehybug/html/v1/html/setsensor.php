@@ -6,59 +6,74 @@ header('P3P: CP="CAO PSA OUR"'); // Makes IE to support cookies
 header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
 
 ?>
-<div class="col-md-12 row">
-<h2 class="text-center">Sensor settings</h2>
-<hr>
-<div class="col-md-3">
-        <h2 class="text-center">Sensors Port B Green</h2>
-        <hr>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Sensor Settings</h1>
+</div>
 
-        <div class="form-check form-switch">
-            <input type="checkbox" class="form-check-input" id="dht_sensor">
-            <label class="form-check-label" for="dht_sensor">DHTXX Active</label>
-        </div>
-        <div class="form-check form-switch">
-            <input type="checkbox" class="form-check-input" id="ds18b20_sensor">
-            <label class="form-check-label" for="ds18b20_sensor">DS18B20 Active</label>
-        </div>
-    </div>
-    <div class="offset-md-1 col-md-3">
-        <h2 class="text-center">Sensors Port A Black</h2>
-        <hr>
-        <div class="form-check form-switch">
-            <input type="checkbox" class="form-check-input" id="second_dht_sensor">
-            <label class="form-check-label" for="second_dht_sensor">DHTXX Active</label>
-        </div>
-        <div class="form-check form-switch">
-            <input type="checkbox" class="form-check-input" id="second_ds18b20_sensor">
-            <label class="form-check-label" for="second_ds18b20_sensor">DS18B20 Active</label>
-        </div>
-        <div class="form-check form-switch">
-            <input type="checkbox" class="form-check-input" id="adc_sensor">
-            <label class="form-check-label" for="adc_sensor">ADC Active</label>
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Sensors Port B (Green)
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="dht_sensor">
+                    <label class="form-check-label" for="dht_sensor">DHTXX Active</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="ds18b20_sensor">
+                    <label class="form-check-label" for="ds18b20_sensor">DS18B20 Active</label>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="offset-md-1 col-md-3">
-        <h2 class="text-center">Calibration</h2>
-        <hr>
-        <div class="form-group">
-            <label for="calibrationTemp">Temperature</label>
-            <input type="number" class="form-control" step=".1" id="calibrationTemp" value="0">
-        </div>
-        <div class="form-group">
-            <label for="calibrationHumi">Humidity</label>
-            <input type="number" class="form-control" step=".1" id="calibrationHumi" value="0">
-        </div>
-        <div class="form-group">
-            <label for="calibrationQfe">Barometric Air Pressure</label>
-            <input type="number" class="form-control" step="1" id="calibrationQfe" value="0">
-        </div>
-        <div class="form-check form-switch">
-            <input type="checkbox" class="form-check-input" id="calibrationActive">
-            <label class="form-check-label" for="calibrationActive">Calibration active</label>
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Sensors Port A (Black)
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="second_dht_sensor">
+                    <label class="form-check-label" for="second_dht_sensor">DHTXX Active</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="second_ds18b20_sensor">
+                    <label class="form-check-label" for="second_ds18b20_sensor">DS18B20 Active</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="adc_sensor">
+                    <label class="form-check-label" for="adc_sensor">ADC Active</label>
+                </div>
+            </div>
         </div>
     </div>
-    
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                Calibration
+            </div>
+            <div class="card-body">
+                <div class="form-group mb-3">
+                    <label for="calibrationTemp">Temperature</label>
+                    <input type="number" class="form-control" step=".1" id="calibrationTemp" value="0">
+                </div>
+                <div class="form-group mb-3">
+                    <label for="calibrationHumi">Humidity</label>
+                    <input type="number" class="form-control" step=".1" id="calibrationHumi" value="0">
+                </div>
+                <div class="form-group mb-3">
+                    <label for="calibrationQfe">Barometric Air Pressure</label>
+                    <input type="number" class="form-control" step="1" id="calibrationQfe" value="0">
+                </div>
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="calibrationActive">
+                    <label class="form-check-label" for="calibrationActive">Calibration active</label>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 

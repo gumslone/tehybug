@@ -134,121 +134,142 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
             </div>
         </nav>
 
-    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" id="right-content">
-    <div class="col-md-12 row">
-      <div class="col-md-12">
-          <h2 class="text-center">Device Info</h2>
-          <hr>
-          <div class="table-responsive">
-              <table class="table table-striped table-sm" id="info">
-                  <tbody>
-                      <tr>
-                          <td class="font-weight-bold">TeHyBug Key:</td>
-                          <td id="key">Loading...</td>
-                      </tr>
-                  </tbody>
-              </table>
-          </div>
-      </div>
-    </div>
-    <div class="col-md-12 row">
-      <div class="col-md-3">
-          <h2 class="text-center">System Info</h2>
-          <hr>
-          <div class="table-responsive">
-              <table class="table table-striped table-sm">
-                  <tbody>
-                      <tr>
-                          <td class="font-weight-bold">Version:</td>
-                          <td id="gumboardVersion">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">Sketch Size:</td>
-                          <td id="sketchSize">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">Free Sketch Space:</td>
-                          <td id="freeSketchSpace">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">Wifi RSSI:</td>
-                          <td id="wifiRSSI">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">Wifi Quality:</td>
-                          <td id="wifiQuality">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">Wifi SSID:</td>
-                          <td id="wifiSSID">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">IP-Address:</td>
-                          <td id="ipAddress">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">Free Heap:</td>
-                          <td id="freeHeap">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">ChipID:</td>
-                          <td id="chipID">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">CPU Freq. in MHz:</td>
-                          <td id="cpuFreqMHz">Loading...</td>
-                      </tr>
-                      <tr>
-                          <td class="font-weight-bold">Sleep Mode:</td>
-                          <td id="sleepModeActive">Loading...</td>
-                      </tr>
-                  </tbody>
-              </table>
-          </div>
-      </div>
-      <div class="col-md-3">
-          <h2 class="text-center">Sensor</h2>
-          <hr>
-          <div class="table-responsive">
-              <table class="table table-striped table-sm">
-                  <tbody id="sensor_data">
-                      
-                  </tbody>
-              </table>
-          </div>
-      </div>
-      <div class="col-md-6">
-          <h2 class="text-center">Log</h2>
-          <hr>
-          <textarea class="form-control" id="log" rows="17" wrap="off" disabled="" style="font-size: small"></textarea>
-      </div>
+<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" id="right-content">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Dashboard</h1>
+        </div>
 
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Device Info
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm" id="info">
+                                <tbody>
+                                    <tr>
+                                        <td class="font-weight-bold">TeHyBug Key:</td>
+                                        <td id="key">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        System Info
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td class="font-weight-bold">Version:</td>
+                                        <td id="gumboardVersion">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Sketch Size:</td>
+                                        <td id="sketchSize">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Free Sketch Space:</td>
+                                        <td id="freeSketchSpace">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Wifi RSSI:</td>
+                                        <td id="wifiRSSI">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Wifi Quality:</td>
+                                        <td id="wifiQuality">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Wifi SSID:</td>
+                                        <td id="wifiSSID">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">IP-Address:</td>
+                                        <td id="ipAddress">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Free Heap:</td>
+                                        <td id="freeHeap">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">ChipID:</td>
+                                        <td id="chipID">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">CPU Freq. in MHz:</td>
+                                        <td id="cpuFreqMHz">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-weight-bold">Sleep Mode:</td>
+                                        <td id="sleepModeActive">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Sensor
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <tbody id="sensor_data">
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        Log
+                    </div>
+                    <div class="card-body">
+                        <textarea class="form-control" id="log" rows="17" wrap="off" disabled="" style="font-size: small; resize: vertical;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        API Endpoints
+                    </div>
+                    <div class="card-body">
+                        <p><a href="/api/info" target="_blank">/api/info</a> - Device Info</p>
+                        <p><a href="/api/sensor" target="_blank">/api/sensor</a> - Sensor Data</p>
+                        <p><a href="/api/config" target="_blank">/api/config</a> - Config Data</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-      <div class="col-md-12">
-          <div>
-                  <h3>API</h3>
-                  <div><a href="/api/info" target="_blank">/api/info</a> Device Info</div>
-                  <hr>
-                  <div><a href="/api/sensor" target="_blank">/api/sensor</a> Sensor Data</div>
-                  <hr>
-                  <div><a href="/api/config" target="_blank">/api/config</a> Config Data</div>
-                  <hr>
-          </div>
-      </div>
-
-
-
-      <script>
-        connectionStart();
-      </script>
-    </div>
     </main>
   </div>
 </div>
 
 
 <script>
+      connectionStart();
       feather.replace()
 </script>

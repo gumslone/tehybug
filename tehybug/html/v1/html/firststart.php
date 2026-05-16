@@ -6,34 +6,28 @@ header('P3P: CP="CAO PSA OUR"'); // Makes IE to support cookies
 header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
 
 ?>
-<div class="col-md-12 row">
-<h2 class="text-center">First start</h2>
-<hr>
-<div>
-			<p>
-				Remember/copy your tehybug key: <code id="key">Loading...</code></b><br>
-			</p>
-			<p>
-				<b>Step 1 (optional depends on sensor used).</b><br>
-				Enable the sensor that you use at <a href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsensor', '#right-content');">Sensor settings</a> page.
-			</p>
-			<p>
-				<b>Step 2.</b><br>
-				Select the desired data serving mode at <a  href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'settings', '#right-content');">Data serving settings</a>.
-				Data frequency setting means, how often the sensor data should be served. The higher you set the data frequency the longer the battery will last.
-			</p>
-			<p>
-				<b>Step 3.</b><br>
-				If everything is set, <a  href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsystem', '#right-content');">disable the configuration mode</a> to go live and start serving to sensor data. Also <a  href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsystem', '#right-content');">enable deep sleep</a> to start low power data serving mode (saves battery power). 
-				Your TeHyBug will reboot and start serving the sensor data.
-			</p>
-			
-			<p>
-				More infos about TeHyBug can be found at tehybug.com or at the tindie store: https://www.tindie.com/stores/gumslone/
-			</p>
-			
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Quick Start Guide</h1>
+</div>
 
-	</div>
+<div class="card">
+    <div class="card-header">
+        Getting Started
+    </div>
+    <div class="card-body">
+        <p>Remember/copy your tehybug key: <code id="key">Loading...</code></p>
+        <hr>
+        <h5 class="card-title">Step 1 (optional)</h5>
+        <p class="card-text">Enable the sensor that you use at the <a href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsensor', '#right-content');">Sensor settings</a> page. This depends on the sensor you have connected.</p>
+        <hr>
+        <h5 class="card-title">Step 2</h5>
+        <p class="card-text">Select the desired data serving mode at <a href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'settings', '#right-content');">Data serving settings</a>. The data frequency setting determines how often sensor data is sent. A lower frequency will extend battery life.</p>
+        <hr>
+        <h5 class="card-title">Step 3</h5>
+        <p class="card-text">Once everything is configured, <a href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsystem', '#right-content');">disable the configuration mode</a> to go live. Also, <a href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'setsystem', '#right-content');">enable deep sleep</a> for low-power operation to save battery. Your TeHyBug will reboot and start serving sensor data.</p>
+        <hr>
+        <p class="card-text">More information about TeHyBug can be found at tehybug.com or at the Tindie store: <a href="https://www.tindie.com/stores/gumslone/" target="_blank">https://www.tindie.com/stores/gumslone/</a></p>
+    </div>
 </div>
 
 

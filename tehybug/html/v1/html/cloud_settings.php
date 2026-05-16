@@ -6,37 +6,46 @@ header('P3P: CP="CAO PSA OUR"'); // Makes IE to support cookies
 header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
 
 ?>
-<div class="col-md-12 row">
-<h2 class="text-center">TeHyBug.com cloud service settings</h2>
-<hr>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">TeHyBug Cloud Service Settings</h1>
+</div>
 
-    <div class="offset-md-12">
-        <p>
-			This is probably the easiest way to start using your TeHyBug Device.<br>
-            Create an account at <a href="https://tehybug.com" target="_blank">TeHyBug.com cloud service</a>.<br>
-            Remember/copy your tehybug key: <code id="key">Loading...</code>, you will have to provide it at your accoount at <a href="https://tehybug.com" target="_blank">TeHyBug.com cloud service</a>.<br>
-            Click the save config button below and your device will start sending data to your account at <a href="https://tehybug.com" target="_blank">TeHyBug.com cloud service</a>.<br>
-		</p>
+<div class="card mb-4">
+    <div class="card-header">
+        Instructions
+    </div>
+    <div class="card-body">
+        <p>This is the easiest way to start using your TeHyBug Device.</p>
+        <ol>
+            <li>Create an account at <a href="https://tehybug.com" target="_blank">TeHyBug.com cloud service</a>.</li>
+            <li>Remember/copy your TeHyBug key: <code id="key">Loading...</code>. You will need to provide it in your account on the cloud service.</li>
+            <li>Click the "Save Config" button below. Your device will restart and begin sending data to your account.</li>
+        </ol>
 
-        <div class="form-group">
-            <input type="url" class="form-control" id="httpGetURL" minlength="7" value="http://tehybug.com/track/?bug_key=%key%" style="display:none;">
-            <input type="number" class="form-control dont-change" id="httpGetFrequency" value="900" style="display:none;">
-            <input type="checkbox" class="form-check-input dont-change" id="httpGetActive" style="display:none;" checked >
-            <input type="checkbox" class="form-check-input dont-change" id="sleepModeActive" style="display:none;" checked >
-            <input type="checkbox" class="form-check-input dont-change" id="lightSleepModeActive" style="display:none;" >
-            <input type="checkbox" class="form-check-input dont-change" id="configModeActive" style="display:none;"  >
-            <input type="checkbox" class="form-check-input dont-change" id="mqttActive" style="display:none;">
-            <input type="checkbox" class="form-check-input dont-change" id="httpPostActive" style="display:none;">
-            <input type="checkbox" class="form-check-input dont-change" id="reboot" style="display:none;" checked >
+        <div class="form-group" style="display:none;">
+            <input type="url" class="form-control" id="httpGetURL" minlength="7" value="http://tehybug.com/track/?bug_key=%key%">
+            <input type="number" class="form-control dont-change" id="httpGetFrequency" value="900">
+            <input type="checkbox" class="form-check-input dont-change" id="httpGetActive" checked>
+            <input type="checkbox" class="form-check-input dont-change" id="sleepModeActive" checked>
+            <input type="checkbox" class="form-check-input dont-change" id="lightSleepModeActive">
+            <input type="checkbox" class="form-check-input dont-change" id="configModeActive">
+            <input type="checkbox" class="form-check-input dont-change" id="mqttActive">
+            <input type="checkbox" class="form-check-input dont-change" id="httpPostActive">
+            <input type="checkbox" class="form-check-input dont-change" id="reboot" checked>
         </div>
     </div>
-   
 </div>
 
-
-<div class="col-md-12 text-center">
-    <hr>
+<div class="card mb-4">
+    <div class="card-header">
+        API Endpoint
+    </div>
+    <div class="card-body">
+        <p class="card-text mb-1">TeHyBug.com HTTP GET URL:</p>
+        <code>http://tehybug.com/track/?bug_key=%key%</code>
+    </div>
 </div>
+
 <div class="col-md-12 text-center">
     <button type="button" class="btn btn-outline-success" onclick="SaveConfig()" data-bs-toggle="modal" data-bs-target="#popup"><span data-feather="save"></span> Save
         Config</button>

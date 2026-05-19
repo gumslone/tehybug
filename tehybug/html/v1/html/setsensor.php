@@ -99,6 +99,100 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
     </div>
 </div>
 
+<!-- Sensor Information Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><span data-feather="thermometer"></span> Sensor Configuration Guide</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6 mb-3">
+                        <h5><span data-feather="cpu"></span> Port B (Green Connector)</h5>
+                        <ul class="small">
+                            <li><strong>DHTXX:</strong> DHT11, DHT21, DHT22 temperature & humidity sensors</li>
+                            <li><strong>DS18B20:</strong> Digital temperature sensor (waterproof available)</li>
+                            <li><strong>Note:</strong> Only one sensor type can be active per port</li>
+                        </ul>
+                        <div class="alert alert-warning small mb-0">
+                            <strong>Important:</strong> DHT and DS18B20 cannot be used simultaneously on the same port
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-3">
+                        <h5><span data-feather="cpu"></span> Port A (Black Connector)</h5>
+                        <ul class="small">
+                            <li><strong>DHTXX:</strong> Second DHT sensor for dual-zone monitoring</li>
+                            <li><strong>DS18B20:</strong> Second temperature sensor</li>
+                            <li><strong>ADC:</strong> Analog input (0-3.3V) for custom sensors</li>
+                            <li><strong>Note:</strong> Only one sensor type can be active per port</li>
+                        </ul>
+                        <div class="alert alert-info small mb-0">
+                            <strong>Tip:</strong> Use ADC for soil moisture, light sensors, or voltage monitoring
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Calibration Guide -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><span data-feather="sliders"></span> Calibration Guide</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-4 mb-3">
+                        <h5>Temperature Calibration</h5>
+                        <ul class="small">
+                            <li>Compare with a reference thermometer</li>
+                            <li>Enter the difference (e.g., +1.5 or -0.8)</li>
+                            <li>Positive value increases reading</li>
+                            <li>Negative value decreases reading</li>
+                        </ul>
+                        <div class="alert alert-info small mb-0">
+                            <strong>Example:</strong> If sensor shows 22°C but actual is 23.5°C, enter +1.5
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 mb-3">
+                        <h5>Humidity Calibration</h5>
+                        <ul class="small">
+                            <li>Use salt test method for accuracy</li>
+                            <li>Place sensor in sealed container with saturated salt solution</li>
+                            <li>Wait 8-12 hours, should read 75%RH</li>
+                            <li>Enter correction value</li>
+                        </ul>
+                        <div class="alert alert-info small mb-0">
+                            <strong>Salt Test:</strong> NaCl solution should stabilize at 75%RH at 20°C
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 mb-3">
+                        <h5>Pressure Calibration</h5>
+                        <ul class="small">
+                            <li>Compare with local weather station</li>
+                            <li>Use QFE (station pressure) not QNH</li>
+                            <li>Enter difference in hPa</li>
+                            <li>Altitude affects pressure readings</li>
+                        </ul>
+                        <div class="alert alert-info small mb-0">
+                            <strong>Note:</strong> Pressure drops ~12 hPa per 100m altitude increase
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-success small mb-0">
+                    <strong><span data-feather="check"></span> Remember:</strong> Enable "Calibration active" checkbox after entering values for corrections to take effect.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 <script>

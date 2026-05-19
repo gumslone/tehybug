@@ -122,9 +122,41 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
         <div class="modal-content">
             <div class="modal-header bg-light">
                 <h3 class="modal-title text-success">Config saved!</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <h5>System will be restarted, please wait <span id="countdowntimer">12</span> seconds to reload!</h5>
+                <!-- Reboot Confirmation -->
+                <div class="alert alert-success">
+                    <strong>
+                        <span data-feather="refresh-cw"></span> System will restart
+                    </strong>
+                    <p class="mb-0">Please wait <span id="countdowntimer">12</span> seconds to reload the page.</p>
+                </div>
+                <div class="alert alert-info">
+                    <strong><span data-feather="info"></span> Next Steps:</strong>
+                    <p class="mb-0">To start serving data, you need to configure additional system settings:</p>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <span data-feather="settings"></span> Required System Settings
+                        </h5>
+                        <ul class="mb-0">
+                            <li><strong>Activate Live Mode:</strong> Go to System Settings to disable configuration mode and start serving sensor data</li>
+                            <li><strong>Power Management:</strong> Configure sleep mode options for battery operation</li>
+                            <li><strong>System Restart:</strong> Changes require a system restart to take effect</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong><span data-feather="alert-triangle"></span> Important:</strong>
+                    <p class="mb-0">Visit the <strong>System Settings</strong> page to complete configuration and activate your device.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -155,6 +187,60 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
             
             <h4>TeHyBug.com HTTP POST or MQTT message</h4>
             <div class="bg-light p-2 rounded"><code>{"bug_key":"%key%"<i id="mqtt_message"></i>}</code></div>
+        </div>
+    </div>
+</div>
+
+<!-- Information Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><span data-feather="info"></span> Configuration Guide</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-4 mb-3">
+                        <h5><span data-feather="send"></span> MQTT Configuration</h5>
+                        <ul class="small">
+                            <li><strong>Server:</strong> IP address of your MQTT broker (e.g., 192.168.1.100)</li>
+                            <li><strong>Port:</strong> Default is 1883 (1883 for non-SSL, 8883 for SSL)</li>
+                            <li><strong>Topic:</strong> MQTT topic path (e.g., home/sensors/tehybug)</li>
+                            <li><strong>Retained:</strong> Keep last message on broker for new subscribers</li>
+                            <li><strong>Frequency:</strong> How often to publish data (in seconds)</li>
+                        </ul>
+                        <div class="alert alert-warning small mb-0">
+                            <strong>Note:</strong> Lower frequency = more frequent updates but higher power consumption
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 mb-3">
+                        <h5><span data-feather="download"></span> HTTP GET Configuration</h5>
+                        <ul class="small">
+                            <li><strong>URL:</strong> Full endpoint URL with placeholders</li>
+                            <li><strong>Example:</strong> https://api.example.com/data?temp=%temp%&humi=%humi%</li>
+                            <li><strong>Placeholders:</strong> Use %placeholder% format (see table below)</li>
+                            <li><strong>Frequency:</strong> Data transmission interval in seconds</li>
+                        </ul>
+                        <div class="alert alert-info small mb-0">
+                            <strong>Tip:</strong> Use GET for simple data logging services
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 mb-3">
+                        <h5><span data-feather="upload"></span> HTTP POST Configuration</h5>
+                        <ul class="small">
+                            <li><strong>URL:</strong> API endpoint that accepts POST requests</li>
+                            <li><strong>JSON:</strong> Custom JSON payload with placeholders</li>
+                            <li><strong>Example:</strong> {"device":"%key%","temp":%temp%,"humi":%humi%}</li>
+                            <li><strong>Format:</strong> Valid JSON structure required</li>
+                        </ul>
+                        <div class="alert alert-success small mb-0">
+                            <strong>Best for:</strong> RESTful APIs and complex data structures
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

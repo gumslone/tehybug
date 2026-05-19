@@ -17,8 +17,8 @@ $jsFiles = [
     './files/gumboard.js',
 ];
 
-// Set cache lifetime in seconds. 24 hours = 86400 seconds.
-$cacheDuration = 86400;
+// Set cache lifetime in seconds. 10 minutes = 600  seconds.
+$cacheDuration = 60 * 10; // 10 minutes
 
 // --- Asset Delivery ---
 

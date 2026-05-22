@@ -73,6 +73,8 @@ ErriezBMX280 bmx280 = ErriezBMX280(0x76);
 ErriezBMX280 bmp280 = ErriezBMX280(0x77);
 
 Bsec bme680;
+uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE] = {0};
+uint16_t stateUpdateCounter = 0;
 
 Max44009 Max44009Lux(0x4A);
 
@@ -540,6 +542,46 @@ void checkIaqSensorStatus(void) {
     }
   }
 }
+
+void loadBME680State(void) {
+  if (SPIFFS.exists("/bsec_state.dat")) {
+    File file = SPIFFS.open("/bsec_state.dat", "r");
+    if (file) {
+      file.read((uint8_t *)bsecState, BSEC_MAX_STATE_BLOB_SIZE);
+      file.close();
+      bme680.setState(bsecState);
+      checkIaqSensorStatus();
+      D_println("BME680 state loaded from file");
+    }
+  }
+}
+
+void saveBME680State(void) {
+  bool update = false;
+  if (stateUpdateCounter == 0) {
+    if (bme680.iaqAccuracy >= 3) {
+      update = true;
+      stateUpdateCounter++;
+    }
+  } else {
+    if ((stateUpdateCounter * 10000) < millis()) {
+      update = true;
+      stateUpdateCounter++;
+    }
+  }
+
+  if (update) {
+    bme680.getState(bsecState);
+    checkIaqSensorStatus();
+    
+    File file = SPIFFS.open("/bsec_state.dat", "w");
+    if (file) {
+      file.write(bsecState, BSEC_MAX_STATE_BLOB_SIZE);
+      file.close();
+      D_println("BME680 state saved to file");
+    }
+  }
+}
 void read_bme680() {
 
   if (!bme680.run()) { // If no data is available
@@ -560,11 +602,17 @@ void read_bme680() {
   D_println(", " + String(bme680.breathVocEquivalent));
 
   tehybug.addSensorData("qfe", (bme680.pressure / 100.0F));
-  tehybug.addSensorData("eco2", bme680.co2Equivalent);
-  tehybug.addSensorData("bvoc", bme680.breathVocEquivalent);
+  // Only report CO2 and VOC when accuracy is sufficient
+  if (bme680.iaqAccuracy >= 2) {
+    tehybug.addSensorData("eco2", bme680.co2Equivalent);
+    tehybug.addSensorData("bvoc", bme680.breathVocEquivalent);
+  }
   tehybug.addSensorData("iaq", bme680.iaq);
   tehybug.addSensorData("air", (bme680.gasResistance / 1000.0F));
   tehybug.addTempHumi("temp", bme680.temperature, "humi", bme680.humidity);
+
+  // Save state periodically
+  saveBME680State();
 }
 
 void read_max44009() {
@@ -745,7 +793,7 @@ void read_sensors() {
     read_second_ds18b20();
   }
 #endif
-  tehybug.sensorDataGarbageCollect();
+  tehybug.shouldSensorDataBeGarbageCollected(true);
 }
 // end of sensor
 void sendDeviceInfo() {
@@ -1107,6 +1155,8 @@ void setupSensors() {
 
     bme680.updateSubscription(sensorList, 10, BSEC_SAMPLE_RATE_LP);
     checkIaqSensorStatus();
+    // Load saved state
+    loadBME680State();
     // Print the header
     D_println(
       "Timestamp [ms], raw temperature [°C], pressure [hPa], raw "
@@ -1381,4 +1431,6 @@ void loop() {
     }
     delay(150); // reduce power consumption
   }
+  yield();
+  tehybug.finalizeLoop();
 }

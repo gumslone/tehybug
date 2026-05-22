@@ -80,12 +80,10 @@ class TeHyBug {
       addSensorData(key_humi, humi);
     }
 
-    void sensorDataGarbageCollect()
-    {
-       if(!device.sleepMode)
-       {
-          sensorData.garbageCollect();
-       }
+    void finalizeLoop() {
+      if(m_sensorDataGarbageCollect) {
+        sensorDataGarbageCollect();
+      }
     }
 
     void getDeviceKey() {
@@ -127,6 +125,10 @@ class TeHyBug {
     {
       return device.sleepMode || device.lightSleepMode; 
     }
+    void shouldSensorDataBeGarbageCollected(bool value)
+    {
+      m_sensorDataGarbageCollect = value;
+    }
 
     bool tickerStop{false};
     bool tickerStart{false};
@@ -134,6 +136,7 @@ class TeHyBug {
   private:
     DHTesp & m_dht;
     UUID m_uuid;
+    bool m_sensorDataGarbageCollect{false};
     void setDeviceKey(String key) {
       device.key = key;
       sensorData["key"] = key;
@@ -153,6 +156,14 @@ class TeHyBug {
           value += calibration.qfe;
       }
       return value;
+    }
+    void sensorDataGarbageCollect()
+    {
+       if(!device.sleepMode)
+       {
+          m_sensorDataGarbageCollect = false;
+          sensorData.garbageCollect();
+       }
     }
 };
 

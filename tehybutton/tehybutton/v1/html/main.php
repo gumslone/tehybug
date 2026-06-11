@@ -56,7 +56,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="https://github.com/gumslone/tehybug/tree/master/tehybutton" target="_blank">
+            <a class="nav-link" href="https://github.com/gumslone/tehybutton" target="_blank">
               <span data-feather="github"></span>
               GitHub
             </a>

@@ -1,0 +1,64 @@
+name: tehybutton release
+
+# Builds the tehybutton firmware (esp8285 + generic, release + debug)
+# and publishes the binaries as a GitHub release. Runs when a PR from
+# the development branch is merged into master, or manually.
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.head.ref == 'development')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh \
+            | BINDIR=/usr/local/bin sh
+
+      - name: Install esp8266 core 2.7.4
+        run: |
+          arduino-cli core update-index \
+            --additional-urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core install esp8266:esp8266@2.7.4 \
+            --additional-urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+
+      # The firmware reports its version as the build timestamp
+      # (YYMMDDHHMM from __DATE__/__TIME__); tag with the same scheme.
+      - name: Compute release tag
+        run: echo "TAG=tehybutton-v$(date -u +%y%m%d%H%M)" >> "$GITHUB_ENV"
+
+      - name: Build all boards and modes
+        working-directory: tehybutton
+        run: ./build.sh all
+
+      - name: Stage release assets
+        working-directory: tehybutton
+        run: |
+          mkdir -p dist
+          for board in esp8285 generic; do
+            for mode in release debug; do
+              cp "build/$board/$mode/tehybutton.ino.bin" \
+                 "dist/tehybutton.$board.$mode.bin"
+            done
+          done
+          ls -l dist
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$TAG" tehybutton/dist/*.bin \
+            --title "$TAG" \
+            --notes "TeHyButton firmware built from ${{ github.sha }} with esp8266 core 2.7.4 and the vendored libraries. The .esp8285. binaries are for the stock TeHyButton hardware; flash the release build unless you need serial debug output."

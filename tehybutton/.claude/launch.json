@@ -4,7 +4,7 @@
     {
       "name": "tbpreview",
       "runtimeExecutable": "php",
-      "runtimeArgs": ["-S", "127.0.0.1:8123", "-t", "/tmp/tbpreview"],
+      "runtimeArgs": ["-S", "127.0.0.1:8123", "-t", "tehybutton/v1"],
       "port": 8123
     }
   ]

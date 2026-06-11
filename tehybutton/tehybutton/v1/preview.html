@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="./css/style.php" rel="stylesheet">
+    <script>
+    // ---- preview websocket stub (must exist before gumboard.js runs) ----
+    (function () {
+        var INFO = {
+            gumboardVersion: "2606111630",
+            sketchSize: 456352,
+            freeSketchSpace: 499712,
+            wifiRSSI: "-58",
+            wifiQuality: 84,
+            wifiSSID: "HomeNet",
+            ipAddress: "192.168.1.42",
+            freeHeap: 28456,
+            chipID: 9775304,
+            cpuFreqMHz: 80,
+            sleepModeActive: true,
+            deepSleepMax: 13288,
+            key: "1f0e7c2a-5b3d-4e88-9a01-c4d2f7b61a9e"
+        };
+        var CONFIG = {
+            mqttActive: false,
+            mqttRetained: false,
+            mqttUser: "",
+            mqttPassword: "",
+            mqttServer: "192.168.1.10",
+            mqttMasterTopic: "/tehybug",
+            mqttMessage: "{\"bug_key\":\"%key%\",\"state\":\"%state%\"}",
+            mqttPort: 1883,
+            httpGetURL: "http://tehybug.com/track/?bug_key=%key%",
+            httpGetActive: true,
+            httpPostURL: "",
+            httpPostActive: false,
+            httpPostJson: "",
+            configModeActive: true,
+            sleepModeActive: true,
+            skipButtonActions: false,
+            key: INFO.key
+        };
+        var LOGS = [
+            {timeStamp: "", func: "Setup", message: "Webserver started"},
+            {timeStamp: "", func: "WebSocketEvent", message: "[0] Connected from 192.168.1.23 url: /main"},
+            {timeStamp: "", func: "SetConfig", message: "Incoming Json length: 412"}
+        ];
+        var logsDelivered = false;
+
+        function FakeWebSocket(url) {
+            var self = this;
+            this.url = url;
+            this.readyState = FakeWebSocket.OPEN;
+            this.send = function () {};
+            this.close = function () { self.readyState = FakeWebSocket.CLOSED; };
+            setTimeout(function () {
+                if (self.onopen) self.onopen();
+                if (!self.onmessage) return;
+                var path = url.split(':81')[1] || '';
+                if (path === '/main' || path === '/firststart' || path === '/api/info') {
+                    self.onmessage({data: JSON.stringify(INFO)});
+                    if (!logsDelivered) {
+                        logsDelivered = true;
+                        for (var i = 0; i < LOGS.length; i++) {
+                            self.onmessage({data: JSON.stringify({log: {timeStamp: LOGS[i].timeStamp, function: LOGS[i].func, message: LOGS[i].message}})});
+                        }
+                    }
+                } else if (path === '/settings' || path === '/setsystem') {
+                    self.onmessage({data: JSON.stringify(CONFIG)});
+                }
+            }, 80);
+        }
+        FakeWebSocket.CONNECTING = 0;
+        FakeWebSocket.OPEN = 1;
+        FakeWebSocket.CLOSING = 2;
+        FakeWebSocket.CLOSED = 3;
+        window.WebSocket = FakeWebSocket;
+    })();
+    </script>
+    <script src="./js/javascript.php"></script>
+    <script>
+    boardURL = './';
+
+    // ?page=settings|setsystem|firststart|about navigates after load so a
+    // headless browser can screenshot any page directly. For the about
+    // page the LED demo is frozen on its "sending" frame.
+    (function () {
+        var m = location.search.match(/[?&]page=(\w+)/);
+        if (!m || m[1] === 'main') return;
+        var target = m[1];
+        var navigated = false;
+        var frozen = false;
+
+        function maybeNavigate() {
+            if (!navigated) {
+                var links = document.querySelectorAll('.sidebar .nav-link');
+                if (links.length > 0) {
+                    navigated = true;
+                    var el = null;
+                    for (var i = 0; i < links.length; i++) {
+                        var oc = links[i].getAttribute('onclick') || '';
+                        if (oc.indexOf("'" + target + "'") !== -1) { el = links[i]; break; }
+                    }
+                    ChangeContent(el || links[0], target, '#right-content');
+                }
+            } else if (target === 'about' && !frozen && window.demoSet &&
+                       document.querySelector('.tb-demo-button')) {
+                frozen = true;
+                demoSet('led-green', 'Connected &mdash; sending <code>click</code>');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var obs = new MutationObserver(maybeNavigate);
+            obs.observe(document.body, {childList: true, subtree: true});
+            maybeNavigate();
+        });
+    })();
+    </script>
+    <title>TeHyButton</title>
+</head>
+<body>
+<div id="page">Loading...</div>
+</body>
+</html>

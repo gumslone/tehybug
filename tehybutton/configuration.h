@@ -40,7 +40,7 @@ class TeHyButtonConfig {
 
         json["configModeActive"] = m_device.configMode;
         json["sleepModeActive"] = m_device.sleepMode;
-        json["sleepModeActive"] = m_device.skipButtonActions;
+        json["skipButtonActions"] = m_device.skipButtonActions;
 
         json["key"] = m_device.key;
        
@@ -78,9 +78,6 @@ class TeHyButtonConfig {
             D_println(F("Config loaded"));
           } else {
             switch (error.code()) {
-              case DeserializationError::Ok:
-                D_println(F("Deserialization succeeded"));
-                break;
               case DeserializationError::InvalidInput:
                 D_println(F("Invalid input!"));
                 break;
@@ -114,19 +111,20 @@ class TeHyButtonConfig {
     String getConfig() {
       File configFile = SPIFFS.open("/config.json", "r");
 
-      if (configFile) {
-        const size_t size = configFile.size();
-        std::unique_ptr<char[]> buf(new char[size]);
-
-        configFile.readBytes(buf.get(), size);
-        DynamicJsonDocument root(4096);
-
-        if (DeserializationError::Ok == deserializeJson(root, buf.get())) {}
-        String json;
-        serializeJson(root, json);
-        return json;
-
+      if (!configFile) {
+        return "{}";
       }
+
+      const size_t size = configFile.size();
+      std::unique_ptr<char[]> buf(new char[size]);
+
+      configFile.readBytes(buf.get(), size);
+      DynamicJsonDocument root(4096);
+
+      deserializeJson(root, buf.get());
+      String json;
+      serializeJson(root, json);
+      return json;
     }
 
   private:

@@ -3,9 +3,7 @@ namespace http {
 String get(HTTPClient &http, WiFiClient & espClient, String url) {
   D_print("HTTP GET: ");
   D_println(url);
-  //url = tehybug.replacePlaceholders(url);
   http.begin(espClient, url); // Specify request destination
-  http.setURL(url);
   http.addHeader("Content-Type", "text/plain"); // Specify content-type header
 
   const int httpCode = http.GET(); // Send the request

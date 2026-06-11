@@ -1,7 +1,6 @@
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
 #include <ESP8266HTTPClient.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
@@ -9,15 +8,16 @@
 #include <ESP8266mDNS.h>
 #include <FS.h>
 
-#include <PubSubClient.h> // Attention in the lib the #define MQTT_MAX_PACKET_SIZE must be increased to 4000!
-#include <TickerScheduler.h>
+#include <PubSubClient.h> // buffer size is raised at runtime via client.setBufferSize()
 #include <WebSocketsServer.h>
 #include <WiFiClient.h>
 #include <WiFiManager.h>
 #include "Button2.h"
 
 
+#ifndef DEBUG
 #define DEBUG 1
+#endif
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -40,12 +40,6 @@
 
 #define COMPILE_HOUR (((__TIME__[0] - '0') * 10) + (__TIME__[1] - '0'))
 #define COMPILE_MINUTE (((__TIME__[3] - '0') * 10) + (__TIME__[4] - '0'))
-#define COMPILE_SECOND (((__TIME__[6] - '0') * 10) + (__TIME__[7] - '0'))
-#define COMPILE_YEAR                                                           \
-  ((((__DATE__[7] - '0') * 10 + (__DATE__[8] - '0')) * 10 +                    \
-    (__DATE__[9] - '0')) *                                                     \
-   10 +                                                                    \
-   (__DATE__[10] - '0'))
 #define COMPILE_SHORTYEAR (((__DATE__[9] - '0')) * 10 + (__DATE__[10] - '0'))
 #define COMPILE_MONTH                                                          \
   ((__DATE__[2] == 'n'   ? (__DATE__[1] == 'a' ? 0 : 5)                        \
@@ -68,20 +62,20 @@ const String version = String(COMPILE_SHORTYEAR) + IntFormat(COMPILE_MONTH) +
 
 #if defined(ARDUINO_ESP8266_GENERIC)
 #define  PIXEL_ACTIVE 0
-#define  SIGNAL_LED_PIN 10
 #endif
 
 #ifndef PIXEL_ACTIVE
 #define PIXEL_ACTIVE 1
+#endif
+
+#if PIXEL_ACTIVE
 #define PIXEL_COUNT 1 // Number of NeoPixels
 #define PIXEL_PIN 12  // Digital IO pin connected to the NeoPixels.
 
 Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #endif
-// set pin 4 HIGH to turn on the pixel
-#ifndef SIGNAL_LED_PIN
-#define SIGNAL_LED_PIN 4
-#endif
+#define PIXEL_POWER_PIN 4 // set HIGH to power the pixel
+#define LATCH_PIN 2       // set LOW to cut the device's own power (soft latch)
 char identifier[24];
 
 // sensors
@@ -91,6 +85,9 @@ char identifier[24];
 // pull-up resistor so the switch pulls the pin to ground momentarily.
 // On a high -> low transition the button press logic will execute.
 #define BUTTON_PIN   14
+// Button timing
+#define BUTTON_LONGCLICK_MS 1000
+#define BUTTON_DOUBLECLICK_MS 400
 /////////////////////////////////////////////////////////////////
 Button2 button;
 
@@ -98,15 +95,11 @@ String button_state = "none";
 
 #define MODE_PIN 0
 
-// dns
-const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 4, 1);
-DNSServer dnsServer;
 char cmDNS[33];
 String escapedMac;
 // HTTP Config
 HTTPClient http1;
-HTTPClient http2;
 
 TeHyButton tehybutton{};
 
@@ -117,10 +110,9 @@ ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
 ESP8266HTTPUpdateServer httpUpdater;
 
-// Websoket Vars
-String websocketConnection[10];
-
-TickerScheduler ticker(5);
+// Websocket Vars
+#define WS_MAX_CLIENTS 10
+String websocketConnection[WS_MAX_CLIENTS];
 
 void saveConfigCallback() {
   tehybutton.conf.saveConfigCallback();
@@ -145,6 +137,7 @@ void handleNotFound() {
   if (server.method() == HTTP_OPTIONS) {
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(204);
+    return;
   }
   server.sendHeader("Location", "/update", true);
   server.send(302, "text/plain", "");
@@ -182,11 +175,11 @@ void handleFactoryReset() {
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
     Log("handleFactoryReset", "Failed to open config file for reset");
+  } else {
+    configFile.println("");
+    configFile.close();
   }
-  configFile.println("");
-  configFile.close();
   WifiSetup();
-  ESP.restart();
 }
 
 #pragma endregion
@@ -275,7 +268,7 @@ String getInfo() {
   root["freeHeap"] = ESP.getFreeHeap();
   root["chipID"] = ESP.getChipId();
   root["cpuFreqMHz"] = ESP.getCpuFreqMHz();
-  root["sleepMode"] = tehybutton.device.sleepMode;
+  root["sleepModeActive"] = tehybutton.device.sleepMode;
   root["deepSleepMax"] = (int)(ESP.deepSleepMax() / 1000000);
   root["key"] = tehybutton.device.key;
 
@@ -301,20 +294,19 @@ void mqttReconnect() {
   // Loop until we're reconnected
   while (!client.connected() &&
          tehybutton.serveData.mqtt.retryCounter < tehybutton.serveData.mqtt.maxRetries) {
+    const String clientId = "tehybutton_" + GetChipID();
     bool connected = false;
-    if (tehybutton.serveData.mqtt.user != NULL && tehybutton.serveData.mqtt.user.length() > 0 &&
-        tehybutton.serveData.mqtt.password != NULL &&
+    if (tehybutton.serveData.mqtt.user.length() > 0 &&
         tehybutton.serveData.mqtt.password.length() > 0) {
       Log(F("MqttReconnect"),
           F("MQTT connect to server with User and Password"));
-      connected = client.connect(
-                    ("tehybutton_" + GetChipID()).c_str(), tehybutton.serveData.mqtt.user.c_str(),
-                    tehybutton.serveData.mqtt.password.c_str(), "state", 0, true, "diconnected");
+      connected = client.connect(clientId.c_str(), tehybutton.serveData.mqtt.user.c_str(),
+                                 tehybutton.serveData.mqtt.password.c_str(), "state", 0,
+                                 true, "disconnected");
     } else {
       Log(F("MqttReconnect"),
           F("MQTT connect to server without User and Password"));
-      connected = client.connect(("tehybutton_" + GetChipID()).c_str(), "state", 0,
-                                 true, "disconnected");
+      connected = client.connect(clientId.c_str(), "state", 0, true, "disconnected");
     }
 
     // Attempt to connect
@@ -350,9 +342,6 @@ void toggleConfigMode() {
   }
   tehybutton.conf.saveConfig(true);
   yield();
-  if (tehybutton.device.configMode == false) {
-    // ESP.restart();
-  }
 }
 
 void startDeepSleep(int freq) {
@@ -378,30 +367,29 @@ void httpGet() {
   http::get(http1, espClient, tehybutton.serveData.get.url);
 }
 
-void sendDeviceInfo() {
-  if (webSocket.connectedClients() > 0) {
-    for (uint8_t i = 0;
-         i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
-      if (websocketConnection[i] == "/main" ||
-          websocketConnection[i] == "/firststart" ||
-          websocketConnection[i] == "/api/info") {
-        String Info = getInfo();
-        webSocket.sendTXT(i, Info);
+// Send a message to every connected websocket client whose path is in pages[]
+void wsBroadcast(const char *const pages[], size_t pageCount, String message) {
+  for (uint8_t i = 0; i < WS_MAX_CLIENTS; i++) {
+    for (size_t p = 0; p < pageCount; p++) {
+      if (websocketConnection[i] == pages[p]) {
+        webSocket.sendTXT(i, message);
+        break;
       }
     }
   }
 }
 
+void sendDeviceInfo() {
+  if (webSocket.connectedClients() > 0) {
+    static const char *const pages[] = {"/main", "/firststart", "/api/info"};
+    wsBroadcast(pages, 3, getInfo());
+  }
+}
+
 void sendConfig() {
   if (webSocket.connectedClients() > 0) {
-    for (uint8_t i = 0;
-         i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
-      if (websocketConnection[i] == "/settings" ||
-          websocketConnection[i] == "/setsystem") {
-        String cfg = tehybutton.conf.getConfig();
-        webSocket.sendTXT(i, cfg);
-      }
-    }
+    static const char *const pages[] = {"/settings", "/setsystem"};
+    wsBroadcast(pages, 2, tehybutton.conf.getConfig());
   }
 }
 
@@ -410,21 +398,17 @@ void Log(String function, String message) {
   String timeStamp = "";
   D_println("[" + timeStamp + "] " + function + ": " + message);
   if (webSocket.connectedClients() > 0) {
-    for (uint8_t i = 0;
-         i < sizeof websocketConnection / sizeof websocketConnection[0]; i++) {
-      if (websocketConnection[i] == "/main") {
-        webSocket.sendTXT(i, "{\"log\":{\"timeStamp\":\"" + timeStamp +
-                          "\",\"function\":\"" + function +
-                          "\",\"message\":\"" + message + "\"}}");
-      }
-    }
+    static const char *const pages[] = {"/main"};
+    wsBroadcast(pages, 1, "{\"log\":{\"timeStamp\":\"" + timeStamp +
+                "\",\"function\":\"" + function +
+                "\",\"message\":\"" + message + "\"}}");
   }
 }
 
 /////////////////////////////////////////////////////////////////////
 void serve_data() {
 
-  doSetPixelColor(pixel.Color(  0,   255,   0));         //  Set pixel's color (in RAM)
+  doSetPixelColor(0, 255, 0);
 
   if (tehybutton.serveData.get.active) {
     httpGet();
@@ -442,32 +426,34 @@ void serve_data() {
 void led_on() {
   D_println("Led on");
 
-  if (PIXEL_ACTIVE) {
-    pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-    pixel.setPixelColor(0, pixel.Color(0, 0, 255));
-    pixel.setBrightness(50);
-    pixel.show(); // Initialize all pixels to 'off'
-  }
-
+#if PIXEL_ACTIVE
+  pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+  pixel.setPixelColor(0, pixel.Color(0, 0, 255));
+  pixel.setBrightness(50);
+  pixel.show();
+#endif
 }
 
 void led_off() {
   D_println("Led off");
 
-  if (PIXEL_ACTIVE == 1) {
-    pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
-    pixel.setPixelColor(0, pixel.Color(0, 0, 0)); //  Set pixel's color (in RAM)
-    pixel.setBrightness(0);
-    pixel.show();
-  }
-
+#if PIXEL_ACTIVE
+  pixel.begin(); // Initialize NeoPixel strip object (REQUIRED)
+  pixel.setPixelColor(0, pixel.Color(0, 0, 0));
+  pixel.setBrightness(0);
+  pixel.show();
+#endif
 }
 // pixel
-void doSetPixelColor(uint32_t color)
+void doSetPixelColor(uint8_t r, uint8_t g, uint8_t b)
 {
-  pixel.setPixelColor(0, color);         //  Set pixel's color (in RAM)
+#if PIXEL_ACTIVE
+  pixel.setPixelColor(0, pixel.Color(r, g, b)); //  Set pixel's color (in RAM)
   pixel.setBrightness(33);
-  pixel.show();                          //  Update strip to match
+  pixel.show();                                 //  Update strip to match
+#else
+  (void)r; (void)g; (void)b;
+#endif
 }
 
 void configModeCallback(WiFiManager *myWiFiManager) {
@@ -497,7 +483,6 @@ void setupWifi() {
   wifiManager.setShowInfoUpdate(false);
   wifiManager.setShowInfoErase(false);
   wifiManager.setMenu(wm_menu);
-  wifiManager.setConfigPortalTimeout(180);
   wifiManager.setCustomHeadElement("<style>button {background-color: #1FA67A;}</style>");
   if (!wifiManager.autoConnect(identifier, "TeHyBug123")) {
     D_println(F("Setup: Wifi failed to connect and hit timeout"));
@@ -549,7 +534,6 @@ void turnLedOn()
   }
 }
 void setupMode() {
-  pinMode(MODE_PIN, INPUT_PULLUP);
   if (digitalRead(MODE_PIN) == LOW) {
     delay(300);
     if (digitalRead(MODE_PIN) == LOW) {
@@ -571,9 +555,6 @@ void released(Button2& btn) {
   D_print("released: ");
   D_println(btn.wasPressedFor());
   button_state = btn.wasPressedFor();
-}
-void changed(Button2& btn) {
-  D_println("changed");
 }
 void click(Button2& btn) {
   D_println("click\n");
@@ -599,27 +580,29 @@ void tripleClick(Button2& btn) {
   //setServeData();
 }
 
-// HTTP REQUESTS
+// Cut the device's own power supply (soft latch)
 void latchOff()
 {
-  digitalWrite(2, LOW);
+  digitalWrite(LATCH_PIN, LOW);
 }
 
 void setup() {
 
-  Serial.begin(115200);
+  D_SerialBegin(115200);
+#if DEBUG
   while (!Serial) {
     delay(10);
   }
-  
+#endif
+
   snprintf(identifier, sizeof(identifier), "TEHYBUTTON-%X", ESP.getChipId());
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(MODE_PIN, INPUT_PULLUP);
 
   button.begin(BUTTON_PIN);
-  button.setLongClickTime(1000);
-  button.setDoubleClickTime(400);
+  button.setLongClickTime(BUTTON_LONGCLICK_MS);
+  button.setDoubleClickTime(BUTTON_DOUBLECLICK_MS);
 
   D_println(" Longpress Time: " + String(button.getLongClickTime()) + "ms");
   D_println(" DoubleClick Time: " + String(button.getDoubleClickTime()) + "ms");
@@ -636,20 +619,23 @@ void setup() {
   button.setDoubleClickHandler(doubleClick);
   button.setTripleClickHandler(tripleClick);
 
-  pinMode(4, OUTPUT);
-  pinMode(2, OUTPUT);
-  digitalWrite(4, HIGH);
-  digitalWrite(2, HIGH);
+  pinMode(PIXEL_POWER_PIN, OUTPUT);
+  pinMode(LATCH_PIN, OUTPUT);
+  digitalWrite(PIXEL_POWER_PIN, HIGH);
+  digitalWrite(LATCH_PIN, HIGH);
 
+#if PIXEL_ACTIVE
   pixel.begin();
   pixel.show();
-  doSetPixelColor(pixel.Color(  255,   0,   0));
+#endif
+  doSetPixelColor(255, 0, 0);
 
   // Mounting FileSystem
   D_println(F("Mounting file system..."));
   if (SPIFFS.begin()) {
     D_println(F("Mounted file system."));
     tehybutton.conf.loadConfig();
+    tehybutton.getDeviceKey(); // generate the device key if none was loaded
   } else {
     D_println(F("Failed to mount FS"));
   }
@@ -663,7 +649,7 @@ void setup() {
 
   setupWifi();
   setupMode();
-  doSetPixelColor(pixel.Color(  0,   255,   0));         //  Set pixel's color (in RAM)
+  doSetPixelColor(0, 255, 0);
 
   if (tehybutton.device.configMode) {
     D_println(F("Starting config mode"));
@@ -697,8 +683,6 @@ void loop() {
     server.handleClient();
     yield();
     webSocket.loop();
-    // update ticker for the non-deep-sleep mode
-    // ticker.update();
   }
   // deep sleep mode
   else if (tehybutton.device.sleepMode) {

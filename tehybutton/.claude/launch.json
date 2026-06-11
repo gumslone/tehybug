@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tbpreview",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["-S", "127.0.0.1:8123", "-t", "/tmp/tbpreview"],
+      "port": 8123
+    }
+  ]
+}

@@ -5,10 +5,10 @@
     <span class="navbar-toggler-icon"></span>
   </button>
 
-  <ul class="navbar-nav px-3"  style="margin-right:50px;">
+  <ul class="navbar-nav px-3" style="margin-right:50px;">
       <li class="nav-item text-nowrap">
           <div class="text-center nav-link active">
-              Connection: <span id="connectionStatus">Status Unknown</span>
+              <span id="connectionLed" class="led led-off"></span>Connection: <span id="connectionStatus">Status Unknown</span>
           </div>
       </li>
   </ul>
@@ -25,7 +25,6 @@
               Dashboard
             </a>
           </li>
-          
           <li class="nav-item">
             <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'firststart', '#right-content');">
               <span data-feather="play"></span>
@@ -45,19 +44,24 @@
             </a>
           </li>
           <li class="nav-item">
+            <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContent(this, 'about', '#right-content');">
+              <span data-feather="info"></span>
+              About &amp; buttons
+            </a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link" href="javascript:void(0);" onclick="javascript:ChangeContentIframe(this, 'update', '#right-content');">
               <span data-feather="upload"></span>
               Firmware update
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="https://github.com/gumslone/tehybug/tree/master/tehybug" target="_blank">
+            <a class="nav-link" href="https://github.com/gumslone/tehybug/tree/master/tehybutton" target="_blank">
               <span data-feather="github"></span>
               GitHub
             </a>
           </li>
         </ul>
-
       </div>
     </nav>
 

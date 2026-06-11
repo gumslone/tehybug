@@ -44,6 +44,7 @@ function connectionStart() {
         $("#connectionStatus").html("Online");
         $("#connectionStatus").removeClass("text-danger");
         $("#connectionStatus").addClass("text-success");
+        $("#connectionLed").removeClass("led-off led-red").addClass("led-green");
 
         if (pageName == 'setConfig') {
             connection.send(json);
@@ -58,6 +59,7 @@ function connectionStart() {
         $("#connectionStatus").html("Offline");
         $("#connectionStatus").removeClass("text-success");
         $("#connectionStatus").addClass("text-danger");
+        $("#connectionLed").removeClass("led-off led-green").addClass("led-red");
         
         /*if (pageName == 'main') {
             setTimeout(function () {

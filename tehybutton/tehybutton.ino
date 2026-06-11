@@ -356,15 +356,17 @@ void startDeepSleep(int freq) {
 String replace_placeholders(String text)
 {
   text.replace("%state%", button_state);
+  text.replace("%key%", tehybutton.device.key);
   return text;
 }
 
 // HTTP REQUESTS
 void httpPost() {
-  http::post(http1, espClient, tehybutton.serveData.post.url, tehybutton.serveData.post.message);
+  http::post(http1, espClient, tehybutton.serveData.post.url,
+             replace_placeholders(tehybutton.serveData.post.message));
 }
 void httpGet() {
-  http::get(http1, espClient, tehybutton.serveData.get.url);
+  http::get(http1, espClient, replace_placeholders(tehybutton.serveData.get.url));
 }
 
 // Send a message to every connected websocket client whose path is in pages[]

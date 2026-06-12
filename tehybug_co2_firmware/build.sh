@@ -17,6 +17,12 @@ CORE="esp8266:esp8266"
 BOARDS=(esp8285 generic)
 MODE="${1:-release}"
 
+# Board options matching the Arduino IDE settings the device is flashed with:
+# 2MB flash (FS:64KB OTA:~992KB) and basic SSL ciphers. All other IDE
+# settings (80 MHz CPU, 26 MHz crystal, nodemcu reset, lwIP v2 lower memory,
+# flash VTables, legacy exceptions) are the core 2.7.4 defaults.
+BOARD_OPTS="eesz=2M64,ssl=basic"
+
 LIB_FLAGS=()
 if [ -d libraries ]; then
   LIB_FLAGS=(--libraries libraries)
@@ -33,7 +39,7 @@ build_one() {
 
   echo "==> ${board} (${mode})"
   arduino-cli compile \
-    --fqbn "${CORE}:${board}" \
+    --fqbn "${CORE}:${board}:${BOARD_OPTS}" \
     --output-dir "$out" \
     "${LIB_FLAGS[@]}" \
     "${extra_flags[@]}" \

@@ -225,7 +225,25 @@ void handleSaveConfig() {
 
 void handleGetConfig() {
   server.sendHeader("Connection", "close");
-  server.send(200, "text/html", configPage);
+  server.send_P(200, "text/html", configPage);
+}
+
+// Lets the config page show the saved settings and firmware version.
+void handleGetConfigJson() {
+  DynamicJsonDocument doc(256);
+  doc["version"] = version;
+  doc["identifier"] = identifier;
+  doc["imperial_temp"] = Config::imperial_temp;
+  doc["imperial_qfe"] = Config::imperial_qfe;
+  doc["scd40_single_shot"] = Config::scd40_single_shot;
+  doc["scd4x"] = scd4x_sensor;
+  doc["s8"] = s8_sensor;
+  doc["oled"] = oled;
+
+  String json;
+  serializeJson(doc, json);
+  server.sendHeader("Connection", "close");
+  server.send(200, "application/json", json);
 }
 
 void setupHandle() {
@@ -264,6 +282,7 @@ void setupHandle() {
   server.on(F("/"), HTTP_GET, handleMainPage);
   server.on(F("/config"), HTTP_POST, handleSaveConfig);
   server.on(F("/config"), HTTP_GET, handleGetConfig);
+  server.on(F("/config.json"), HTTP_GET, handleGetConfigJson);
   server.begin();
 }
 

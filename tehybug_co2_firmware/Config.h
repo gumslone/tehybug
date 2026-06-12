@@ -64,15 +64,4 @@ void load() {
   }
 }
 
-void reset() {
-  if (SPIFFS.begin()) {
-
-    if (SPIFFS.exists("/config.json")) {
-      File configFile = SPIFFS.open("/config.json", "w");
-      configFile.println("");
-      configFile.close();
-    }
-  }
-}
-
 } // namespace Config

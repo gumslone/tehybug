@@ -84,14 +84,7 @@ String key2icon(const String & key)
   return "mdi:help";
 }
 
-void setupHandle(String deviceName) {
-  snprintf(identifier, sizeof(identifier), "%s-%X", deviceName.c_str(), ESP.getChipId());
-  snprintf(MQTT_TOPIC_STATE, 127, "%s/%s/state", deviceName.c_str(), identifier);
-  snprintf(MQTT_TOPIC_AVAILABILITY, 127, "%s/%s/status", deviceName.c_str(),
-           identifier);
-}
-
- void publishAutoConfig(PubSubClient & mqttClient, const String & version, DynamicJsonDocument & sensorData) {
+void publishAutoConfig(PubSubClient & mqttClient, const String & version, DynamicJsonDocument & sensorData) {
   
   char mqttPayload[2048];
   DynamicJsonDocument device(256);

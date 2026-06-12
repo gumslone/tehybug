@@ -1,7 +1,5 @@
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
-#include <DNSServer.h>
-#include <DNSServer.h> //Local DNS Server used for redirecting all requests to the configuration portal
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
@@ -23,7 +21,9 @@
 #include <TickerScheduler.h>
 #include <Wire.h>
 
-#define DEBUG 1
+#ifndef DEBUG
+#define DEBUG 0
+#endif
 
 #if DEBUG
 #define D_SerialBegin(...) Serial.begin(__VA_ARGS__)
@@ -39,10 +39,7 @@
 
 const String version = "20.02.2025";
 
-// dns
-const byte DNS_PORT = 53;
-IPAddress apIP(192, 168, 4, 1);
-DNSServer dnsServer;
+// mDNS
 char cmDNS[33];
 String escapedMac;
 
@@ -53,7 +50,12 @@ String escapedMac;
 #define BUTTON_LEFT 5
 #define BUTTON_RIGHT 14
 #define BUTTON_MODE 0
-/////////////////////////////////////////////////////////////////
+
+// Button timing
+#define BUTTON_LONG_CLICK_MS 1000
+#define BUTTON_MODE_LONG_CLICK_MS 15000 // factory reset guard: 15 s hold
+#define BUTTON_DOUBLE_CLICK_MS 400
+
 Button2 button_left;
 Button2 button_right;
 Button2 button_mode;
@@ -74,7 +76,18 @@ S8_UART *sensor_S8;
 S8_sensor sensor;
 bool s8_sensor = false;
 bool read_co2_sensor = false;
-unsigned long last_measurenment = 0;
+unsigned long last_measurement = 0;
+
+// Sensors are polled on this interval; the ticker alternates between the
+// CO2 sensor and the environmental sensors on each tick.
+#define MEASUREMENT_INTERVAL_MS 5000
+#define SENSOR_TICK_MS 5001
+
+// CO2 traffic light thresholds (ppm)
+#define CO2_THRESHOLD_HIGH 1500   // red above this
+#define CO2_THRESHOLD_MEDIUM 1000 // yellow above this, green below
+
+#define COLOR_WIPE_WAIT_MS 90
 
 // Adjust sea level for altitude calculation
 #define SEA_LEVEL_PRESSURE_HPA 1026.25
@@ -102,18 +115,11 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
-boolean oldState = HIGH;
-
 DynamicJsonDocument sensorData(1023);
-// Creating a map of arrays
 
 String i2c_addresses = "";
 
 TickerScheduler ticker(5);
-
-#define OLED_RESET 4 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS                                                         \
-  0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -128,14 +134,11 @@ TickerScheduler ticker(5);
   0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 bool oled = false;
-bool update_oled_display = false;
 
 // wifi and mqtt and http
 const char *update_path = "/update";
 const char *update_username = "TeHyBug";
 const char *update_password = "FreshAirMakesSense";
-
-uint8_t mqttRetryCounter = 0;
 
 WiFiManager wifiManager;
 WiFiClient wifiClient;
@@ -166,9 +169,6 @@ char MQTT_TOPIC_AVAILABILITY[128];
 char MQTT_TOPIC_STATE[128];
 char MQTT_TOPIC_COMMAND[128];
 
-char MQTT_TOPIC_AUTOCONF_WIFI_SENSOR[128];
-char MQTT_TOPIC_AUTOCONF_SENSOR[128];
-
 #include "ha.h"
 
 
@@ -179,16 +179,16 @@ void saveConfigCallback() { shouldSaveConfig = true; }
 float temp2Imp(float value) {
   return (1.8 * value + 32);
 }
+// Derive additional readings from a raw one (currently the imperial
+// temperature counterpart).
 void additionalSensorData(String key, float value) {
-
   if (key == "temp" || key == "temp2") {
     addSensorData(key + "_imp", temp2Imp(value));
   }
 }
 void addSensorData(String key, float value) {
-      sensorData[key] = String(value, 1);
-      // calculate imperial temperature also heat index and the dew point
-      additionalSensorData(key, value);
+  sensorData[key] = String(value, 1);
+  additionalSensorData(key, value);
 }
 
 String getSensor() {
@@ -215,30 +215,12 @@ void handleMainPage() {
 }
 
 void handleSaveConfig() {
-  if (server.hasArg("imperial_temp")) {
-    if (server.arg("imperial_temp")) {
-      Config::imperial_temp = true;
-    }
-  } else {
-    Config::imperial_temp = false;
-  }
-  if (server.hasArg("imperial_qfe")) {
-    if (server.arg("imperial_qfe")) {
-      Config::imperial_qfe = true;
-    }
-  } else {
-    Config::imperial_qfe = false;
-  }
-  if (server.hasArg("scd40_single_shot")) {
-    if (server.arg("scd40_single_shot")) {
-      Config::scd40_single_shot = true;
-    }
-  } else {
-    Config::scd40_single_shot = false;
-  }
+  Config::imperial_temp = server.hasArg("imperial_temp");
+  Config::imperial_qfe = server.hasArg("imperial_qfe");
+  Config::scd40_single_shot = server.hasArg("scd40_single_shot");
   Config::save();
   server.sendHeader("Connection", "close");
-  server.send(200, "text/plain", "Configuration saved sucessfully!");
+  server.send(200, "text/plain", "Configuration saved successfully!");
 }
 
 void handleGetConfig() {
@@ -257,19 +239,11 @@ void setupHandle() {
   Serial.printf("Reset reason: %s\n", ESP.getResetReason().c_str());
 
   delay(3000);
-  ha::setupHandle(FIRMWARE_PREFIX);
   snprintf(identifier, sizeof(identifier), "TEHYBUG-CO2-%X", ESP.getChipId());
   snprintf(MQTT_TOPIC_AVAILABILITY, 127, "%s/%s/status", FIRMWARE_PREFIX,
            identifier);
   snprintf(MQTT_TOPIC_STATE, 127, "%s/%s/state", FIRMWARE_PREFIX, identifier);
   snprintf(MQTT_TOPIC_COMMAND, 127, "%s/%s/command", FIRMWARE_PREFIX,
-           identifier);
-
-  snprintf(MQTT_TOPIC_AUTOCONF_SENSOR, 127,
-           "homeassistant/sensor/%s/%s_co2/config", FIRMWARE_PREFIX,
-           identifier);
-  snprintf(MQTT_TOPIC_AUTOCONF_WIFI_SENSOR, 127,
-           "homeassistant/sensor/%s/%s_wifi/config", FIRMWARE_PREFIX,
            identifier);
   WiFi.hostname(identifier);
 
@@ -347,12 +321,9 @@ void setupWifi() {
   }
 }
 void setupMDSN() {
-  // generate module IDs
   escapedMac = WiFi.macAddress();
   escapedMac.replace(":", "");
   escapedMac.toLowerCase();
-  strcpy_P(cmDNS, PSTR("tehybug-"));
-  sprintf(cmDNS + 5, "%*s", 6, escapedMac.c_str() + 6);
   // Set up mDNS responder:
   strcpy_P(cmDNS, PSTR("tehybug"));
   if (strlen(cmDNS) > 0) {
@@ -368,19 +339,10 @@ void setupMDSN() {
 }
 // BUTTON
 //  Attach callback.
-void pressed(Button2 &btn) { Serial.println("pressed"); }
-void released(Button2 &btn) {
-  Serial.print("released: ");
-  Serial.println(btn.wasPressedFor());
-}
-void changed(Button2 &btn) { Serial.println("changed"); }
 void click(Button2 &btn) {
   Serial.println("click\n");
   Serial.println(btn.getPin());
   Serial.println("\n");
-}
-void longClickDetected(Button2 &btn) {
-  Serial.println("long click detected\n");
 }
 void longClick(Button2 &btn) {
   Serial.println("long click\n");
@@ -398,77 +360,21 @@ void doubleClick(Button2 &btn) {
   Serial.println(btn.getPin());
   Serial.println("\n");
 }
-void tripleClick(Button2 &btn) { Serial.println("triple click\n"); }
+
+void setupButton(Button2 &button, uint8_t pin, unsigned int longClickTime) {
+  pinMode(pin, INPUT_PULLUP);
+  button.begin(pin);
+  button.setLongClickTime(longClickTime);
+  button.setDoubleClickTime(BUTTON_DOUBLE_CLICK_MS);
+  button.setClickHandler(click);
+  button.setLongClickHandler(longClick);
+  button.setDoubleClickHandler(doubleClick);
+}
 
 void setupButtons() {
-  pinMode(BUTTON_LEFT, INPUT_PULLUP);
-  pinMode(BUTTON_RIGHT, INPUT_PULLUP);
-  pinMode(BUTTON_MODE, INPUT_PULLUP);
-
-  Serial.println("\n\nButton Demo");
-
-  button_left.begin(BUTTON_LEFT);
-  button_left.setLongClickTime(1000);
-  button_left.setDoubleClickTime(400);
-
-  Serial.println(" Longpress Time: " + String(button_left.getLongClickTime()) +
-                 "ms");
-  Serial.println(
-      " DoubleClick Time: " + String(button_left.getDoubleClickTime()) + "ms");
-
-  // button_left.setChangedHandler(changed);
-  // button_left.setPressedHandler(pressed);
-  // button_left.setReleasedHandler(released);
-
-  // button_left.setTapHandler(tap);
-  button_left.setClickHandler(click);
-  // button_left.setLongClickDetectedHandler(longClickDetected);
-  button_left.setLongClickHandler(longClick);
-
-  button_left.setDoubleClickHandler(doubleClick);
-  // button_left.setTripleClickHandler(tripleClick);
-
-  button_right.begin(BUTTON_RIGHT);
-  button_right.setLongClickTime(1000);
-  button_right.setDoubleClickTime(400);
-
-  Serial.println(" Longpress Time: " + String(button_right.getLongClickTime()) +
-                 "ms");
-  Serial.println(
-      " DoubleClick Time: " + String(button_right.getDoubleClickTime()) + "ms");
-
-  // button_right.setChangedHandler(changed);
-  // button_right.setPressedHandler(pressed);
-  // button_right.setReleasedHandler(released);
-
-  // button_right.setTapHandler(tap);
-  button_right.setClickHandler(click);
-  // button_right.setLongClickDetectedHandler(longClickDetected);
-  button_right.setLongClickHandler(longClick);
-
-  button_right.setDoubleClickHandler(doubleClick);
-  // button_right.setTripleClickHandler(tripleClick);
-
-  button_mode.begin(BUTTON_MODE);
-  button_mode.setLongClickTime(15000);
-  button_mode.setDoubleClickTime(400);
-
-  Serial.println(" Longpress Time: " + String(button_mode.getLongClickTime()) +
-                 "ms");
-  Serial.println(
-      " DoubleClick Time: " + String(button_mode.getDoubleClickTime()) + "ms");
-
-  // button_mode.setChangedHandler(changed);
-  // button_mode.setPressedHandler(pressed);
-  // button_mode.setReleasedHandler(released);
-
-  // button_mode.setTapHandler(tap);
-  button_mode.setClickHandler(click);
-  // button_mode.setLongClickDetectedHandler(longClickDetected);
-  button_mode.setLongClickHandler(longClick);
-
-  button_mode.setDoubleClickHandler(doubleClick);
-  // button_mode.setTripleClickHandler(tripleClick);
+  setupButton(button_left, BUTTON_LEFT, BUTTON_LONG_CLICK_MS);
+  setupButton(button_right, BUTTON_RIGHT, BUTTON_LONG_CLICK_MS);
+  setupButton(button_mode, BUTTON_MODE, BUTTON_MODE_LONG_CLICK_MS);
 }
 
 void resetWifiSettingsAndReboot() {
@@ -604,95 +510,70 @@ void read_bme680() {
 }
 
 void co2_ampel(float val) {
-  if (val > 1500) {
-    colorWipe(strip.Color(255, 0, 0), 90); // red
-  } else if (val > 1000) {
-    colorWipe(strip.Color(255, 200, 0), 90); // yellow
+  if (val > CO2_THRESHOLD_HIGH) {
+    colorWipe(strip.Color(255, 0, 0), COLOR_WIPE_WAIT_MS); // red
+  } else if (val > CO2_THRESHOLD_MEDIUM) {
+    colorWipe(strip.Color(255, 200, 0), COLOR_WIPE_WAIT_MS); // yellow
   } else {
-    colorWipe(strip.Color(0, 255, 0), 90); // Green
+    colorWipe(strip.Color(0, 255, 0), COLOR_WIPE_WAIT_MS); // green
   }
   strip.show();
 }
 
 void read_scd4x() {
-if (millis() - last_measurenment >= 5000) // 5 seconds
-  {
-    if (mySensor.readMeasurement()) // readMeasurement will return true when fresh
-                                    // data is available
+  if (millis() - last_measurement >= MEASUREMENT_INTERVAL_MS) {
+    if (mySensor.readMeasurement()) // readMeasurement will return true when
+                                    // fresh data is available
     {
       float co2 = mySensor.getCO2();
       float temp = mySensor.getTemperature();
       float humi = mySensor.getHumidity();
-      if(co2 > 0 )
-      {
+      if (co2 > 0) {
         addSensorData("co2", co2);
         D_println();
         D_print(F("CO2(ppm):"));
         D_print(co2);
-        
+
         D_print(F("\tTemperature(C):"));
         D_print(temp);
-  
+
         D_print(F("\tHumidity(%RH):"));
-        D_print(humi); 
-        if (aht20_sensor == false && bmx_sensor == false && bme680_sensor == false) {
+        D_print(humi);
+        D_println();
+        // The SCD4x's own temperature/humidity readings are secondary if a
+        // dedicated environmental sensor is connected.
+        if (aht20_sensor == false && bmx_sensor == false &&
+            bme680_sensor == false) {
           addSensorData("temp", temp);
           addSensorData("humi", humi);
-        }
-        else
-        {
-          
+        } else {
           addSensorData("temp2", temp);
-          addSensorData("humi2", humi); 
+          addSensorData("humi2", humi);
         }
-          D_print(F("\tCO2(ppm):"));
-          D_print(sensorData["co2"].as<String>());
-        
-          D_print(F("\tTemperature(C):"));
-          D_print(sensorData["temp2"].as<String>());
-    
-          D_print(F("\tHumidity(%RH):"));
-          D_print(sensorData["humi2"].as<String>()); 
-        
-        D_println();
-    
+
         co2_ampel(co2);
-      }
-      else
-        D_print("CO2 NULL!!"); 
+      } else
+        D_print("CO2 NULL!!");
     }
-  
-    if (Config::scd40_single_shot)
-    {
-      mySensor.measureSingleShot(); // Request fresh data (should take 5 seconds)
+
+    if (Config::scd40_single_shot) {
+      mySensor.measureSingleShot(); // Request fresh data (should take 5
+                                    // seconds)
     }
-    // Wait 5 second for next measure
-    last_measurenment = millis();
+    last_measurement = millis();
   }
 }
 void read_s8() {
-  if (millis() - last_measurenment >= 5000) // 5 seconds
-  {
-    // printf("Millis: %lu\n", millis());
-
-    // Get CO2 measure
+  if (millis() - last_measurement >= MEASUREMENT_INTERVAL_MS) {
     addSensorData("co2", sensor_S8->get_co2());
-    
+
     D_println();
     D_print(F("CO2(ppm):"));
     D_print(sensorData["co2"].as<String>());
     D_println();
     co2_ampel(sensorData["co2"].as<int>());
-    // Serial.printf("/*%u*/\n", sensor.co2);   // Format to use with Serial
-    // Studio program
 
-    // Compare with PWM output
-    // sensor.pwm_output = sensor_S8->get_PWM_output();
-    // printf("PWM output = %0.0f ppm\n", (sensor.pwm_output / 16383.0) *
-    // 2000.0);
-
-    // Wait 5 second for next measure
-    last_measurenment = millis();
+    last_measurement = millis();
   }
 }
 
@@ -764,7 +645,7 @@ void display_show(const String line1, const String line2, const String line3,
 
 void update_display() {
 
-  if (oled && update_oled_display) {
+  if (oled) {
 
     String line1, line2, line3, line4;
 
@@ -826,8 +707,6 @@ void read_sensors() {
   
   read_co2_sensor = !read_co2_sensor;
 
-  update_oled_display = true;
-
   update_display();
 
   sensorData.garbageCollect();
@@ -876,31 +755,8 @@ void i2c_scanner() {
 }
 
 // find in string
-uint8_t strContains(const char *string, char *toFind) {
-  uint8_t slen = strlen(string);
-  uint8_t tFlen = strlen(toFind);
-  uint8_t found = 0;
-
-  if (slen >= tFlen) {
-    for (uint8_t s = 0, t = 0; s < slen; s++) {
-      do {
-
-        if (string[s] == toFind[t]) {
-          if (++found == tFlen)
-            return 1;
-          s++;
-          t++;
-        } else {
-          s -= found;
-          found = 0;
-          t = 0;
-        }
-
-      } while (found);
-    }
-    return 0;
-  } else
-    return -1;
+bool strContains(const char *string, const char *toFind) {
+  return strstr(string, toFind) != nullptr;
 }
 
 
@@ -1108,7 +964,7 @@ void connectToWiFi()
 } // void connectToWiFi()
 void checkWifi()
 {
-  if ( !wifiClient.connected() || !WiFi.status() == WL_CONNECTED || WiFi.localIP().toString() == "0.0.0.0") {
+  if ( !wifiClient.connected() || WiFi.status() != WL_CONNECTED || WiFi.localIP().toString() == "0.0.0.0") {
     connectToWiFi();
   }
 }
@@ -1127,25 +983,22 @@ void setup() {
   i2c_addresses = "";
   i2c_scanner();
 
-  if (strContains(i2c_addresses.c_str(), "0x3c") == 1) {
+  if (strContains(i2c_addresses.c_str(), "0x3c")) {
     oled = true;
     setupOled();
   }
 
-  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
+  if (strContains(i2c_addresses.c_str(), "0x77")) {
     bmx280 = bmp280;
     bmx_sensor = true;
-  } else if (strContains(i2c_addresses.c_str(), "0x76") == 1) {
+  } else if (strContains(i2c_addresses.c_str(), "0x76")) {
     bmx_sensor = true;
   }
-  if (strContains(i2c_addresses.c_str(), "0x77") == 1) {
-    bme680_sensor = false;
-  }
-  if (strContains(i2c_addresses.c_str(), "0x38") == 1) {
+  if (strContains(i2c_addresses.c_str(), "0x38")) {
     aht20_sensor = true;
   }
 
-  if (strContains(i2c_addresses.c_str(), "0x62") == 1) {
+  if (strContains(i2c_addresses.c_str(), "0x62")) {
     scd4x_sensor = true;
   } else {
     s8_sensor = true;
@@ -1159,7 +1012,7 @@ void setup() {
 
   int val = digitalRead(BUTTON_LEFT); // read the input pin
   if (val == 0) {
-    colorWipe(strip.Color(255, 0, 255), 90); // pink
+    colorWipe(strip.Color(255, 0, 255), COLOR_WIPE_WAIT_MS); // pink
     strip.show();
     Serial.println("WIFI toggled!");
     Config::offline_mode = !Config::offline_mode;
@@ -1179,13 +1032,13 @@ void setup() {
   }
 
   if (Config::offline_mode == false) {
-    colorWipe(strip.Color(0, 0, 255), 90); // Blue
+    colorWipe(strip.Color(0, 0, 255), COLOR_WIPE_WAIT_MS); // blue
     strip.show();
     setupHandle();
     WiFi.softAPdisconnect(true);
 
   } else {
-    colorWipe(strip.Color(0, 0, 0), 90); // off
+    colorWipe(strip.Color(0, 0, 0), COLOR_WIPE_WAIT_MS); // off
     strip.show();
     WiFi.mode(WIFI_OFF);
     WiFi.forceSleepBegin();
@@ -1194,7 +1047,7 @@ void setup() {
   }
   
   ticker.add(
-      0, 5001, [&](void *) { read_sensors(); }, nullptr, true);
+      0, SENSOR_TICK_MS, [&](void *) { read_sensors(); }, nullptr, true);
 }
 
 void loop() {

@@ -29,6 +29,17 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp8266:esp8266@2.7.4
 
+      # Stock core 2.7.4 predates 'compiler.libraries.ldflags', which the
+      # precompiled BSEC library needs to link (-lalgobsec). Apply the same
+      # platform.txt patch the project is built with locally.
+      - name: Patch core for precompiled libraries
+        run: |
+          PLATFORM_TXT="$HOME/.arduino15/packages/esp8266/hardware/esp8266/2.7.4/platform.txt"
+          grep -q '^compiler.libraries.ldflags=' "$PLATFORM_TXT" || \
+            sed -i '/^compiler.c.elf.libs=/a compiler.libraries.ldflags=' "$PLATFORM_TXT"
+          sed -i 's/{compiler.c.elf.libs} -Wl,--end-group/{compiler.c.elf.libs} {compiler.libraries.ldflags} -Wl,--end-group/' "$PLATFORM_TXT"
+          grep -n 'compiler.libraries.ldflags' "$PLATFORM_TXT"
+
       - name: Build all boards and modes
         run: ./tehybug_co2_firmware/build.sh all
 

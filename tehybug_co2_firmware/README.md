@@ -19,18 +19,35 @@ TeHyBug Senseait S8 CO2 Enclosure for 3D Printing is available on Thingiverse: h
 
 ## How to calibrate the CO2 sensor
 SCD4X sensor has an automatic calibration and usually doesnt need to be calibrated.
-The senseair s8 needs sometimes a manual calibration. Hold the right button IO_14 on the back for 15 Seconds, then release the button and the calibration will start. Put the sensor outside on the fresh air and wait, the calibration will be finished after 7 minutes. 
+The senseair s8 needs sometimes a manual calibration. Hold the right button IO_14 on the back for about a second, then release the button and the calibration will start. Put the sensor outside on the fresh air and wait, the calibration will be finished after about 6 minutes.
 
 ## How to program/flash the board
 To flash firmware use the .esp8285.bin file.
-For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board.
+For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board with flash size "2MB (FS:64KB OTA:~992KB)" and SSL support "Basic SSL ciphers".
 Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash binaries to the board or other tools which are described at: https://nodemcu.readthedocs.io/en/latest/flash/
+
+## Building from source
+With [arduino-cli](https://arduino.github.io/arduino-cli/) and the ESP8266 core 2.7.4 installed:
+
+```
+./build.sh           # release build for esp8285 and generic, refreshes the .bin files
+./build.sh debug     # debug build with serial debug output (-DDEBUG=1)
+./build.sh all       # both
+```
+
+Build output goes to `build/<board>/<mode>/`.
 
 ## Upload new firmware via web interface
 
 To update the firmware from OTA WebInterface open http://tehybug.local/update in your browser, if this doesnt work, try to find out its IP from your router admin menu or use any local network ip scanner app for your mobile phone to get the device ip and then open http://<ip_address<ip address>>/update with your browser.
 
-To show the temperature in Fahrenheit instead of Celsius, open http://tehybug.local/config or http://<ip_address<ip address>>/config with your browser to save the configuration.
+## Configuration page
+
+Open http://tehybug.local/config (or http://<ip_address>/config) in your browser. The page shows the live sensor readings, a live preview of the OLED display, all settings (temperature unit, pressure unit, SCD4x single-shot mode) with explanations, a hardware buttons cheat sheet and the device documentation:
+
+<img src="https://github.com/gumslone/tehybug/blob/master/tehybug_co2_firmware/images/config_page.png?raw=true" width="500">
+
+The device also serves its current readings as JSON at http://tehybug.local/ and the saved settings at http://tehybug.local/config.json.
 
 For the update page you will have to provide a username and a password:
   
@@ -57,7 +74,7 @@ Password: FreshAirMakesSense
 
 ### IO_14 Button
 
-- starts senseair s8 sensor calibration, hold it for 15 seconds to start the calibation. Put the device outside into a fresh air for the calibration.
+- starts senseair s8 sensor calibration, hold it for about a second to start the calibration. Put the device outside into a fresh air for the calibration.
 
 ## Pinmapping
   

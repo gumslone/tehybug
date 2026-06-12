@@ -1,0 +1,60 @@
+name: tehybug_co2 release
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [closed]
+    branches: [master]
+    paths:
+      - "tehybug_co2_firmware/**"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+        with:
+          version: "1.0.3"
+
+      - name: Install ESP8266 core 2.7.4
+        run: |
+          arduino-cli config init --additional-urls http://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp8266:esp8266@2.7.4
+
+      - name: Build all boards and modes
+        run: ./tehybug_co2_firmware/build.sh all
+
+      - name: Collect artifacts and read firmware version
+        id: meta
+        run: |
+          VERSION=$(sed -n 's/^const String version = "\(.*\)";$/\1/p' tehybug_co2_firmware/tehybug_co2_firmware.ino)
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          mkdir -p dist
+          for board in esp8285 generic; do
+            cp "tehybug_co2_firmware/build/$board/release/tehybug_co2_firmware.ino.bin" \
+               "dist/tehybug_co2_firmware.ino.$board.bin"
+            cp "tehybug_co2_firmware/build/$board/debug/tehybug_co2_firmware.ino.bin" \
+               "dist/tehybug_co2_firmware.ino.$board.debug.bin"
+          done
+          ls -la dist/
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: tehybug_co2_v${{ steps.meta.outputs.version }}
+          name: TeHyBug CO2 ${{ steps.meta.outputs.version }}
+          body: |
+            TeHyBug CO2 sensor firmware ${{ steps.meta.outputs.version }}.
+
+            Flash the `.esp8285.bin` file (release build). The `.debug.bin`
+            variants log verbose sensor output on the serial port.
+          files: dist/*

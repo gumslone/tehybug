@@ -1,0 +1,73 @@
+#######################################
+# Syntax Coloring Map For Erriez BMP280/BME280 sensor
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+ErriezBMX280	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+getChipID	KEYWORD2
+
+readTemperature	KEYWORD2
+readPressure	KEYWORD2
+readAltitude	KEYWORD2
+readHumidity	KEYWORD2    # BME280 only
+
+setSampling	KEYWORD2
+
+read8	KEYWORD2
+read15	KEYWORD2
+read16_LE	KEYWORD2
+read16S_LE	KEYWORD2
+read24	KEYWORD2
+write8	KEYWORD2
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+bmp280	KEYWORD2
+bme280	KEYWORD2
+bmx280	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+BMX280_I2C_ADDR	LITERAL1
+BMX280_I2C_ADDR_ALT	LITERAL1
+
+BMX280_MODE_SLEEP	LITERAL1
+BMX280_MODE_FORCED	LITERAL1
+BMX280_MODE_NORMAL	LITERAL1
+
+BMX280_SAMPLING_NONE	LITERAL1
+BMX280_SAMPLING_X1	LITERAL1
+BMX280_SAMPLING_X2	LITERAL1
+BMX280_SAMPLING_X4	LITERAL1
+BMX280_SAMPLING_X8	LITERAL1
+BMX280_SAMPLING_X16	LITERAL1
+
+BMX280_FILTER_OFF	LITERAL1
+BMX280_FILTER_X2	LITERAL1
+BMX280_FILTER_X4	LITERAL1
+BMX280_FILTER_X8	LITERAL1
+BMX280_FILTER_X16	LITERAL1
+
+BMX280_STANDBY_MS_0_5	LITERAL1
+BMX280_STANDBY_MS_10	LITERAL1
+BMX280_STANDBY_MS_20	LITERAL1
+BMX280_STANDBY_MS_62_5	LITERAL1
+BMX280_STANDBY_MS_125	LITERAL1
+BMX280_STANDBY_MS_250	LITERAL1
+BMX280_STANDBY_MS_500	LITERAL1
+BMX280_STANDBY_MS_1000	LITERAL1
+
+CHIP_ID_BMP280	LITERAL1
+CHIP_ID_BME280	LITERAL1

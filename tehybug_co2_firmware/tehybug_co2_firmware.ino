@@ -37,7 +37,7 @@
 #define D_println(...)
 #endif
 
-const String version = "20.02.2025";
+const String version = "12.06.2026";
 
 // mDNS
 char cmDNS[33];

@@ -1,0 +1,51 @@
+{
+  "name": "S8_UART",
+  "version": "1.0.1",
+  "description": "Arduino library to control SenseAir S8 CO2 sensor using UART communication",
+  "keywords": "co2, carbon dioxide, sensor, senseair, s8, air quality, environment, uart, serial",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/jcomas/S8_UART.git"
+  },
+  "authors":
+  [
+    {
+      "name": "Josep Comas",
+      "email": "jcomas@gmail.com",
+      "url": "https://github.com/jcomas",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/jcomas/S8_UART",
+  "frameworks": "arduino",
+  "platforms": "*",
+  "examples": [
+    {
+        "name": "Get CO2 value",
+        "base": "examples/co2",
+        "files": ["co2.cpp"]
+    },
+    {
+        "name": "Get information about the sensor",
+        "base": "examples/info",
+        "files": ["info.cpp"]
+    },
+    {
+        "name": "Manual calibration",
+        "base": "examples/calibration/manual",
+        "files": ["manual.cpp"]
+    },
+    {
+        "name": "Automatic calibration (ABC)",
+        "base": "examples/calibration/automatic",
+        "files": ["automatic.cpp"]
+    },
+    {
+        "name": "Check the health of CO2 sensor",
+        "base": "examples/diag",
+        "files": ["diag.cpp"]
+    }
+  ]
+}

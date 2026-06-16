@@ -1,0 +1,3 @@
+[submodule "tehybug_co2_firmware/tools/bugzapper"]
+	path = tehybug_co2_firmware/tools/bugzapper
+	url = https://github.com/gumslone/bugzapper.git

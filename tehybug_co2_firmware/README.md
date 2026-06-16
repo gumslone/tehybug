@@ -26,6 +26,31 @@ To flash firmware use the .esp8285.bin file.
 For flashing and programming you can use ARDUINO IDE, select there generic ESP8285 board with flash size "2MB (FS:64KB OTA:~992KB)" and SSL support "Basic SSL ciphers".
 Also you can use the [ESPTool](https://github.com/espressif/esptool) to flash binaries to the board or other tools which are described at: https://nodemcu.readthedocs.io/en/latest/flash/
 
+### Flash with BugZapper (bundled flasher + serial monitor)
+
+This project ships [BugZapper](https://github.com/gumslone/bugzapper) — a self-contained flasher with a built-in serial monitor, so you don't need a separate PyFlasher and CoolTerm. esptool is bundled (pure Python), so no `pip install` is needed.
+
+Clone with submodules first (or run `git submodule update --init` in an existing checkout):
+
+```
+git clone --recurse-submodules https://github.com/gumslone/tehybug.git
+```
+
+GUI — pick port / firmware / baud, flash, and watch the boot log in one window:
+
+```
+./bugzapper.sh          # needs a python3 with tkinter (brew install python-tk)
+```
+
+CLI — flashes the shipped `tehybug_co2_firmware.ino.esp8285.bin` by default:
+
+```
+./flash.sh              # flash the ESP8285 release binary
+./flash.sh -e           # erase all flash, then write
+./flash.sh -l           # list serial ports
+./flash.sh -h           # all options
+```
+
 ## Building from source
 With [arduino-cli](https://arduino.github.io/arduino-cli/) and the ESP8266 core 2.7.4 installed:
 

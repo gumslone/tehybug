@@ -1,0 +1,39 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- squircle panel gradient: TeHyBug dark theme, top lighter -->
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d2b28"/>
+      <stop offset="0.55" stop-color="#16201f"/>
+      <stop offset="1" stop-color="#0e1416"/>
+    </linearGradient>
+    <!-- green glow for the bolt -->
+    <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7dffb0"/>
+      <stop offset="0.5" stop-color="#3ddc84"/>
+      <stop offset="1" stop-color="#22b765"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="26" stdDeviation="34" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="boltglow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- rounded squircle panel: side 832, corner radius ~0.22*side -->
+  <rect x="96" y="84" width="832" height="832" rx="183" ry="183"
+        fill="url(#panel)" filter="url(#shadow)"/>
+  <!-- subtle top highlight rim -->
+  <rect x="96" y="84" width="832" height="832" rx="183" ry="183"
+        fill="none" stroke="#3ddc84" stroke-opacity="0.18" stroke-width="3"/>
+
+  <!-- lightning bolt (BugZapper "zap"), TeHyBug green, inset and centered -->
+  <g filter="url(#boltglow)">
+    <polygon points="566,236 360,560 486,560 430,792 690,452 548,452 632,236"
+             fill="url(#bolt)"/>
+  </g>
+</svg>

@@ -1,3 +1,18 @@
+> # 📦 This firmware has moved
+>
+> Development continues in a new repository:
+> ### 👉 [github.com/gumslone/tehybug-universal](https://github.com/gumslone/tehybug-universal)
+>
+> Please get the **latest firmware, releases and issues** there. This repository
+> is kept for reference and is no longer updated.
+>
+> The new repository has the same firmware, reworked: an offline data log for
+> the RTC + EEPROM module, a redesigned web interface, prebuilt binaries with
+> automatic releases, and [BugZapper](https://github.com/gumslone/bugzapper) for
+> flashing over serial.
+
+---
+
 This is a different TeHyBug firmware fully written in C/C++, (previous was partially in Lua).
 
 This firmware supports easy OTA Updates.

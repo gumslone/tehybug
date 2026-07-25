@@ -17,6 +17,14 @@ Get a TeHyBug scriptable iOS 14 widget from here https://gist.github.com/gumslon
 
 
 ### TeHyBug Universal 18650 / TeHyBug Mini / TeHyBug Classic firmware
+
+> **📦 The C/C++ firmware for these boards has moved to
+> [gumslone/tehybug-universal](https://github.com/gumslone/tehybug-universal).**
+> Get the latest firmware, prebuilt binaries, releases and issues there — the
+> copy in [`tehybug/`](tehybug/) is kept for reference and is no longer updated.
+> The other firmwares in this repository (CO2, CO2 Desk, Display, Indicator)
+> are unaffected and still live here.
+
 Documentation for the TeHyBug Lua firmware you can get here: https://github.com/gumslone/tehybug/blob/master/TeHyBug.md
 and more at https://tehybug.com/faq
 

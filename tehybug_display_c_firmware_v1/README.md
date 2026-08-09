@@ -1,3 +1,20 @@
+> # 📦 This firmware has moved
+>
+> The Display Weatherstation is now supported by the TeHyBug universal firmware:
+> ### 👉 [github.com/gumslone/tehybug-universal](https://github.com/gumslone/tehybug-universal)
+>
+> Flash `firmware/tehybug.ino.display.bin` from there — get the **latest
+> firmware, releases and issues** in that repository. This folder is kept for
+> reference and is no longer updated.
+>
+> The new firmware keeps the clock, sensor pages, weekday alarms, buzzer and
+> the WiFi-off display mode (your stored settings carry over on upgrade), and
+> adds everything the universal firmware has: MQTT + Home Assistant discovery,
+> TeHyBug Cloud, scenarios, an offline data log, a redesigned web interface
+> with a Display &amp; Alarms page, and automatic release builds.
+
+---
+
 <a href="https://www.buymeacoffee.com/gumslone" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
 Firmware made for TeHyBug display Weatherstation which is available at tindie:
